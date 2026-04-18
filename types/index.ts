@@ -23,11 +23,18 @@ export interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
+// Bottom Tab Navigation for Employee
+export type EmployeeTabParamList = {
+  EmployeeDashboard: undefined;
+  AttendanceHistory: undefined;
+};
+
 // Navigation prop types for React Navigation
 export type RootStackParamList = {
   Login: undefined;
   AdminDashboard: undefined;
-  EmployeeDashboard: undefined;
+  EmployeeTabs: undefined;
+  AttendanceHistory: undefined;
 };
 
 // Employee details for dashboard
