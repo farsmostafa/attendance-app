@@ -51,12 +51,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
       }
 
       // Query: Get latest attendance record for current user
-      const q = query(
-        collection(db, "attendance"),
-        where("userId", "==", userData.uid),
-        orderBy("timestamp", "desc"),
-        limit(1)
-      );
+      const q = query(collection(db, "attendance"), where("userId", "==", userData.uid), orderBy("timestamp", "desc"), limit(1));
 
       const querySnapshot = await getDocs(q);
 
@@ -74,9 +69,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
       const recordTimestamp = latestData.timestamp;
 
       // Convert Firestore Timestamp to JavaScript Date
-      const recordDate = recordTimestamp instanceof Timestamp
-        ? recordTimestamp.toDate()
-        : new Date(recordTimestamp);
+      const recordDate = recordTimestamp instanceof Timestamp ? recordTimestamp.toDate() : new Date(recordTimestamp);
 
       // Get today's date at midnight for comparison
       const today = new Date();
@@ -125,7 +118,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
   useFocusEffect(
     React.useCallback(() => {
       fetchTodayCheckStatus();
-    }, [])
+    }, []),
   );
 
   // Location permission and distance calculation
@@ -261,11 +254,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
             <TouchableOpacity
               style={[
                 styles.button,
-                hasCompletedShift
-                  ? styles.buttonCompleted
-                  : isCheckedIn
-                  ? styles.buttonCheckOut
-                  : styles.buttonCheckIn,
+                hasCompletedShift ? styles.buttonCompleted : isCheckedIn ? styles.buttonCheckOut : styles.buttonCheckIn,
                 (!isWithinRadius || isCheckingIn || hasCompletedShift) && styles.buttonDisabled,
               ]}
               onPress={handleCheckIn}
@@ -274,25 +263,15 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
               {isCheckingIn ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text
-                  style={styles.buttonText}
-                  numberOfLines={2}
-                  adjustsFontSizeToFit
-                >
-                  {hasCompletedShift
-                    ? "انتهى تسجيل الحضور والانصراف لليوم"
-                    : isCheckedIn
-                    ? "تسجيل الانصراف"
-                    : "تسجيل الحضور"}
+                <Text style={styles.buttonText} numberOfLines={2} adjustsFontSizeToFit>
+                  {hasCompletedShift ? "انتهى تسجيل الحضور والانصراف لليوم" : isCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور"}
                 </Text>
               )}
             </TouchableOpacity>
 
             {hasCompletedShift && (
               <View style={styles.completionMessageContainer}>
-                <Text style={styles.completionMessage}>
-                  تم تسجيل الحضور والانصراف بنجاح. نراك غداً!
-                </Text>
+                <Text style={styles.completionMessage}>تم تسجيل الحضور والانصراف بنجاح. نراك غداً!</Text>
               </View>
             )}
           </View>
