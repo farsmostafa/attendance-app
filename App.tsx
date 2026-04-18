@@ -31,14 +31,15 @@ function EmployeeTabs() {
           backgroundColor: "#ffffff",
           borderTopColor: "#e0e0e0",
           borderTopWidth: 1,
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          paddingBottom: 10,
+          paddingTop: 8,
+          height: 75,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "500",
-          marginBottom: 3,
+          fontSize: 13,
+          fontWeight: "600",
+          marginBottom: 5,
+          marginTop: 2,
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;

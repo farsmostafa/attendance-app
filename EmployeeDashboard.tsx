@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
 import { addDoc, collection, serverTimestamp, query, where, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
 import { db } from "./firebaseConfig";
@@ -40,77 +41,92 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
   const [loadingCheckStatus, setLoadingCheckStatus] = useState(true);
   const isProcessingRef = useRef(false);
 
-  // Fetch today's attendance status - Strict daily cycle logic
-  useEffect(() => {
-    const fetchTodayCheckStatus = async () => {
-      try {
-        const userData = await getCurrentUserData();
-        if (!userData || !userData.uid) {
-          setLoadingCheckStatus(false);
-          return;
-        }
-
-        // Query: Get latest attendance record (simplify to avoid composite index requirement)
-        const q = query(collection(db, "attendance"), where("userId", "==", userData.uid), orderBy("timestamp", "desc"), limit(1));
-
-        const querySnapshot = await getDocs(q);
-
-        // State A: No records found
-        if (querySnapshot.empty) {
-          setIsCheckedIn(false);
-          setHasCompletedShift(false);
-          setLoadingCheckStatus(false);
-          return;
-        }
-
-        // Get the latest record
-        const latestDoc = querySnapshot.docs[0];
-        const latestData = latestDoc.data();
-        const recordTimestamp = latestData.timestamp;
-
-        // Convert Firestore Timestamp to JavaScript Date
-        const recordDate = recordTimestamp instanceof Timestamp ? recordTimestamp.toDate() : new Date(recordTimestamp);
-
-        // Get today's date at midnight for comparison
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        // Check if the record is from TODAY (same day, month, year)
-        const isRecordFromToday =
-          recordDate.getDate() === today.getDate() &&
-          recordDate.getMonth() === today.getMonth() &&
-          recordDate.getFullYear() === today.getFullYear();
-
-        // State C: Record is from today and type is 'check-out' -> Shift completed
-        if (isRecordFromToday && latestData.type === "check-out") {
-          setHasCompletedShift(true);
-          setIsCheckedIn(false);
-          setLoadingCheckStatus(false);
-          return;
-        }
-
-        // State B: Record is from today and type is 'check-in' -> Only checked in
-        if (isRecordFromToday && latestData.type === "check-in") {
-          setIsCheckedIn(true);
-          setHasCompletedShift(false);
-          setLoadingCheckStatus(false);
-          return;
-        }
-
-        // State A: Record is NOT from today (or no valid record) -> Ready for new check-in
-        setIsCheckedIn(false);
-        setHasCompletedShift(false);
-      } catch (err) {
-        console.error("Error fetching check status:", err);
-        setIsCheckedIn(false);
-        setHasCompletedShift(false);
-      } finally {
+  // Function to fetch today's attendance status
+  const fetchTodayCheckStatus = async () => {
+    try {
+      const userData = await getCurrentUserData();
+      if (!userData || !userData.uid) {
         setLoadingCheckStatus(false);
+        return;
       }
-    };
 
+      // Query: Get latest attendance record for current user
+      const q = query(
+        collection(db, "attendance"),
+        where("userId", "==", userData.uid),
+        orderBy("timestamp", "desc"),
+        limit(1)
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      // State A: No records found
+      if (querySnapshot.empty) {
+        setIsCheckedIn(false);
+        setHasCompletedShift(false);
+        setLoadingCheckStatus(false);
+        return;
+      }
+
+      // Get the latest record
+      const latestDoc = querySnapshot.docs[0];
+      const latestData = latestDoc.data();
+      const recordTimestamp = latestData.timestamp;
+
+      // Convert Firestore Timestamp to JavaScript Date
+      const recordDate = recordTimestamp instanceof Timestamp
+        ? recordTimestamp.toDate()
+        : new Date(recordTimestamp);
+
+      // Get today's date at midnight for comparison
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Check if the record is from TODAY (same day, month, year)
+      const isRecordFromToday =
+        recordDate.getDate() === today.getDate() &&
+        recordDate.getMonth() === today.getMonth() &&
+        recordDate.getFullYear() === today.getFullYear();
+
+      // State C: Record is from today and type is 'check-out' -> Shift completed
+      if (isRecordFromToday && latestData.type === "check-out") {
+        setHasCompletedShift(true);
+        setIsCheckedIn(false);
+        setLoadingCheckStatus(false);
+        return;
+      }
+
+      // State B: Record is from today and type is 'check-in' -> Only checked in
+      if (isRecordFromToday && latestData.type === "check-in") {
+        setIsCheckedIn(true);
+        setHasCompletedShift(false);
+        setLoadingCheckStatus(false);
+        return;
+      }
+
+      // State A: Record is NOT from today (or no valid record) -> Ready for new check-in
+      setIsCheckedIn(false);
+      setHasCompletedShift(false);
+    } catch (err) {
+      console.error("Error fetching check status:", err);
+      setIsCheckedIn(false);
+      setHasCompletedShift(false);
+    } finally {
+      setLoadingCheckStatus(false);
+    }
+  };
+
+  // Fetch on mount
+  useEffect(() => {
     fetchTodayCheckStatus();
   }, []);
+
+  // Refresh on screen focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchTodayCheckStatus();
+    }, [])
+  );
 
   // Location permission and distance calculation
   useEffect(() => {
@@ -221,7 +237,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
   const isWithinRadius = distance !== null && distance <= ALLOWED_RADIUS_METERS;
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>لوحة الموظف</Text>
 
       <View style={styles.card}>
@@ -245,7 +261,11 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
             <TouchableOpacity
               style={[
                 styles.button,
-                hasCompletedShift ? styles.buttonCompleted : isCheckedIn ? styles.buttonCheckOut : styles.buttonCheckIn,
+                hasCompletedShift
+                  ? styles.buttonCompleted
+                  : isCheckedIn
+                  ? styles.buttonCheckOut
+                  : styles.buttonCheckIn,
                 (!isWithinRadius || isCheckingIn || hasCompletedShift) && styles.buttonDisabled,
               ]}
               onPress={handleCheckIn}
@@ -254,26 +274,43 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
               {isCheckingIn ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>
-                  {hasCompletedShift ? "انتهى تسجيل الحضور والانصراف لليوم" : isCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور"}
+                <Text
+                  style={styles.buttonText}
+                  numberOfLines={2}
+                  adjustsFontSizeToFit
+                >
+                  {hasCompletedShift
+                    ? "انتهى تسجيل الحضور والانصراف لليوم"
+                    : isCheckedIn
+                    ? "تسجيل الانصراف"
+                    : "تسجيل الحضور"}
                 </Text>
               )}
             </TouchableOpacity>
 
             {hasCompletedShift && (
               <View style={styles.completionMessageContainer}>
-                <Text style={styles.completionMessage}>تم تسجيل الحضور والانصراف بنجاح. نراك غداً!</Text>
+                <Text style={styles.completionMessage}>
+                  تم تسجيل الحضور والانصراف بنجاح. نراك غداً!
+                </Text>
               </View>
             )}
           </View>
         )}
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#f5f5f5" },
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 100,
+  },
   title: { fontSize: 26, fontWeight: "bold", marginBottom: 20, textAlign: "center", color: "#333" },
   card: {
     backgroundColor: "#fff",
@@ -302,14 +339,27 @@ const styles = StyleSheet.create({
   },
   statusGood: { backgroundColor: "#28a745" },
   statusBad: { backgroundColor: "#dc3545" },
-  button: { paddingVertical: 12, paddingHorizontal: 30, borderRadius: 8, width: "100%", alignItems: "center" },
+  button: {
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 55,
+  },
   buttonCheckIn: { backgroundColor: "#007bff" },
   buttonCheckOut: { backgroundColor: "#dc3545" },
   buttonCompleted: { backgroundColor: "#6c757d" },
   buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
   completionMessageContainer: {
-    marginTop: 15,
+    marginTop: 20,
     padding: 12,
     backgroundColor: "#d4edda",
     borderRadius: 8,
