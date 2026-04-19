@@ -250,9 +250,8 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
           data={employees}
           renderItem={renderEmployeeCard}
           keyExtractor={(item, index) => (item?.id ? item.id : `employee-${index}`)}
-          numColumns={2}
-          columnWrapperStyle={styles.gridRow}
           contentContainerStyle={styles.gridContainer}
+          scrollEnabled={true}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         />
       ) : (
@@ -332,6 +331,10 @@ const styles = StyleSheet.create({
   gridContainer: {
     paddingHorizontal: 8,
     paddingVertical: 12,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "flex-start",
   },
   gridRow: {
     justifyContent: "space-between",
@@ -339,8 +342,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   cardWrapper: {
-    flex: 1,
-    marginHorizontal: 4,
+    width: "50%",
+    paddingHorizontal: 6,
+    marginBottom: 12,
+    justifyContent: "flex-start",
   },
   employeeCard: {
     backgroundColor: "#fff",
