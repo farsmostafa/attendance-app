@@ -6,8 +6,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth, db } from "./firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import { auth } from "./firebaseConfig";
 import { User, RootStackParamList, EmployeeTabParamList } from "./types";
 
 import AdminDashboard from "./AdminDashboard";
@@ -74,50 +73,81 @@ function EmployeeTabs() {
   );
 }
 
+// Auth Stack - for unauthenticated users
+function AuthStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        animationEnabled: false,
+      }}
+    >
+      <Stack.Screen name="Login" component={LoginScreen} options={{ title: "تسجيل الدخول" }} />
+    </Stack.Navigator>
+  );
+}
+
+// Admin Stack - for admin users
+function AdminStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: true,
+        animationEnabled: false,
+      }}
+    >
+      <Stack.Screen name="AdminDashboard" component={AdminDashboard} options={{ title: "لوحة التحكم - مسؤول" }} />
+    </Stack.Navigator>
+  );
+}
+
 interface AppState {
   user: User | null;
+  userRole: "admin" | "employee" | null;
   loading: boolean;
-  initialRoute: keyof RootStackParamList;
 }
 
 export default function App() {
   const [appState, setAppState] = useState<AppState>({
     user: null,
+    userRole: null,
     loading: true,
-    initialRoute: "Login",
   });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
+          // User is logged in - fetch their full data including role
           const userData = await getCurrentUserData();
           if (userData) {
             setAppState({
               user: userData,
+              userRole: userData.role as "admin" | "employee",
               loading: false,
-              initialRoute: userData.role === "admin" ? "AdminDashboard" : "EmployeeTabs",
             });
           } else {
+            // Couldn't fetch user data
             setAppState({
               user: null,
+              userRole: null,
               loading: false,
-              initialRoute: "Login",
             });
           }
         } else {
+          // User is logged out
           setAppState({
             user: null,
+            userRole: null,
             loading: false,
-            initialRoute: "Login",
           });
         }
       } catch (err) {
-        console.error("خطأ في جلب بيانات المستخدم:", err);
+        console.error("Error checking auth state:", err);
         setAppState({
           user: null,
+          userRole: null,
           loading: false,
-          initialRoute: "Login",
         });
       }
     });
@@ -125,6 +155,7 @@ export default function App() {
     return unsubscribe;
   }, []);
 
+  // Show loading spinner while checking auth state
   if (appState.loading) {
     return (
       <View style={styles.container}>
@@ -136,24 +167,16 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: true,
-          animationEnabled: true,
-        }}
-        initialRouteName={appState.initialRoute}
-      >
-        {!appState.user ? (
-          <Stack.Group screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Login" component={LoginScreen} options={{ title: "تسجيل الدخول" }} />
-          </Stack.Group>
-        ) : (
-          <Stack.Group>
-            <Stack.Screen name="AdminDashboard" component={AdminDashboard} options={{ title: "لوحة التحكم - مسؤول" }} />
-            <Stack.Screen name="EmployeeTabs" component={EmployeeTabs} options={{ headerShown: false }} />
-          </Stack.Group>
-        )}
-      </Stack.Navigator>
+      {/* No user logged in - show Auth Stack */}
+      {!appState.user ? (
+        <AuthStack />
+      ) : appState.userRole === "admin" ? (
+        // Admin user - show Admin Stack
+        <AdminStack />
+      ) : (
+        // Employee user - show Employee Tabs
+        <EmployeeTabs />
+      )}
       <StatusBar style="auto" />
     </NavigationContainer>
   );

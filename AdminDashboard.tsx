@@ -21,7 +21,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [hasCompany, setHasCompany] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isUnauthorized, setIsUnauthorized] = useState(false);
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -30,17 +29,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
         if (!userData) {
           setError("فشل في تحميل بيانات المستخدم");
           setLoading(false);
-          return;
-        }
-
-        // ✅ ROLE VALIDATION: Check if user is an admin
-        if (userData.role !== "admin") {
-          setIsUnauthorized(true);
-          setLoading(false);
-          // Navigate to EmployeeDashboard after a short delay to show the message
-          setTimeout(() => {
-            navigation.replace("EmployeeDashboard");
-          }, 1500);
           return;
         }
 
@@ -84,20 +72,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
   );
 
   if (loading) return <Text style={styles.loadingText}>جاري التحميل...</Text>;
-
-  // ✅ UNAUTHORIZED ACCESS: Show message for non-admin users
-  if (isUnauthorized) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>لوحة التحكم</Text>
-        <View style={styles.unauthorizedContainer}>
-          <Text style={styles.unauthorizedTitle}>🚫 الوصول مرفوض</Text>
-          <Text style={styles.unauthorizedText}>أنت لا تملك صلاحيات الوصول إلى لوحة تحكم الإدارة</Text>
-          <Text style={styles.unauthorizedSubtext}>جاري إعادة التوجيه إلى لوحتك...</Text>
-        </View>
-      </View>
-    );
-  }
 
   if (!hasCompany) {
     return (
@@ -161,35 +135,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     color: "#666",
-  },
-  unauthorizedContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff3cd",
-    borderRadius: 8,
-    padding: 20,
-    borderWidth: 2,
-    borderColor: "#ffc107",
-  },
-  unauthorizedTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#856404",
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  unauthorizedText: {
-    fontSize: 16,
-    textAlign: "center",
-    color: "#856404",
-    marginBottom: 8,
-  },
-  unauthorizedSubtext: {
-    fontSize: 14,
-    textAlign: "center",
-    color: "#856404",
-    fontStyle: "italic",
   },
   errorContainer: {
     flex: 1,
