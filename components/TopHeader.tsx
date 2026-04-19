@@ -58,12 +58,7 @@ const TopHeader: React.FC<TopHeaderProps> = ({ userName = "المستخدم", na
           <Text style={styles.userName}>{userName}</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-          disabled={loggingOut}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} disabled={loggingOut} activeOpacity={0.7}>
           {loggingOut ? (
             <ActivityIndicator size="small" color="#dc3545" />
           ) : (

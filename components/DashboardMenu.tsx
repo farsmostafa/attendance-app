@@ -74,34 +74,16 @@ const DashboardMenu: React.FC<DashboardMenuProps> = ({ navigation, currentScreen
   };
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.container}
-    >
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.container}>
       {MENU_ITEMS.map((item) => (
         <TouchableOpacity
           key={item.id}
-          style={[
-            styles.menuItem,
-            currentScreen === item.screen && styles.menuItemActive,
-          ]}
+          style={[styles.menuItem, currentScreen === item.screen && styles.menuItemActive]}
           onPress={() => handleNavigation(item.screen)}
           activeOpacity={0.7}
         >
-          <Ionicons
-            name={item.icon}
-            size={20}
-            color={currentScreen === item.screen ? "#007bff" : "#666"}
-          />
-          <Text
-            style={[
-              styles.menuLabel,
-              currentScreen === item.screen && styles.menuLabelActive,
-            ]}
-          >
-            {item.label}
-          </Text>
+          <Ionicons name={item.icon} size={20} color={currentScreen === item.screen ? "#007bff" : "#666"} />
+          <Text style={[styles.menuLabel, currentScreen === item.screen && styles.menuLabelActive]}>{item.label}</Text>
         </TouchableOpacity>
       ))}
     </ScrollView>
