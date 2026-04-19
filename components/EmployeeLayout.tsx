@@ -47,14 +47,15 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation }) => {
   };
 
   const renderContent = () => {
+    const dummyRoute = { key: "dummy", name: currentScreen } as any;
     switch (currentScreen) {
       case "AttendanceHistory":
-        return <AttendanceHistory navigation={navigation as any} />;
+        return <AttendanceHistory navigation={navigation as any} route={dummyRoute} />;
       case "Requests":
-        return <Requests navigation={navigation as any} />;
+        return <Requests navigation={navigation as any} route={dummyRoute} />;
       case "Dashboard":
       default:
-        return <EmployeeDashboard navigation={navigation as any} />;
+        return <EmployeeDashboard navigation={navigation as any} route={dummyRoute} />;
     }
   };
 
@@ -74,11 +75,7 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation }) => {
     <View style={styles.container}>
       <TopHeader userName={currentUserName} navigation={navigation} />
       <View style={styles.layoutContainer}>
-        <ScrollView
-          style={styles.mainContent}
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView style={styles.mainContent} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
           {renderContent()}
         </ScrollView>
         <EmployeeSidebar currentScreen={currentScreen} onNavigate={setCurrentScreen} onLogout={handleLogout} />

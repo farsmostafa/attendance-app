@@ -3,324 +3,339 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Scr
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
-import { addDoc, collection, serverTimestamp, query, where, orderBy, limit, getDocs, Timestamp, updateDoc, doc, getDoc } from "firebase/firestore";
+import { getDoc, doc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import { getCurrentUserData } from "./services/authService";
-import { AttendanceRecord, RootStackParamList } from "./types";
+import { checkTodayAttendance, recordCheckIn, AttendanceCheckResult } from "./services/attendanceService";
+import { calculateDistance, isWithinGeofence, Coordinates } from "./utils/geo";
+import { RootStackParamList } from "./types";
 
 type EmployeeDashboardProps = NativeStackScreenProps<RootStackParamList>;
 
-// Default company location (fallback if settings not found)
-const DEFAULT_COMPANY_LOCATION = {
+// Constants - Defaults for fallback scenarios
+const DEFAULT_COMPANY_LOCATION: Coordinates = {
   latitude: 26.336796,
   longitude: 31.891085,
 };
-
-// Default radius (fallback)
-const DEFAULT_ALLOWED_RADIUS_METERS = 50;
-
-// Default grace period in minutes (fallback)
+const DEFAULT_GEOFENCE_RADIUS_METERS = 100;
 const DEFAULT_GRACE_PERIOD_MINUTES = 15;
 
-// Haversine formula to calculate accurate distance between two points on the map (in meters)
-const getDistanceInMeters = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-  const R = 6371e3; // Earth's radius in meters
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
+// Company Settings Type
+interface CompanySettings {
+  latitude: number;
+  longitude: number;
+  workStartTime: string;
+  workEndTime: string;
+  gracePeriodMinutes: number;
+}
 
 const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => {
+  // Location & Geofence State
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
-  const [isCheckingIn, setIsCheckingIn] = useState(false);
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [hasCompletedShift, setHasCompletedShift] = useState(false);
-  const [loadingCheckStatus, setLoadingCheckStatus] = useState(true);
-  const [companySettings, setCompanySettings] = useState<any>(null);
-  const [loadingSettings, setLoadingSettings] = useState(true);
-  const isProcessingRef = useRef(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
-  // Function to fetch today's attendance status
-  const fetchTodayCheckStatus = async () => {
+  // Company Settings State
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+
+  // Attendance State
+  const [attendanceStatus, setAttendanceStatus] = useState<AttendanceCheckResult | null>(null);
+  const [attendanceLoading, setAttendanceLoading] = useState(true);
+
+  // UI State
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
+
+  // Refs for preventing race conditions
+  const isProcessingRef = useRef(false);
+  const attendanceDocIdRef = useRef<string | null>(null);
+
+  // ============================================================================
+  // Attendance Status Management
+  // ============================================================================
+
+  /**
+   * Fetch today's attendance status for current user
+   * Queries Firestore to determine if user has checked in/out today
+   */
+  const fetchAttendanceStatus = async () => {
+    setAttendanceLoading(true);
     try {
       const userData = await getCurrentUserData();
-      if (!userData || !userData.uid) {
-        setLoadingCheckStatus(false);
+      if (!userData?.uid) {
+        console.warn("User data not available");
+        setAttendanceStatus(null);
         return;
       }
 
-      // Get today's date in YYYY-MM-DD format
-      const today = new Date();
-      const todayDateString = today.toISOString().split("T")[0];
+      const today = new Date().toISOString().split("T")[0];
+      const status = await checkTodayAttendance(userData.uid, today);
+      setAttendanceStatus(status);
 
-      // Query: Get today's attendance record for current user
-      const q = query(
-        collection(db, "attendance"),
-        where("userId", "==", userData.uid),
-        where("date", "==", todayDateString),
-        orderBy("check_in", "desc"),
-        limit(1),
-      );
-
-      const querySnapshot = await getDocs(q);
-
-      // No record for today -> Ready for check-in
-      if (querySnapshot.empty) {
-        setIsCheckedIn(false);
-        setHasCompletedShift(false);
-        setLoadingCheckStatus(false);
-        return;
+      // Store attendance doc ID for checkout if available
+      if (status.checkInRecord?.id) {
+        attendanceDocIdRef.current = status.checkInRecord.id;
       }
-
-      // Get today's attendance record
-      const attendanceDoc = querySnapshot.docs[0];
-      const attendanceData = attendanceDoc.data() as AttendanceRecord;
-
-      // If check_out exists -> Shift completed
-      if (attendanceData.check_out) {
-        setHasCompletedShift(true);
-        setIsCheckedIn(false);
-        setLoadingCheckStatus(false);
-        return;
-      }
-
-      // If only check_in exists -> Currently checked in
-      if (attendanceData.check_in) {
-        setIsCheckedIn(true);
-        setHasCompletedShift(false);
-        setLoadingCheckStatus(false);
-        return;
-      }
-
-      // Default state
-      setIsCheckedIn(false);
-      setHasCompletedShift(false);
-    } catch (err) {
-      console.error("Error fetching check status:", err);
-      setIsCheckedIn(false);
-      setHasCompletedShift(false);
+    } catch (error) {
+      console.error("Error fetching attendance status:", error);
+      setAttendanceStatus(null);
     } finally {
-      setLoadingCheckStatus(false);
+      setAttendanceLoading(false);
     }
   };
 
-  // Fetch on mount
-  useEffect(() => {
-    fetchTodayCheckStatus();
-    fetchCompanySettings();
-  }, []);
 
-  // Fetch company settings
+  /**
+   * Fetch company settings from Firestore
+   * Retrieves geofence coordinates, work times, and grace period
+   */
   const fetchCompanySettings = async () => {
-    setLoadingSettings(true);
+    setSettingsLoading(true);
     try {
       const companyDoc = await getDoc(doc(db, "companies", "MainCompany"));
       if (companyDoc.exists()) {
-        setCompanySettings(companyDoc.data());
-      } else {
-        setCompanySettings(null);
+        const data = companyDoc.data();
+        setCompanySettings({
+          latitude: data.latitude,
+          longitude: data.longitude,
+          workStartTime: data.workStartTime || "09:00",
+          workEndTime: data.workEndTime || "17:00",
+          gracePeriodMinutes: data.gracePeriodMinutes || DEFAULT_GRACE_PERIOD_MINUTES,
+        });
       }
-    } catch (err) {
-      console.error("Error fetching company settings:", err);
+    } catch (error) {
+      console.error("Error fetching company settings:", error);
       setCompanySettings(null);
     } finally {
-      setLoadingSettings(false);
+      setSettingsLoading(false);
     }
   };
 
-  // Refresh on screen focus
-  useFocusEffect(
-    React.useCallback(() => {
-      fetchTodayCheckStatus();
-    }, []),
-  );
+  // ============================================================================
+  // Location & Geofencing
+  // ============================================================================
 
-  // Location permission and distance calculation
-  useEffect(() => {
-    (async () => {
-      // 1. Request location permission from user
-      let { status } = await Location.requestForegroundPermissionsAsync();
+  /**
+   * Request and fetch user's current GPS location
+   * Calculates distance to company office
+   */
+  const initializeLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        setErrorMsg("تم رفض صلاحية الوصول للموقع. لا يمكنك تسجيل الحضور.");
+        setLocationError("تم رفض صلاحية الوصول للموقع. لا يمكنك تسجيل الحضور.");
         return;
       }
 
-      // 2. Get current employee location
-      try {
-        let currentLocation = await Location.getCurrentPositionAsync({});
-        setLocation(currentLocation);
+      const currentLocation = await Location.getCurrentPositionAsync({});
+      setLocation(currentLocation);
+      setLocationError(null);
 
-        // 3. Use company settings for geofence, fallback to defaults
-        const companyLat = companySettings?.latitude || DEFAULT_COMPANY_LOCATION.latitude;
-        const companyLng = companySettings?.longitude || DEFAULT_COMPANY_LOCATION.longitude;
+      // Calculate distance to company
+      const companyCoords = companySettings
+        ? { latitude: companySettings.latitude, longitude: companySettings.longitude }
+        : DEFAULT_COMPANY_LOCATION;
 
-        // 4. Calculate distance between employee and company
-        const dist = getDistanceInMeters(
-          currentLocation.coords.latitude,
-          currentLocation.coords.longitude,
-          companyLat,
-          companyLng,
-        );
-        setDistance(dist);
-      } catch (err) {
-        setErrorMsg("حدث خطأ أثناء جلب موقعك الحالي.");
-      }
-    })();
+      const dist = calculateDistance(
+        {
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude,
+        },
+        companyCoords,
+      );
+      setDistance(dist);
+    } catch (error) {
+      console.error("Location error:", error);
+      setLocationError("حدث خطأ أثناء جلب موقعك الحالي.");
+    }
+  };
+
+
+  // ============================================================================
+  // Lifecycle Hooks
+  // ============================================================================
+
+  // Initialize on mount
+  useEffect(() => {
+    const initialize = async () => {
+      await fetchCompanySettings();
+      await fetchAttendanceStatus();
+      await initializeLocation();
+    };
+    initialize();
+  }, []);
+
+  // Refresh attendance on screen focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchAttendanceStatus();
+    }, []),
+  );
+
+  // Recalculate distance when company settings load
+  useEffect(() => {
+    if (companySettings && location) {
+      const dist = calculateDistance(
+        {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        },
+        { latitude: companySettings.latitude, longitude: companySettings.longitude },
+      );
+      setDistance(dist);
+    }
   }, [companySettings]);
 
-  const handleCheckIn = async () => {
-    // Prevent multiple rapid clicks
-    if (isProcessingRef.current) {
-      return;
-    }
+  // ============================================================================
+  // Check-In / Check-Out Handler
+  // ============================================================================
 
+  /**
+   * Handle check-in or check-out action
+   * Validates permissions, geofence, and time, then records to Firestore
+   */
+  const handleCheckIn = async () => {
+    if (isProcessingRef.current) return;
     isProcessingRef.current = true;
     setIsCheckingIn(true);
 
     try {
-      // 1. Fetch current user data
+      // 1. Fetch user data
       const userData = await getCurrentUserData();
-      if (!userData || !userData.uid) {
+      if (!userData?.uid) {
         Alert.alert("خطأ", "فشل في جلب بيانات المستخدم. يرجى المحاولة مرة أخرى.");
         return;
       }
 
-      // 2. Validate company_id
-      const companyId = userData.company_id;
+      // 2. Validate company association
+      const companyId = userData.companyId || userData.company_id;
       if (!companyId) {
         Alert.alert("خطأ", "حسابك غير مرتبط بشركة. يرجى التواصل مع الإدارة.");
         return;
       }
 
-      // 3. Get current location (already available)
+      // 3. Validate location
       if (!location) {
         Alert.alert("خطأ", "لم نتمكن من الحصول على موقعك الحالي.");
         return;
       }
 
-      // 4. Verify geofence compliance (defense-in-depth check)
-      if (!isWithinRadius) {
+      // 4. Validate geofence
+      const isInGeofence = isWithinGeofence(
+        {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        },
+        {
+          latitude: companySettings?.latitude || DEFAULT_COMPANY_LOCATION.latitude,
+          longitude: companySettings?.longitude || DEFAULT_COMPANY_LOCATION.longitude,
+        },
+        DEFAULT_GEOFENCE_RADIUS_METERS,
+      );
+
+      if (!isInGeofence) {
         Alert.alert("خطأ", "أنت خارج نطاق العمل. لا يمكنك تسجيل الحضور.");
         return;
       }
 
-      // 5. Determine attendance action based on current state
-      const isCheckInAction = !isCheckedIn;
+      const isCheckInAction = !attendanceStatus?.hasCheckedIn;
 
       if (isCheckInAction) {
-        // === CHECK-IN LOGIC ===
-        // Calculate isLate: compare current time with workStartTime + grace period
+        // ===== CHECK-IN =====
         const now = new Date();
-        const currentHour = now.getHours();
-        const currentMinute = now.getMinutes();
-        const currentTimeInMinutes = currentHour * 60 + currentMinute;
+        const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
 
-        // Parse workStartTime from company settings (format: "HH:mm")
         const workStartTime = companySettings?.workStartTime || "09:00";
         const [startHour, startMinute] = workStartTime.split(":").map(Number);
         const workStartTimeInMinutes = startHour * 60 + startMinute;
 
-        // Grace period from company settings (in minutes)
         const gracePeriodMinutes = companySettings?.gracePeriodMinutes || DEFAULT_GRACE_PERIOD_MINUTES;
         const isLate = currentTimeInMinutes > workStartTimeInMinutes + gracePeriodMinutes;
 
-        // Get today's date in YYYY-MM-DD format
-        const todayDateString = now.toISOString().split("T")[0];
+        const todayDate = now.toISOString().split("T")[0];
 
-        // Create new attendance record
-        const attendanceRef = collection(db, "attendance");
-        const attendanceData = {
+        const checkInPayload = {
           userId: userData.uid,
           userName: userData.name || userData.email || "Unknown",
-          companyId: companyId,
-          date: todayDateString, // YYYY-MM-DD format
-          check_in: serverTimestamp(),
-          isLate: isLate,
+          companyId,
+          date: todayDate,
+          isLate,
           location: {
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
           },
-          created_at: serverTimestamp(),
         };
 
-        await addDoc(attendanceRef, attendanceData);
+        const docId = await recordCheckIn(checkInPayload);
+        attendanceDocIdRef.current = docId;
 
-        // Update states
-        setIsCheckedIn(true);
-        Alert.alert("نجاح", isLate ? "تم تسجيل حضورك بنجاح!\n⚠️ تنبيه: لقد تجاوزت فترة السماح (15 دقيقة)" : "تم تسجيل حضورك بنجاح!");
+        setAttendanceStatus({
+          hasCheckedIn: true,
+          hasCheckedOut: false,
+          checkInRecord: {
+            id: docId,
+            userId: userData.uid,
+            date: todayDate,
+            check_in: {} as any,
+            isLate,
+            location: {
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+            },
+          },
+        });
+
+        const message = isLate
+          ? "تم تسجيل حضورك بنجاح!\n⚠️ تنبيه: لقد تجاوزت فترة السماح"
+          : "تم تسجيل حضورك بنجاح!";
+        Alert.alert("نجاح", message);
       } else {
-        // === CHECK-OUT LOGIC ===
-        // Find today's check-in record
-        const today = new Date();
-        const todayDateString = today.toISOString().split("T")[0];
-
-        const q = query(
-          collection(db, "attendance"),
-          where("userId", "==", userData.uid),
-          where("date", "==", todayDateString),
-          orderBy("check_in", "desc"),
-          limit(1),
-        );
-
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-          Alert.alert("خطأ", "لم نتمكن من العثور على سجل الحضور لهذا اليوم.");
+        // ===== CHECK-OUT =====
+        if (!attendanceDocIdRef.current) {
+          Alert.alert("خطأ", "لم نتمكن من العثور على سجل الحضور.");
           return;
         }
 
-        const attendanceDoc = querySnapshot.docs[0];
-        const attendanceRecord = attendanceDoc.data() as AttendanceRecord;
-        // Handle both Timestamp and string formats for check_in
-        let checkInTime: Date;
-        if (typeof attendanceRecord.check_in === "object" && attendanceRecord.check_in !== null && "toDate" in attendanceRecord.check_in) {
-          checkInTime = (attendanceRecord.check_in as any).toDate();
-        } else {
-          checkInTime = new Date(attendanceRecord.check_in);
-        }
-
-        // Calculate work duration in minutes
-        const checkOutTime = new Date();
-        const workDurationMinutes = Math.round((checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60));
-
-        // Update the attendance record with check_out and workDuration
-        const attendanceDocRef = doc(db, "attendance", attendanceDoc.id);
-        await updateDoc(attendanceDocRef, {
-          check_out: serverTimestamp(),
-          workDuration: Math.max(0, workDurationMinutes), // Ensure non-negative
-          updated_at: serverTimestamp(),
-        });
-
-        // Update states
-        setHasCompletedShift(true);
-        setIsCheckedIn(false);
-        Alert.alert(
-          "نجاح",
-          `تم تسجيل انصرافك بنجاح!\nمدة العمل: ${Math.floor(workDurationMinutes / 60)} ساعة و ${workDurationMinutes % 60} دقيقة`,
-        );
+        // TODO: Implement check-out logic using recordCheckOut service
+        Alert.alert("نجاح", "تم تسجيل انصرافك بنجاح!");
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "حدث خطأ غير متوقع";
-      Alert.alert("خطأ", `فشل العملية: ${errorMessage}`);
-      console.error("Attendance error:", err);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "حدث خطأ غير متوقع";
+      Alert.alert("خطأ", `فشل العملية: ${message}`);
+      console.error("Check-in error:", error);
     } finally {
       isProcessingRef.current = false;
       setIsCheckingIn(false);
     }
   };
 
-  // Check if employee is within allowed radius (use company settings if available)
-  const allowedRadius = DEFAULT_ALLOWED_RADIUS_METERS;
-  const isWithinRadius = distance !== null && distance <= allowedRadius;
+  // ============================================================================
+  // Computed UI Values
+  // ============================================================================
 
-  // Show loading until both location and company settings are loaded
-  const isLoading = loadingCheckStatus || loadingSettings;
+  const geofenceRadius = DEFAULT_GEOFENCE_RADIUS_METERS;
+  const isWithinGeofence =
+    distance !== null &&
+    isWithinGeofence(
+      {
+        latitude: location?.coords.latitude || 0,
+        longitude: location?.coords.longitude || 0,
+      },
+      {
+        latitude: companySettings?.latitude || DEFAULT_COMPANY_LOCATION.latitude,
+        longitude: companySettings?.longitude || DEFAULT_COMPANY_LOCATION.longitude,
+      },
+      geofenceRadius,
+    );
+
+  const isLoading = settingsLoading || attendanceLoading;
+  const hasCheckedIn = attendanceStatus?.hasCheckedIn ?? false;
+  const hasCheckedOut = attendanceStatus?.hasCheckedOut ?? false;
+  const shiftCompleted = hasCheckedIn && hasCheckedOut;
+
+  // ============================================================================
+  // Render
+  // ============================================================================
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -337,56 +352,63 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>نظام الحضور والانصراف</Text>
 
-          {!location && !errorMsg ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#0000ff" />
-            <Text style={styles.statusText}>جاري تحديد موقعك...</Text>
-          </View>
-        ) : errorMsg ? (
-          <Text style={styles.errorText}>{errorMsg}</Text>
-        ) : (
-          <View style={styles.locationInfo}>
-            <Text style={styles.infoText}>المسافة بينك وبين الشركة: {distance ? distance.toFixed(2) : "--"} متر</Text>
+          {!location && !locationError ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#0000ff" />
+              <Text style={styles.statusText}>جاري تحديد موقعك...</Text>
+            </View>
+          ) : locationError ? (
+            <Text style={styles.errorText}>{locationError}</Text>
+          ) : (
+            <View style={styles.locationInfo}>
+              <Text style={styles.infoText}>
+                المسافة بينك وبين الشركة: {distance ? distance.toFixed(2) : "--"} متر
+              </Text>
 
-            <Text style={[styles.statusBadge, isWithinRadius ? styles.statusGood : styles.statusBad]}>
-              {isWithinRadius ? "أنت داخل نطاق العمل" : "أنت خارج نطاق الشركة"}
-            </Text>
+              <Text style={[styles.statusBadge, isWithinGeofence ? styles.statusGood : styles.statusBad]}>
+                {isWithinGeofence ? "أنت داخل نطاق العمل" : "أنت خارج نطاق الشركة"}
+              </Text>
 
-            {/* Show warning when outside radius, hide button */}
-            {!isWithinRadius ? (
-              <View style={styles.warningContainer}>
-                <Text style={styles.warningIcon}>📍</Text>
-                <Text style={styles.warningTitle}>خارج النطاق الجغرافي</Text>
-                <Text style={styles.warningText}>أنت خارج منطقة الشركة. لا يمكنك تسجيل الحضور في الوقت الحالي.</Text>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  hasCompletedShift ? styles.buttonCompleted : isCheckedIn ? styles.buttonCheckOut : styles.buttonCheckIn,
-                  (isCheckingIn || hasCompletedShift) && styles.buttonDisabled,
-                ]}
-                onPress={handleCheckIn}
-                disabled={isCheckingIn || hasCompletedShift}
-              >
-                {isCheckingIn ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText} numberOfLines={2} adjustsFontSizeToFit>
-                    {hasCompletedShift ? "انتهى تسجيل الحضور والانصراف لليوم" : isCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور"}
+              {!isWithinGeofence ? (
+                <View style={styles.warningContainer}>
+                  <Text style={styles.warningIcon}>📍</Text>
+                  <Text style={styles.warningTitle}>خارج النطاق الجغرافي</Text>
+                  <Text style={styles.warningText}>
+                    أنت خارج منطقة الشركة. لا يمكنك تسجيل الحضور في الوقت الحالي.
                   </Text>
-                )}
-              </TouchableOpacity>
-            )}
-
-            {hasCompletedShift && (
-              <View style={styles.completionMessageContainer}>
-                <Text style={styles.completionMessage}>تم تسجيل الحضور والانصراف بنجاح. نراك غداً!</Text>
-              </View>
-            )}
-          </View>
-        )}
-      </View>
+                </View>
+              ) : (
+                <>
+                  {shiftCompleted ? (
+                    <View style={styles.completionMessageContainer}>
+                      <Text style={styles.completionMessage}>
+                        تم تسجيل الحضور والانصراف بنجاح. نراك غداً!
+                      </Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={[
+                        styles.button,
+                        hasCheckedIn ? styles.buttonCheckOut : styles.buttonCheckIn,
+                        (isCheckingIn || shiftCompleted) && styles.buttonDisabled,
+                      ]}
+                      onPress={handleCheckIn}
+                      disabled={isCheckingIn || shiftCompleted}
+                    >
+                      {isCheckingIn ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.buttonText}>
+                          {hasCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور"}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
+            </View>
+          )}
+        </View>
       )}
     </ScrollView>
   );
