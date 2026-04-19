@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, Alert, ScrollView } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { collection, query, where, orderBy, getDocs, Timestamp } from "firebase/firestore";
 import { db } from "./firebaseConfig";
@@ -8,16 +8,27 @@ import { RootStackParamList } from "./types";
 
 type AttendanceHistoryProps = NativeStackScreenProps<RootStackParamList, "AttendanceHistory">;
 
-interface DisplayRecord {
+interface AttendanceRecord {
   id: string;
   date: string;
-  type: string;
   time: string;
-  timestamp: Timestamp;
+  type: string;
+  timestamp: Date;
+}
+
+interface MonthlyGroup {
+  monthYear: string;
+  month: number;
+  year: number;
+  records: AttendanceRecord[];
+  totalDaysPresent: number;
+  absences: number;
+  permissions: number;
+  bonus: number;
 }
 
 const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation }) => {
-  const [records, setRecords] = useState<DisplayRecord[]>([]);
+  const [monthlyData, setMonthlyData] = useState<MonthlyGroup[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,15 +40,21 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation }) => 
           return;
         }
 
-        // Query all attendance records for current user, ordered by timestamp (most recent first)
-        const q = query(collection(db, "attendance"), where("userId", "==", userData.uid), orderBy("timestamp", "desc"));
+        // Query all attendance records for current user, ordered by timestamp (descending)
+        const q = query(
+          collection(db, "attendance"),
+          where("userId", "==", userData.uid),
+          orderBy("timestamp", "desc")
+        );
 
         const querySnapshot = await getDocs(q);
 
-        // Transform Firestore documents into display format
-        const displayRecords: DisplayRecord[] = querySnapshot.docs.map((doc) => {
+        // Transform documents into display format
+        const records: AttendanceRecord[] = querySnapshot.docs.map((doc) => {
           const data = doc.data();
-          const timestamp = data.timestamp instanceof Timestamp ? data.timestamp.toDate() : new Date(data.timestamp);
+          const timestamp = data.timestamp instanceof Timestamp
+            ? data.timestamp.toDate()
+            : new Date(data.timestamp);
 
           // Format date as DD/MM/YYYY
           const date = timestamp.toLocaleDateString("ar-EG", {
@@ -53,19 +70,56 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation }) => 
             second: undefined,
           });
 
-          // Convert type to Arabic
-          const typeLabel = data.type === "check-in" ? "حضور" : "انصراف";
-
           return {
             id: doc.id,
             date,
-            type: typeLabel,
             time,
+            type: data.type,
             timestamp,
           };
         });
 
-        setRecords(displayRecords);
+        // Group records by month and year
+        const groupedByMonth = new Map<string, AttendanceRecord[]>();
+
+        records.forEach((record) => {
+          const monthYear = record.timestamp.toLocaleDateString("ar-EG", {
+            year: "numeric",
+            month: "long",
+          });
+
+          if (!groupedByMonth.has(monthYear)) {
+            groupedByMonth.set(monthYear, []);
+          }
+          groupedByMonth.get(monthYear)!.push(record);
+        });
+
+        // Convert map to array with stats
+        const monthlyGroups: MonthlyGroup[] = Array.from(groupedByMonth.entries()).map(
+          ([monthYear, groupRecords]) => {
+            // Calculate unique days with check-in
+            const uniqueDaysWithCheckIn = new Set(
+              groupRecords
+                .filter((r) => r.type === "check-in")
+                .map((r) => r.date)
+            ).size;
+
+            const timestamp = groupRecords[0].timestamp;
+
+            return {
+              monthYear,
+              month: timestamp.getMonth(),
+              year: timestamp.getFullYear(),
+              records: groupRecords,
+              totalDaysPresent: uniqueDaysWithCheckIn,
+              absences: 0, // Placeholder
+              permissions: 0, // Placeholder
+              bonus: 0, // Placeholder (0 EGP)
+            };
+          }
+        );
+
+        setMonthlyData(monthlyGroups);
       } catch (err) {
         console.error("Error fetching attendance history:", err);
         Alert.alert("خطأ", "فشل في جلب السجل. يرجى المحاولة لاحقاً.");
@@ -77,6 +131,78 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation }) => 
     fetchAttendanceHistory();
   }, []);
 
+  const renderMonthlyStats = (monthData: MonthlyGroup) => (
+    <View key={`${monthData.month}-${monthData.year}`} style={styles.monthContainer}>
+      {/* Month Header */}
+      <Text style={styles.monthHeader}>{monthData.monthYear}</Text>
+
+      {/* Stats Card */}
+      <View style={styles.statsCard}>
+        <View style={styles.statRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{monthData.totalDaysPresent}</Text>
+            <Text style={styles.statLabel}>أيام الحضور</Text>
+          </View>
+
+          <View style={[styles.statItem, styles.statDivider]}>
+            <Text style={styles.statValue}>{monthData.absences}</Text>
+            <Text style={styles.statLabel}>الغيابات</Text>
+          </View>
+
+          <View style={[styles.statItem, styles.statDivider]}>
+            <Text style={styles.statValue}>{monthData.permissions}</Text>
+            <Text style={styles.statLabel}>الإجازات</Text>
+          </View>
+
+          <View style={[styles.statItem, styles.statDivider]}>
+            <Text style={styles.statValue}>{monthData.bonus}</Text>
+            <Text style={styles.statLabel}>الحوافز</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Daily Logs */}
+      <View style={styles.dailyLogsContainer}>
+        {monthData.records.map((record) => (
+          <View key={record.id} style={styles.dailyLogRow}>
+            <View style={styles.logDateColumn}>
+              <Text style={styles.logDate}>{record.date}</Text>
+            </View>
+
+            <View style={styles.logTypeColumn}>
+              <View
+                style={[
+                  styles.typeBadge,
+                  record.type === "check-in"
+                    ? styles.typeBadgeCheckIn
+                    : styles.typeBadgeCheckOut,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.typeLabel,
+                    record.type === "check-in"
+                      ? styles.typeLabelCheckIn
+                      : styles.typeLabelCheckOut,
+                  ]}
+                >
+                  {record.type === "check-in" ? "حضور" : "انصراف"}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.logTimeColumn}>
+              <Text style={styles.logTime}>{record.time}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Month Divider */}
+      <View style={styles.monthDivider} />
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -86,7 +212,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation }) => 
     );
   }
 
-  if (records.length === 0) {
+  if (monthlyData.length === 0) {
     return (
       <View style={styles.container}>
         <Text style={styles.emptyText}>لا توجد سجلات حضور بعد.</Text>
@@ -94,41 +220,17 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation }) => 
     );
   }
 
-  const renderRecord = ({ item }: { item: DisplayRecord }) => (
-    <View style={styles.recordCard}>
-      <View style={styles.recordRow}>
-        <View style={styles.recordColumn}>
-          <Text style={styles.recordLabel}>التاريخ</Text>
-          <Text style={styles.recordValue}>{item.date}</Text>
-        </View>
-
-        <View style={styles.recordColumn}>
-          <Text style={styles.recordLabel}>الوقت</Text>
-          <Text style={styles.recordValue}>{item.time}</Text>
-        </View>
-
-        <View style={[styles.recordColumn, styles.typeColumn]}>
-          <Text style={styles.recordLabel}>النوع</Text>
-          <View style={[styles.typeBadge, item.type === "حضور" ? styles.typeBadgeCheckIn : styles.typeBadgeCheckOut]}>
-            <Text style={[styles.typeValue, item.type === "حضور" ? styles.typeValueCheckIn : styles.typeValueCheckOut]}>{item.type}</Text>
-          </View>
-        </View>
-      </View>
-    </View>
-  );
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>سجل الحضور والانصراف</Text>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>سجل الحضور والانصراف</Text>
+        <Text style={styles.subtitle}>تقرير شامل للحضور والانصراف</Text>
+      </View>
 
-      <FlatList
-        data={records}
-        renderItem={renderRecord}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-        scrollEnabled={true}
-      />
-    </View>
+      {monthlyData.map((monthData) => renderMonthlyStats(monthData))}
+
+      <View style={styles.footerSpacer} />
+    </ScrollView>
   );
 };
 
@@ -136,19 +238,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
-    padding: 15,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+  },
+  headerContainer: {
+    paddingVertical: 15,
+    marginBottom: 10,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 15,
-    textAlign: "center",
     color: "#333",
+    textAlign: "center",
+    marginBottom: 5,
   },
-  listContainer: {
-    paddingBottom: 20,
+  subtitle: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
   },
-  recordCard: {
+  monthContainer: {
+    marginBottom: 15,
+  },
+  monthHeader: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#007bff",
+    marginBottom: 10,
+    paddingHorizontal: 5,
+  },
+  statsCard: {
     backgroundColor: "#fff",
     borderRadius: 10,
     padding: 15,
@@ -159,33 +278,64 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
   },
-  recordRow: {
+  statRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-around",
     alignItems: "center",
   },
-  recordColumn: {
-    flex: 1,
+  statItem: {
     alignItems: "center",
-  },
-  typeColumn: {
     flex: 1,
   },
-  recordLabel: {
+  statDivider: {
+    borderLeftWidth: 1,
+    borderLeftColor: "#e0e0e0",
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#007bff",
+    marginBottom: 5,
+  },
+  statLabel: {
     fontSize: 12,
     color: "#666",
-    marginBottom: 5,
     fontWeight: "500",
   },
-  recordValue: {
-    fontSize: 16,
-    fontWeight: "bold",
+  dailyLogsContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    overflow: "hidden",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  dailyLogRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  logDateColumn: {
+    flex: 1,
+  },
+  logDate: {
+    fontSize: 14,
+    fontWeight: "600",
     color: "#333",
+  },
+  logTypeColumn: {
+    flex: 1,
+    alignItems: "center",
   },
   typeBadge: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 20,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -195,15 +345,29 @@ const styles = StyleSheet.create({
   typeBadgeCheckOut: {
     backgroundColor: "#fff3cd",
   },
-  typeValue: {
-    fontSize: 14,
+  typeLabel: {
+    fontSize: 12,
     fontWeight: "bold",
   },
-  typeValueCheckIn: {
+  typeLabelCheckIn: {
     color: "#155724",
   },
-  typeValueCheckOut: {
+  typeLabelCheckOut: {
     color: "#856404",
+  },
+  logTimeColumn: {
+    flex: 1,
+    alignItems: "flex-end",
+  },
+  logTime: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#666",
+  },
+  monthDivider: {
+    height: 1,
+    backgroundColor: "#e0e0e0",
+    marginVertical: 15,
   },
   loadingText: {
     marginTop: 10,
@@ -215,7 +379,177 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#999",
     textAlign: "center",
-    marginTop: 30,
+    marginTop: 50,
+  },
+  footerSpacer: {
+    height style={styles.emptyText}>لا توجد سجلات حضور بعد.</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>سجل الحضور والانصراف</Text>
+        <Text style={styles.subtitle}>تقرير شامل للحضور والانصراف</Text>
+      </View>
+
+      {monthlyData.map((monthData) => renderMonthlyStats(monthData))}
+
+      <View style={styles.footerSpacer} />
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+  },
+  headerContainer: {
+    paddingVertical: 15,
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#333",
+    textAlign: "center",
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+  },
+  monthContainer: {
+    marginBottom: 15,
+  },
+  monthHeader: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#007bff",
+    marginBottom: 10,
+    paddingHorizontal: 5,
+  },
+  statsCard: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  statRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+  },
+  statItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  statDivider: {
+    borderLeftWidth: 1,
+    borderLeftColor: "#e0e0e0",
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#007bff",
+    marginBottom: 5,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#666",
+    fontWeight: "500",
+  },
+  dailyLogsContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    overflow: "hidden",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  dailyLogRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  logDateColumn: {
+    flex: 1,
+  },
+  logDate: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+  },
+  logTypeColumn: {
+    flex: 1,
+    alignItems: "center",
+  },
+  typeBadge: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  typeBadgeCheckIn: {
+    backgroundColor: "#d4edda",
+  },
+  typeBadgeCheckOut: {
+    backgroundColor: "#fff3cd",
+  },
+  typeLabel: {
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  typeLabelCheckIn: {
+    color: "#155724",
+  },
+  typeLabelCheckOut: {
+    color: "#856404",
+  },
+  logTimeColumn: {
+    flex: 1,
+    alignItems: "flex-end",
+  },
+  logTime: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#666",
+  },
+  monthDivider: {
+    height: 1,
+    backgroundColor: "#e0e0e0",
+    marginVertical: 15,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#999",
+    textAlign: "center",
+    marginTop: 50,
+  },
+  footerSpacer: {
+    height: 30,
   },
 });
 

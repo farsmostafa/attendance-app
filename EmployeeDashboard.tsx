@@ -251,23 +251,32 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
               {isWithinRadius ? "أنت داخل نطاق العمل" : "أنت خارج نطاق الشركة"}
             </Text>
 
-            <TouchableOpacity
-              style={[
-                styles.button,
-                hasCompletedShift ? styles.buttonCompleted : isCheckedIn ? styles.buttonCheckOut : styles.buttonCheckIn,
-                (!isWithinRadius || isCheckingIn || hasCompletedShift) && styles.buttonDisabled,
-              ]}
-              onPress={handleCheckIn}
-              disabled={!isWithinRadius || isCheckingIn || hasCompletedShift}
-            >
-              {isCheckingIn ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText} numberOfLines={2} adjustsFontSizeToFit>
-                  {hasCompletedShift ? "انتهى تسجيل الحضور والانصراف لليوم" : isCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور"}
-                </Text>
-              )}
-            </TouchableOpacity>
+            {/* Show warning when outside radius, hide button */}
+            {!isWithinRadius ? (
+              <View style={styles.warningContainer}>
+                <Text style={styles.warningIcon}>📍</Text>
+                <Text style={styles.warningTitle}>خارج النطاق الجغرافي</Text>
+                <Text style={styles.warningText}>أنت خارج منطقة الشركة. لا يمكنك تسجيل الحضور في الوقت الحالي.</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  hasCompletedShift ? styles.buttonCompleted : isCheckedIn ? styles.buttonCheckOut : styles.buttonCheckIn,
+                  (isCheckingIn || hasCompletedShift) && styles.buttonDisabled,
+                ]}
+                onPress={handleCheckIn}
+                disabled={isCheckingIn || hasCompletedShift}
+              >
+                {isCheckingIn ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText} numberOfLines={2} adjustsFontSizeToFit>
+                    {hasCompletedShift ? "انتهى تسجيل الحضور والانصراف لليوم" : isCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور"}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
 
             {hasCompletedShift && (
               <View style={styles.completionMessageContainer}>
@@ -350,6 +359,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
+  },
+  warningContainer: {
+    marginTop: 20,
+    padding: 20,
+    backgroundColor: "#ffe6e6",
+    borderRadius: 10,
+    borderLeftWidth: 5,
+    borderLeftColor: "#dc3545",
+    alignItems: "center",
+  },
+  warningIcon: {
+    fontSize: 48,
+    marginBottom: 10,
+  },
+  warningTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#dc3545",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  warningText: {
+    fontSize: 14,
+    color: "#c82333",
+    textAlign: "center",
+    lineHeight: 20,
   },
 });
 
