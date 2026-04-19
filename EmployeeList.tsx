@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useFocusEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, TouchableOpacity, RefreshControl } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "./types";
 import { getCurrentUserData } from "./services/authService";
@@ -92,7 +93,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
 
   // Refresh when screen is focused
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       console.log("EmployeeList screen focused");
       setRefreshing(true);
       fetchEmployees();
