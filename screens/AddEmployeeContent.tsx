@@ -27,6 +27,15 @@ const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
   const [loading, setLoading] = useState(false);
   const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // Clear success message after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(""), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
@@ -69,26 +78,21 @@ const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
         companyId,
       );
 
-      Alert.alert("نجاح", result.message, [
-        {
-          text: "حسناً",
-          onPress: () => {
-            setFormData({
-              name: "",
-              email: "",
-              password: "",
-              confirmPassword: "",
-              phone: "",
-              department: "",
-              basicSalary: "",
-            });
-            setErrors({});
-          },
-        },
-      ]);
+      // Clear form and show success message
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        phone: "",
+        department: "",
+        basicSalary: "",
+      });
+      setErrors({});
+      setSuccessMessage("تم إضافة الموظف بنجاح! ✓");
+      setLoading(false);
     } catch (error) {
       Alert.alert("خطأ", error instanceof Error ? error.message : "فشل في إنشاء الموظف");
-    } finally {
       setLoading(false);
     }
   };
@@ -102,6 +106,14 @@ const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
           <Text style={styles.title}>إضافة موظف جديد</Text>
           <Text style={styles.subtitle}>ملء البيانات المطلوبة لإنشاء حساب موظف</Text>
         </View>
+
+        {/* Success Message */}
+        {successMessage && (
+          <View style={styles.successBox}>
+            <Ionicons name="checkmark-circle" size={20} color="#28a745" />
+            <Text style={styles.successText}>{successMessage}</Text>
+          </View>
+        )}
 
         {/* Full Name */}
         <View style={styles.formGroup}>
@@ -366,6 +378,24 @@ const styles = StyleSheet.create({
   dropdownTextActive: {
     color: "#007bff",
     fontWeight: "600",
+  },
+  successBox: {
+    flexDirection: "row-reverse",
+    backgroundColor: "#d4edda",
+    borderLeftWidth: 4,
+    borderLeftColor: "#28a745",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 6,
+    marginBottom: 20,
+    alignItems: "center",
+    gap: 10,
+  },
+  successText: {
+    color: "#155724",
+    fontSize: 14,
+    fontWeight: "600",
+    flex: 1,
   },
   submitButton: {
     flexDirection: "row-reverse",

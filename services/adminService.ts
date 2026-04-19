@@ -86,8 +86,10 @@ export const fetchCompanyEmployees = async (
     id: string;
     name: string;
     email: string;
-    basic_salary: number;
-    role: string;
+    phone: string;
+    department: string;
+    basicSalary: number;
+    status: string;
   }>
 > => {
   try {
@@ -98,8 +100,10 @@ export const fetchCompanyEmployees = async (
       id: string;
       name: string;
       email: string;
-      basic_salary: number;
-      role: string;
+      phone: string;
+      department: string;
+      basicSalary: number;
+      status: string;
     }> = [];
 
     querySnapshot.forEach((docSnapshot) => {
@@ -108,8 +112,10 @@ export const fetchCompanyEmployees = async (
         id: docSnapshot.id,
         name: data.name || "",
         email: data.email || "",
-        basic_salary: data.basic_salary || 0,
-        role: data.role || "employee",
+        phone: data.phone || "",
+        department: data.department || "Other",
+        basicSalary: data.basicSalary || data.basic_salary || 0,
+        status: data.status || "active",
       });
     });
 
