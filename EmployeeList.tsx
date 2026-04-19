@@ -19,6 +19,9 @@ interface Employee {
   email: string;
   basic_salary: number;
   role: string;
+  phone?: string;
+  department?: string;
+  status?: "active" | "inactive";
 }
 
 const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
@@ -69,6 +72,9 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
             email: data?.email || "غير محدد",
             basic_salary: Number(data?.basic_salary) || 0,
             role: data?.role || "employee",
+            phone: data?.phone || "--",
+            department: data?.department || "غير محدد",
+            status: data?.status || "active",
           };
 
           // Only add if we have valid ID
@@ -140,6 +146,9 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
     const employeeName = item?.name || "غير محدد";
     const employeeEmail = item?.email || "غير محدد";
     const salary = item?.basic_salary ?? 0;
+    const phone = item?.phone || "--";
+    const department = item?.department || "غير محدد";
+    const isActive = item?.status === "active";
     const initials = employeeName
       .split(" ")
       .map((word) => word.charAt(0))
@@ -150,9 +159,16 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
     return (
       <View style={styles.cardWrapper}>
         <TouchableOpacity style={styles.employeeCard} onPress={() => handleEmployeePress(item.id)} activeOpacity={0.85}>
-          {/* Avatar */}
-          <View style={styles.avatarContainer}>
-            <Text style={styles.avatarText}>{initials}</Text>
+          {/* Header with Avatar and Status Badge */}
+          <View style={styles.cardHeader}>
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
+            {isActive && (
+              <View style={styles.activeBadge}>
+                <Text style={styles.activeBadgeText}>نشط</Text>
+              </View>
+            )}
           </View>
 
           {/* Employee Info */}
@@ -163,6 +179,18 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
             <Text style={styles.employeeEmail} numberOfLines={1}>
               {employeeEmail}
             </Text>
+            
+            {/* Department Badge */}
+            <View style={styles.departmentBadge}>
+              <Text style={styles.departmentText}>{department}</Text>
+            </View>
+
+            {/* Phone Number */}
+            <View style={styles.phoneContainer}>
+              <Ionicons name="call-outline" size={12} color="#666" />
+              <Text style={styles.phoneText}>{phone}</Text>
+            </View>
+            
             <View style={styles.salaryContainer}>
               <Text style={styles.salaryLabel}>الراتب:</Text>
               <Text style={styles.salaryValue}>{typeof salary === "number" ? salary.toLocaleString("ar-EG") : "0"} EGP</Text>
@@ -379,8 +407,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 4,
     alignItems: "center",
-    minHeight: 240,
+    minHeight: 280,
     justifyContent: "space-between",
+  },
+  cardHeader: {
+    position: "relative",
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 12,
   },
   avatarContainer: {
     width: 60,
@@ -390,6 +424,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
+  },
+  activeBadge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    backgroundColor: "#28a745",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  activeBadgeText: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: "#fff",
   },
   avatarText: {
     fontSize: 22,
@@ -432,6 +482,34 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#007bff",
     marginTop: 2,
+  },
+  departmentBadge: {
+    backgroundColor: "#e7f3ff",
+    borderWidth: 1,
+    borderColor: "#007bff",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  departmentText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#007bff",
+    textAlign: "center",
+  },
+  phoneContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    marginBottom: 8,
+    justifyContent: "center",
+    gap: 4,
+  },
+  phoneText: {
+    fontSize: 12,
+    color: "#666",
+    fontWeight: "500",
   },
   manageButton: {
     backgroundColor: "#f0f8ff",

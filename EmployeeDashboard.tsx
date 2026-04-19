@@ -3,10 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Scr
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
-import { addDoc, collection, serverTimestamp, query, where, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, query, where, orderBy, limit, getDocs, Timestamp, updateDoc, doc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import { getCurrentUserData } from "./services/authService";
-import { RootStackParamList } from "./types";
+import { RootStackParamList, AttendanceRecord } from "./types";
 
 type EmployeeDashboardProps = NativeStackScreenProps<RootStackParamList, "EmployeeDashboard">;
 
@@ -50,12 +50,22 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
         return;
       }
 
-      // Query: Get latest attendance record for current user
-      const q = query(collection(db, "attendance"), where("userId", "==", userData.uid), orderBy("timestamp", "desc"), limit(1));
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date();
+      const todayDateString = today.toISOString().split("T")[0];
+
+      // Query: Get today's attendance record for current user
+      const q = query(
+        collection(db, "attendance"),
+        where("userId", "==", userData.uid),
+        where("date", "==", todayDateString),
+        orderBy("check_in", "desc"),
+        limit(1)
+      );
 
       const querySnapshot = await getDocs(q);
 
-      // State A: No records found
+      // No record for today -> Ready for check-in
       if (querySnapshot.empty) {
         setIsCheckedIn(false);
         setHasCompletedShift(false);
@@ -63,41 +73,27 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
         return;
       }
 
-      // Get the latest record
-      const latestDoc = querySnapshot.docs[0];
-      const latestData = latestDoc.data();
-      const recordTimestamp = latestData.timestamp;
+      // Get today's attendance record
+      const attendanceDoc = querySnapshot.docs[0];
+      const attendanceData = attendanceDoc.data() as AttendanceRecord;
 
-      // Convert Firestore Timestamp to JavaScript Date
-      const recordDate = recordTimestamp instanceof Timestamp ? recordTimestamp.toDate() : new Date(recordTimestamp);
-
-      // Get today's date at midnight for comparison
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // Check if the record is from TODAY (same day, month, year)
-      const isRecordFromToday =
-        recordDate.getDate() === today.getDate() &&
-        recordDate.getMonth() === today.getMonth() &&
-        recordDate.getFullYear() === today.getFullYear();
-
-      // State C: Record is from today and type is 'check-out' -> Shift completed
-      if (isRecordFromToday && latestData.type === "check-out") {
+      // If check_out exists -> Shift completed
+      if (attendanceData.check_out) {
         setHasCompletedShift(true);
         setIsCheckedIn(false);
         setLoadingCheckStatus(false);
         return;
       }
 
-      // State B: Record is from today and type is 'check-in' -> Only checked in
-      if (isRecordFromToday && latestData.type === "check-in") {
+      // If only check_in exists -> Currently checked in
+      if (attendanceData.check_in) {
         setIsCheckedIn(true);
         setHasCompletedShift(false);
         setLoadingCheckStatus(false);
         return;
       }
 
-      // State A: Record is NOT from today (or no valid record) -> Ready for new check-in
+      // Default state
       setIsCheckedIn(false);
       setHasCompletedShift(false);
     } catch (err) {
@@ -180,41 +176,103 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
         return;
       }
 
-      // 4. Determine attendance type based on current state
-      const attendanceType = isCheckedIn ? "check-out" : "check-in";
-
-      // 4b. Verify geofence compliance (defense-in-depth check)
+      // 4. Verify geofence compliance (defense-in-depth check)
       if (!isWithinRadius) {
         Alert.alert("خطأ", "أنت خارج نطاق العمل. لا يمكنك تسجيل الحضور.");
         return;
       }
 
-      // 5. Save attendance record to Firestore with userName
-      const attendanceRef = collection(db, "attendance");
-      const attendanceData = {
-        userId: userData.uid,
-        userName: userData.name || userData.email || "Unknown",
-        companyId: companyId,
-        type: attendanceType,
-        timestamp: serverTimestamp(),
-        location: {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        },
-      };
+      // 5. Determine attendance action based on current state
+      const isCheckInAction = !isCheckedIn;
 
-      await addDoc(attendanceRef, attendanceData);
+      if (isCheckInAction) {
+        // === CHECK-IN LOGIC ===
+        // Calculate isLate: compare current time with workStartTime + 15 min grace period
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const currentTimeInMinutes = currentHour * 60 + currentMinute;
 
-      // 6. Update states based on attendance type
-      if (attendanceType === "check-out") {
-        // Just completed check-out
+        // Parse user's workStartTime (format: "HH:mm")
+        const workStartTime = userData.workStartTime || "09:00";
+        const [startHour, startMinute] = workStartTime.split(":").map(Number);
+        const workStartTimeInMinutes = startHour * 60 + startMinute;
+
+        // Grace period: 15 minutes
+        const gracePeriodinMinutes = 15;
+        const isLate = currentTimeInMinutes > workStartTimeInMinutes + gracePeriodinMinutes;
+
+        // Get today's date in YYYY-MM-DD format
+        const todayDateString = now.toISOString().split("T")[0];
+
+        // Create new attendance record
+        const attendanceRef = collection(db, "attendance");
+        const attendanceData = {
+          userId: userData.uid,
+          userName: userData.name || userData.email || "Unknown",
+          companyId: companyId,
+          date: todayDateString, // YYYY-MM-DD format
+          check_in: serverTimestamp(),
+          isLate: isLate,
+          location: {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          },
+          created_at: serverTimestamp(),
+        };
+
+        await addDoc(attendanceRef, attendanceData);
+
+        // Update states
+        setIsCheckedIn(true);
+        Alert.alert(
+          "نجاح",
+          isLate ? "تم تسجيل حضورك بنجاح!\n⚠️ تنبيه: لقد تجاوزت فترة السماح (15 دقيقة)" : "تم تسجيل حضورك بنجاح!"
+        );
+      } else {
+        // === CHECK-OUT LOGIC ===
+        // Find today's check-in record
+        const today = new Date();
+        const todayDateString = today.toISOString().split("T")[0];
+
+        const q = query(
+          collection(db, "attendance"),
+          where("userId", "==", userData.uid),
+          where("date", "==", todayDateString),
+          orderBy("check_in", "desc"),
+          limit(1)
+        );
+
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          Alert.alert("خطأ", "لم نتمكن من العثور على سجل الحضور لهذا اليوم.");
+          return;
+        }
+
+        const attendanceDoc = querySnapshot.docs[0];
+        const attendanceRecord = attendanceDoc.data() as AttendanceRecord;
+        const checkInTime = attendanceRecord.check_in instanceof Timestamp ? attendanceRecord.check_in.toDate() : new Date(attendanceRecord.check_in);
+
+        // Calculate work duration in minutes
+        const checkOutTime = new Date();
+        const workDurationMinutes = Math.round((checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60));
+
+        // Update the attendance record with check_out and workDuration
+        const attendanceDocRef = doc(db, "attendance", attendanceDoc.id);
+        await updateDoc(attendanceDocRef, {
+          check_out: serverTimestamp(),
+          workDuration: Math.max(0, workDurationMinutes), // Ensure non-negative
+          updated_at: serverTimestamp(),
+        });
+
+        // Update states
         setHasCompletedShift(true);
         setIsCheckedIn(false);
-        Alert.alert("نجاح", "تم تسجيل انصرافك بنجاح!\nتم تسجيل الحضور والانصراف بنجاح. نراك غداً!");
-      } else {
-        // Just completed check-in
-        setIsCheckedIn(true);
-        Alert.alert("نجاح", "تم تسجيل حضورك بنجاح!");
+        Alert.alert(
+          "نجاح",
+          `تم تسجيل انصرافك بنجاح!\nمدة العمل: ${Math.floor(workDurationMinutes / 60)} ساعة و ${workDurationMinutes % 60} دقيقة`
+        );
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "حدث خطأ غير متوقع";
