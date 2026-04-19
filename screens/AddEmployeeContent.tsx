@@ -360,6 +360,7 @@ const styles = StyleSheet.create({
     color: "#333",
     marginHorizontal: 8,
     padding: 0,
+    outlineStyle: "none",
   },
   errorText: {
     color: "#dc3545",
