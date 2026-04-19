@@ -13,6 +13,7 @@ interface EmployeeCard {
   department: string;
   basicSalary: number;
   status: string;
+  joinDate: string;
 }
 
 interface Props {
@@ -45,42 +46,36 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
 
   const renderEmployeeCard = ({ item }: { item: EmployeeCard }) => (
     <View style={styles.card}>
-      {/* Card Header */}
-      <View style={styles.cardHeader}>
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
+      <View style={styles.cardTopRow}>
+        <View style={styles.statusRow}>
+          <View style={styles.activeDot} />
+          <Text style={styles.activeLabel}>Active</Text>
         </View>
-        <View style={styles.cardHeaderInfo}>
-          <Text style={styles.employeeName}>{item.name}</Text>
-          <Text style={styles.department}>{item.department}</Text>
-        </View>
-        {item.status === "active" && <View style={styles.statusBadge} />}
+        <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
       </View>
 
-      {/* Card Body */}
-      <View style={styles.cardBody}>
-        {/* Phone */}
-        <View style={styles.infoRow}>
-          <Ionicons name="call" size={16} color="#007bff" />
-          <Text style={styles.infoLabel}>الهاتف:</Text>
-          <Text style={styles.infoValue}>{item.phone || "غير محدد"}</Text>
+      <View style={styles.avatarSection}>
+        <View style={styles.largeAvatar}>
+          <Text style={styles.largeAvatarText}>{item.name.charAt(0).toUpperCase()}</Text>
         </View>
+        <Text style={styles.employeeNameLarge}>{item.name}</Text>
+        <Text style={styles.departmentLarge}>{item.department}</Text>
+      </View>
 
-        {/* Email */}
-        <View style={styles.infoRow}>
-          <Ionicons name="mail" size={16} color="#007bff" />
-          <Text style={styles.infoLabel}>البريد:</Text>
-          <Text style={styles.infoValue} numberOfLines={1}>
-            {item.email}
-          </Text>
+      <View style={styles.contactBox}>
+        <View style={styles.contactRow}>
+          <Ionicons name="mail" size={16} color="#6b7280" />
+          <Text style={styles.contactText}>{item.email}</Text>
         </View>
+        <View style={styles.contactRow}>
+          <Ionicons name="call" size={16} color="#6b7280" />
+          <Text style={styles.contactText}>{item.phone || "غير محدد"}</Text>
+        </View>
+      </View>
 
-        {/* Salary */}
-        <View style={styles.infoRow}>
-          <Ionicons name="cash" size={16} color="#28a745" />
-          <Text style={styles.infoLabel}>الراتب:</Text>
-          <Text style={[styles.infoValue, styles.salaryValue]}>LE {item.basicSalary.toLocaleString()}</Text>
-        </View>
+      <View style={styles.cardBottomRow}>
+        <Text style={styles.joinedText}>انضم {item.joinDate || "غير معروف"}</Text>
+        <Text style={styles.viewDetails}>عرض التفاصيل {">"}</Text>
       </View>
     </View>
   );
@@ -128,15 +123,13 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
 
       {/* Employees Grid with Max Width Container */}
       <View style={styles.gridContainer}>
-        <FlatList
-          data={employees}
-          renderItem={renderEmployeeCard}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          columnWrapperStyle={styles.columnWrapper}
-          scrollEnabled={false}
-          contentContainerStyle={styles.listContent}
-        />
+        <ScrollView contentContainerStyle={styles.gridRow} showsVerticalScrollIndicator={false}>
+          {employees.map((item) => (
+            <View key={item.id} style={styles.cardWrapper}>
+              {renderEmployeeCard({ item })}
+            </View>
+          ))}
+        </ScrollView>
       </View>
     </View>
   );
@@ -201,16 +194,113 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 20,
   },
+  gridRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+    gap: 16,
+    paddingBottom: 20,
+  },
+  cardWrapper: {
+    width: 300,
+    marginRight: 16,
+    marginBottom: 16,
+  },
   card: {
-    flex: 1,
+    width: "100%",
     backgroundColor: "#fff",
     borderRadius: 12,
-    overflow: "hidden",
+    padding: 16,
+    marginBottom: 16,
     elevation: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+  },
+  cardTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  activeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#22c55e",
+  },
+  activeLabel: {
+    fontSize: 12,
+    color: "#16a34a",
+    fontWeight: "600",
+  },
+  avatarSection: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  largeAvatar: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: "#2563eb",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  largeAvatarText: {
+    color: "#fff",
+    fontSize: 28,
+    fontWeight: "bold",
+  },
+  employeeNameLarge: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#111827",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  departmentLarge: {
+    fontSize: 14,
+    color: "#6b7280",
+    textAlign: "center",
+  },
+  contactBox: {
+    backgroundColor: "#f3f4f6",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+  },
+  contactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  contactText: {
+    color: "#374151",
+    fontSize: 13,
+    flex: 1,
+    textAlign: "right",
+  },
+  cardBottomRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  joinedText: {
+    color: "#6b7280",
+    fontSize: 12,
+  },
+  viewDetails: {
+    color: "#2563eb",
+    fontSize: 13,
+    fontWeight: "600",
   },
   cardHeader: {
     flexDirection: "row-reverse",

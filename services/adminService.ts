@@ -62,16 +62,18 @@ export const createNewEmployee = async (
   } catch (error: any) {
     console.error("Error creating employee:", error);
 
-    // Handle specific Firebase errors
+    let message = error.message || "فشل في إنشاء الموظف";
     if (error.code === "auth/email-already-in-use") {
-      throw new Error("البريد الإلكتروني مستخدم بالفعل");
+      message = "البريد الإلكتروني مستخدم بالفعل";
     } else if (error.code === "auth/weak-password") {
-      throw new Error("كلمة المرور ضعيفة جداً (يجب أن تكون 6 أحرف على الأقل)");
+      message = "كلمة المرور ضعيفة جداً (يجب أن تكون 6 أحرف على الأقل)";
     } else if (error.code === "auth/invalid-email") {
-      throw new Error("البريد الإلكتروني غير صحيح");
+      message = "البريد الإلكتروني غير صحيح";
     }
 
-    throw new Error(error.message || "فشل في إنشاء الموظف");
+    const customError: any = new Error(message);
+    customError.code = error.code;
+    throw customError;
   }
 };
 
@@ -103,6 +105,7 @@ export const fetchCompanyEmployees = async (
       department: string;
       basicSalary: number;
       status: string;
+      joinDate: string;
     }> = [];
 
     querySnapshot.forEach((docSnapshot) => {
@@ -115,6 +118,7 @@ export const fetchCompanyEmployees = async (
         department: data.department || "Other",
         basicSalary: data.basicSalary || 0,
         status: data.status || "active",
+        joinDate: data.joinDate || data.join_date || "غير معروف",
       });
     });
 

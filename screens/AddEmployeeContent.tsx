@@ -28,6 +28,7 @@ const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
   const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [successMessage, setSuccessMessage] = useState("");
+  const [submitError, setSubmitError] = useState("");
 
   // Clear success message after 3 seconds
   useEffect(() => {
@@ -61,6 +62,7 @@ const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
       return;
     }
 
+    setSubmitError("");
     setLoading(true);
     try {
       const result = await createNewEmployee(
@@ -89,10 +91,17 @@ const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
         basicSalary: "",
       });
       setErrors({});
+      setSubmitError("");
       setSuccessMessage("تم إضافة الموظف بنجاح! ✓");
       setLoading(false);
-    } catch (error) {
-      Alert.alert("خطأ", error instanceof Error ? error.message : "فشل في إنشاء الموظف");
+    } catch (error: any) {
+      const errorCode = error?.code;
+      if (errorCode === "auth/email-already-in-use") {
+        setSubmitError("هذا البريد الإلكتروني مسجل بالفعل لموظف آخر");
+      } else {
+        setSubmitError(error instanceof Error ? error.message : "فشل في إنشاء الموظف");
+      }
+      setSuccessMessage("");
       setLoading(false);
     }
   };
@@ -254,6 +263,12 @@ const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
           {errors.basicSalary && <Text style={styles.errorText}>{errors.basicSalary}</Text>}
         </View>
 
+        {submitError ? (
+          <View style={styles.submitErrorBox}>
+            <Text style={styles.submitErrorText}>{submitError}</Text>
+          </View>
+        ) : null}
+
         {/* Submit Button */}
         <TouchableOpacity
           style={[styles.submitButton, loading && styles.submitButtonDisabled]}
@@ -351,6 +366,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 6,
     fontWeight: "500",
+  },
+  submitErrorBox: {
+    backgroundColor: "#fdecea",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#f5c2c7",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
+  submitErrorText: {
+    color: "#b02a37",
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "right",
+    fontWeight: "600",
   },
   dropdown: {
     marginTop: 8,
