@@ -47,15 +47,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
           return;
         }
 
-        // Check if company_id exists and is valid
-        const companyId = userData.company_id;
-        if (!companyId || companyId.trim() === "") {
-          setHasCompany(false);
-          setLoading(false);
-          return;
-        }
+        // For admins, use default company or user's company_id
+        const companyId = userData.company_id || "MainCompany";
+        setHasCompany(true);
 
-        // Only run query if company_id is valid
+        // Fetch employees for the company
         const q = query(collection(db, "users"), where("company_id", "==", companyId), where("role", "==", "employee"));
         const querySnapshot = await getDocs(q);
         const empList: Employee[] = [];
@@ -63,7 +59,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
           empList.push({ id: doc.id, ...doc.data() } as Employee);
         });
         setEmployees(empList);
-        setHasCompany(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : "حدث خطأ أثناء جلب البيانات");
       } finally {
@@ -255,7 +250,7 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#f3f4f6",
   },
   container: {
     flex: 1,
@@ -436,6 +431,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
+    backgroundColor: "#f3f4f6",
   },
   messageText: {
     fontSize: 18,
@@ -455,6 +451,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
+    backgroundColor: "#f3f4f6",
   },
   errorText: {
     fontSize: 16,

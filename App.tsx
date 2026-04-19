@@ -109,7 +109,7 @@ function AdminStack() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerShown: true,
+        headerShown: false,
         animationEnabled: false,
       }}
     >
