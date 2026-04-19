@@ -41,20 +41,14 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation }) => 
         }
 
         // Query all attendance records for current user, ordered by timestamp (descending)
-        const q = query(
-          collection(db, "attendance"),
-          where("userId", "==", userData.uid),
-          orderBy("timestamp", "desc")
-        );
+        const q = query(collection(db, "attendance"), where("userId", "==", userData.uid), orderBy("timestamp", "desc"));
 
         const querySnapshot = await getDocs(q);
 
         // Transform documents into display format
         const records: AttendanceRecord[] = querySnapshot.docs.map((doc) => {
           const data = doc.data();
-          const timestamp = data.timestamp instanceof Timestamp
-            ? data.timestamp.toDate()
-            : new Date(data.timestamp);
+          const timestamp = data.timestamp instanceof Timestamp ? data.timestamp.toDate() : new Date(data.timestamp);
 
           // Format date as DD/MM/YYYY
           const date = timestamp.toLocaleDateString("ar-EG", {
@@ -95,29 +89,23 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation }) => 
         });
 
         // Convert map to array with stats
-        const monthlyGroups: MonthlyGroup[] = Array.from(groupedByMonth.entries()).map(
-          ([monthYear, groupRecords]) => {
-            // Calculate unique days with check-in
-            const uniqueDaysWithCheckIn = new Set(
-              groupRecords
-                .filter((r) => r.type === "check-in")
-                .map((r) => r.date)
-            ).size;
+        const monthlyGroups: MonthlyGroup[] = Array.from(groupedByMonth.entries()).map(([monthYear, groupRecords]) => {
+          // Calculate unique days with check-in
+          const uniqueDaysWithCheckIn = new Set(groupRecords.filter((r) => r.type === "check-in").map((r) => r.date)).size;
 
-            const timestamp = groupRecords[0].timestamp;
+          const timestamp = groupRecords[0].timestamp;
 
-            return {
-              monthYear,
-              month: timestamp.getMonth(),
-              year: timestamp.getFullYear(),
-              records: groupRecords,
-              totalDaysPresent: uniqueDaysWithCheckIn,
-              absences: 0, // Placeholder
-              permissions: 0, // Placeholder
-              bonus: 0, // Placeholder (0 EGP)
-            };
-          }
-        );
+          return {
+            monthYear,
+            month: timestamp.getMonth(),
+            year: timestamp.getFullYear(),
+            records: groupRecords,
+            totalDaysPresent: uniqueDaysWithCheckIn,
+            absences: 0, // Placeholder
+            permissions: 0, // Placeholder
+            bonus: 0, // Placeholder (0 EGP)
+          };
+        });
 
         setMonthlyData(monthlyGroups);
       } catch (err) {
@@ -170,22 +158,8 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation }) => 
             </View>
 
             <View style={styles.logTypeColumn}>
-              <View
-                style={[
-                  styles.typeBadge,
-                  record.type === "check-in"
-                    ? styles.typeBadgeCheckIn
-                    : styles.typeBadgeCheckOut,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.typeLabel,
-                    record.type === "check-in"
-                      ? styles.typeLabelCheckIn
-                      : styles.typeLabelCheckOut,
-                  ]}
-                >
+              <View style={[styles.typeBadge, record.type === "check-in" ? styles.typeBadgeCheckIn : styles.typeBadgeCheckOut]}>
+                <Text style={[styles.typeLabel, record.type === "check-in" ? styles.typeLabelCheckIn : styles.typeLabelCheckOut]}>
                   {record.type === "check-in" ? "حضور" : "انصراف"}
                 </Text>
               </View>
@@ -216,173 +190,6 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation }) => 
     return (
       <View style={styles.container}>
         <Text style={styles.emptyText}>لا توجد سجلات حضور بعد.</Text>
-      </View>
-    );
-  }
-
-  return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.title}>سجل الحضور والانصراف</Text>
-        <Text style={styles.subtitle}>تقرير شامل للحضور والانصراف</Text>
-      </View>
-
-      {monthlyData.map((monthData) => renderMonthlyStats(monthData))}
-
-      <View style={styles.footerSpacer} />
-    </ScrollView>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-  },
-  headerContainer: {
-    paddingVertical: 15,
-    marginBottom: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
-    textAlign: "center",
-    marginBottom: 5,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-  },
-  monthContainer: {
-    marginBottom: 15,
-  },
-  monthHeader: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#007bff",
-    marginBottom: 10,
-    paddingHorizontal: 5,
-  },
-  statsCard: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  statRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-  },
-  statItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statDivider: {
-    borderLeftWidth: 1,
-    borderLeftColor: "#e0e0e0",
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#007bff",
-    marginBottom: 5,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#666",
-    fontWeight: "500",
-  },
-  dailyLogsContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    overflow: "hidden",
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  dailyLogRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  logDateColumn: {
-    flex: 1,
-  },
-  logDate: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-  },
-  logTypeColumn: {
-    flex: 1,
-    alignItems: "center",
-  },
-  typeBadge: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  typeBadgeCheckIn: {
-    backgroundColor: "#d4edda",
-  },
-  typeBadgeCheckOut: {
-    backgroundColor: "#fff3cd",
-  },
-  typeLabel: {
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  typeLabelCheckIn: {
-    color: "#155724",
-  },
-  typeLabelCheckOut: {
-    color: "#856404",
-  },
-  logTimeColumn: {
-    flex: 1,
-    alignItems: "flex-end",
-  },
-  logTime: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: "#666",
-  },
-  monthDivider: {
-    height: 1,
-    backgroundColor: "#e0e0e0",
-    marginVertical: 15,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#999",
-    textAlign: "center",
-    marginTop: 50,
-  },
-  footerSpacer: {
-    height style={styles.emptyText}>لا توجد سجلات حضور بعد.</Text>
       </View>
     );
   }
