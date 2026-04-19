@@ -3,85 +3,22 @@ import { StatusBar } from "expo-status-bar";
 import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebaseConfig";
-import { User, RootStackParamList, EmployeeTabParamList } from "./types";
+import { User, RootStackParamList } from "./types";
 import { getCurrentUserData } from "./services/authService";
 
 import AdminDashboard from "./AdminDashboard";
 import LoginScreen from "./LoginScreen";
-import EmployeeDashboard from "./EmployeeDashboard";
-import AttendanceHistory from "./AttendanceHistory";
-import Requests from "./Requests";
+import EmployeeScreenWrapper from "./EmployeeScreenWrapper";
 import EmployeeProfileAdminView from "./EmployeeProfileAdminView";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const EmployeeTab = createBottomTabNavigator<EmployeeTabParamList>();
 
-// Employee Bottom Tab Navigator
-function EmployeeTabs() {
-  return (
-    <EmployeeTab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: true,
-        tabBarActiveTintColor: "#007bff",
-        tabBarInactiveTintColor: "#999999",
-        tabBarStyle: {
-          backgroundColor: "#ffffff",
-          borderTopColor: "#e0e0e0",
-          borderTopWidth: 1,
-          paddingBottom: 10,
-          paddingTop: 5,
-          height: 65,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "600",
-          marginBottom: 3,
-          marginTop: 2,
-        },
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap;
-
-          if (route.name === "EmployeeDashboard") {
-            iconName = focused ? "home" : "home-outline";
-          } else if (route.name === "AttendanceHistory") {
-            iconName = focused ? "time" : "time-outline";
-          } else if (route.name === "Requests") {
-            iconName = focused ? "document" : "document-outline";
-          } else {
-            iconName = "help-circle-outline";
-          }
-
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-      })}
-    >
-      <EmployeeTab.Screen
-        name="EmployeeDashboard"
-        component={EmployeeDashboard}
-        options={{
-          title: "الرئيسية",
-        }}
-      />
-      <EmployeeTab.Screen
-        name="AttendanceHistory"
-        component={AttendanceHistory}
-        options={{
-          title: "السجل",
-        }}
-      />
-      <EmployeeTab.Screen
-        name="Requests"
-        component={Requests}
-        options={{
-          title: "الطلبات",
-        }}
-      />
-    </EmployeeTab.Navigator>
-  );
+// Employee Layout with Sidebar
+function EmployeeTabs(props: any) {
+  return <EmployeeScreenWrapper {...props} />;
 }
 
 // Auth Stack - for unauthenticated users
