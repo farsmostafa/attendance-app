@@ -1,23 +1,26 @@
 import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from "react-native";
-import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
-import { addDoc, collection, serverTimestamp, query, where, orderBy, limit, getDocs, Timestamp, updateDoc, doc } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, query, where, orderBy, limit, getDocs, Timestamp, updateDoc, doc, getDoc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import { getCurrentUserData } from "./services/authService";
-import { EmployeeTabParamList, AttendanceRecord } from "./types";
+import { AttendanceRecord, RootStackParamList } from "./types";
 
-type EmployeeDashboardProps = BottomTabScreenProps<EmployeeTabParamList, "EmployeeDashboard">;
+type EmployeeDashboardProps = NativeStackScreenProps<RootStackParamList>;
 
-// Company location coordinates (Girga - Sohag)
-const COMPANY_LOCATION = {
+// Default company location (fallback if settings not found)
+const DEFAULT_COMPANY_LOCATION = {
   latitude: 26.336796,
   longitude: 31.891085,
 };
 
-// Allowed radius for check-in (in meters)
-const ALLOWED_RADIUS_METERS = 50;
+// Default radius (fallback)
+const DEFAULT_ALLOWED_RADIUS_METERS = 50;
+
+// Default grace period in minutes (fallback)
+const DEFAULT_GRACE_PERIOD_MINUTES = 15;
 
 // Haversine formula to calculate accurate distance between two points on the map (in meters)
 const getDistanceInMeters = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -39,6 +42,8 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [hasCompletedShift, setHasCompletedShift] = useState(false);
   const [loadingCheckStatus, setLoadingCheckStatus] = useState(true);
+  const [companySettings, setCompanySettings] = useState<any>(null);
+  const [loadingSettings, setLoadingSettings] = useState(true);
   const isProcessingRef = useRef(false);
 
   // Function to fetch today's attendance status
@@ -108,7 +113,26 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
   // Fetch on mount
   useEffect(() => {
     fetchTodayCheckStatus();
+    fetchCompanySettings();
   }, []);
+
+  // Fetch company settings
+  const fetchCompanySettings = async () => {
+    setLoadingSettings(true);
+    try {
+      const companyDoc = await getDoc(doc(db, "companies", "MainCompany"));
+      if (companyDoc.exists()) {
+        setCompanySettings(companyDoc.data());
+      } else {
+        setCompanySettings(null);
+      }
+    } catch (err) {
+      console.error("Error fetching company settings:", err);
+      setCompanySettings(null);
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
 
   // Refresh on screen focus
   useFocusEffect(
@@ -132,19 +156,23 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
         let currentLocation = await Location.getCurrentPositionAsync({});
         setLocation(currentLocation);
 
-        // 3. Calculate distance between employee and company
+        // 3. Use company settings for geofence, fallback to defaults
+        const companyLat = companySettings?.latitude || DEFAULT_COMPANY_LOCATION.latitude;
+        const companyLng = companySettings?.longitude || DEFAULT_COMPANY_LOCATION.longitude;
+
+        // 4. Calculate distance between employee and company
         const dist = getDistanceInMeters(
           currentLocation.coords.latitude,
           currentLocation.coords.longitude,
-          COMPANY_LOCATION.latitude,
-          COMPANY_LOCATION.longitude,
+          companyLat,
+          companyLng,
         );
         setDistance(dist);
       } catch (err) {
         setErrorMsg("حدث خطأ أثناء جلب موقعك الحالي.");
       }
     })();
-  }, []);
+  }, [companySettings]);
 
   const handleCheckIn = async () => {
     // Prevent multiple rapid clicks
@@ -187,20 +215,20 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
 
       if (isCheckInAction) {
         // === CHECK-IN LOGIC ===
-        // Calculate isLate: compare current time with workStartTime + 15 min grace period
+        // Calculate isLate: compare current time with workStartTime + grace period
         const now = new Date();
         const currentHour = now.getHours();
         const currentMinute = now.getMinutes();
         const currentTimeInMinutes = currentHour * 60 + currentMinute;
 
-        // Parse user's workStartTime (format: "HH:mm")
-        const workStartTime = userData.workStartTime || "09:00";
+        // Parse workStartTime from company settings (format: "HH:mm")
+        const workStartTime = companySettings?.workStartTime || "09:00";
         const [startHour, startMinute] = workStartTime.split(":").map(Number);
         const workStartTimeInMinutes = startHour * 60 + startMinute;
 
-        // Grace period: 15 minutes
-        const gracePeriodinMinutes = 15;
-        const isLate = currentTimeInMinutes > workStartTimeInMinutes + gracePeriodinMinutes;
+        // Grace period from company settings (in minutes)
+        const gracePeriodMinutes = companySettings?.gracePeriodMinutes || DEFAULT_GRACE_PERIOD_MINUTES;
+        const isLate = currentTimeInMinutes > workStartTimeInMinutes + gracePeriodMinutes;
 
         // Get today's date in YYYY-MM-DD format
         const todayDateString = now.toISOString().split("T")[0];
@@ -287,17 +315,29 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
     }
   };
 
-  // Check if employee is within allowed radius
-  const isWithinRadius = distance !== null && distance <= ALLOWED_RADIUS_METERS;
+  // Check if employee is within allowed radius (use company settings if available)
+  const allowedRadius = DEFAULT_ALLOWED_RADIUS_METERS;
+  const isWithinRadius = distance !== null && distance <= allowedRadius;
+
+  // Show loading until both location and company settings are loaded
+  const isLoading = loadingCheckStatus || loadingSettings;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>لوحة الموظف</Text>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>نظام الحضور والانصراف</Text>
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007bff" />
+          <Text style={styles.loadingText}>جاري التحميل...</Text>
+        </View>
+      )}
 
-        {!location && !errorMsg ? (
+      {!isLoading && (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>نظام الحضور والانصراف</Text>
+
+          {!location && !errorMsg ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#0000ff" />
             <Text style={styles.statusText}>جاري تحديد موقعك...</Text>
@@ -347,6 +387,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
           </View>
         )}
       </View>
+      )}
     </ScrollView>
   );
 };
@@ -361,6 +402,16 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   title: { fontSize: 26, fontWeight: "bold", marginBottom: 20, textAlign: "center", color: "#333" },
+  loadingContainer: {
+    paddingVertical: 60,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#666",
+  },
   card: {
     backgroundColor: "#fff",
     padding: 20,
@@ -372,7 +423,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   cardTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 15, textAlign: "right", color: "#444" },
-  loadingContainer: { alignItems: "center", marginVertical: 20 },
   statusText: { marginTop: 10, fontSize: 16, color: "#666" },
   errorText: { color: "#cc0000", fontSize: 16, textAlign: "center", marginVertical: 10 },
   locationInfo: { alignItems: "center" },
