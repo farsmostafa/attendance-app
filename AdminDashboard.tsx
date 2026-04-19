@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Dimensions } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { db } from "./firebaseConfig";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { getCurrentUserData } from "./services/authService";
 import { User, RootStackParamList } from "./types";
-import ScreenWrapper from "./components/ScreenWrapper";
 import TopHeader from "./components/TopHeader";
-import DashboardMenu from "./components/DashboardMenu";
+import AdminSidebar from "./components/AdminSidebar";
 
 type AdminDashboardProps = NativeStackScreenProps<RootStackParamList, "AdminDashboard">;
 
@@ -34,7 +33,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
   const [hasCompany, setHasCompany] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "employees" | "settings">("overview");
+  const [activeScreen, setActiveScreen] = useState<string>("Dashboard");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -122,106 +121,142 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
 
   if (loading) {
     return (
-      <ScreenWrapper>
+      <View style={styles.mainContainer}>
         <TopHeader userName={currentUser?.name || "مسؤول"} navigation={navigation} />
         <View style={styles.centerContainer}>
           <Text style={styles.loadingText}>جاري التحميل...</Text>
         </View>
-      </ScreenWrapper>
+      </View>
     );
   }
 
   if (!hasCompany) {
     return (
-      <ScreenWrapper>
+      <View style={styles.mainContainer}>
         <TopHeader userName={currentUser?.name || "مسؤول"} navigation={navigation} />
-        <DashboardMenu navigation={navigation} currentScreen="AdminDashboard" />
-        <View style={styles.messageContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color="#ff6b6b" />
-          <Text style={styles.messageText}>يرجى ربط حسابك بشركة</Text>
-          <Text style={styles.messageSubtext}>لعرض وإدارة الموظفين</Text>
+        <View style={styles.layoutContainer}>
+          <View style={styles.messageContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color="#ff6b6b" />
+            <Text style={styles.messageText}>يرجى ربط حسابك بشركة</Text>
+            <Text style={styles.messageSubtext}>لعرض وإدارة الموظفين</Text>
+          </View>
+          <AdminSidebar currentScreen={activeScreen} onNavigate={setActiveScreen} />
         </View>
-      </ScreenWrapper>
+      </View>
     );
   }
 
   if (error) {
     return (
-      <ScreenWrapper>
+      <View style={styles.mainContainer}>
         <TopHeader userName={currentUser?.name || "مسؤول"} navigation={navigation} />
-        <DashboardMenu navigation={navigation} currentScreen="AdminDashboard" />
-        <View style={styles.errorContainer}>
-          <Ionicons name="close-circle-outline" size={48} color="#cc0000" />
-          <Text style={styles.errorText}>{error}</Text>
+        <View style={styles.layoutContainer}>
+          <View style={styles.errorContainer}>
+            <Ionicons name="close-circle-outline" size={48} color="#cc0000" />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+          <AdminSidebar currentScreen={activeScreen} onNavigate={setActiveScreen} />
         </View>
-      </ScreenWrapper>
+      </View>
     );
   }
 
   return (
-    <ScreenWrapper>
+    <View style={styles.mainContainer}>
       <TopHeader userName={currentUser?.name || "مسؤول"} navigation={navigation} />
-      <DashboardMenu navigation={navigation} currentScreen="AdminDashboard" />
-      <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
-        {/* Statistics Section */}
-        <View style={styles.statsSection}>
-          <View style={[styles.statCard, styles.statCardBlue]}>
-            <Ionicons name="people" size={32} color="#007bff" />
-            <Text style={styles.statValue}>{employees.length}</Text>
-            <Text style={styles.statLabel}>عدد الموظفين</Text>
-          </View>
-          <View style={[styles.statCard, styles.statCardGreen]}>
-            <Ionicons name="checkmark-circle" size={32} color="#28a745" />
-            <Text style={styles.statValue}>{Math.floor(employees.length * 0.8)}</Text>
-            <Text style={styles.statLabel}>حاضرون اليوم</Text>
-          </View>
-        </View>
 
-        {/* Quick Actions Section */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>الإجراءات السريعة</Text>
-          <View style={styles.menuGrid}>
-            {menuOptions.map((option) => (
-              <TouchableOpacity key={option.id} style={styles.menuItem} onPress={option.onPress}>
-                <View style={[styles.menuIconContainer, { backgroundColor: option.color + "20" }]}>
-                  <Ionicons name={option.icon} size={28} color={option.color} />
+      {/* Main Layout: Content + Sidebar */}
+      <View style={styles.layoutContainer}>
+        {/* Main Content Area */}
+        <ScrollView style={styles.mainContent} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+          {activeScreen === "Dashboard" && (
+            <>
+              {/* Statistics Section */}
+              <View style={styles.statsSection}>
+                <View style={[styles.statCard, styles.statCardBlue]}>
+                  <Ionicons name="people" size={32} color="#007bff" />
+                  <Text style={styles.statValue}>{employees.length}</Text>
+                  <Text style={styles.statLabel}>عدد الموظفين</Text>
                 </View>
-                <Text style={styles.menuLabel}>{option.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+                <View style={[styles.statCard, styles.statCardGreen]}>
+                  <Ionicons name="checkmark-circle" size={32} color="#28a745" />
+                  <Text style={styles.statValue}>{Math.floor(employees.length * 0.8)}</Text>
+                  <Text style={styles.statLabel}>حاضرون اليوم</Text>
+                </View>
+              </View>
 
-        {/* Recent Employees Section */}
-        {employees.length > 0 && (
-          <View style={styles.sectionContainer}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>الموظفون الأخيرون</Text>
-              <TouchableOpacity onPress={() => navigation.navigate("EmployeeList")}>
-                <Text style={styles.viewAllLink}>عرض الكل</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.recentEmployeesList}>
-              {employees.slice(0, 3).map((emp) => (
-                <View key={emp.id} style={styles.employeeCard}>
-                  <View style={styles.employeeAvatar}>
-                    <Text style={styles.avatarText}>{emp.name.charAt(0)}</Text>
+              {/* Quick Actions Section */}
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>الإجراءات السريعة</Text>
+                <View style={styles.menuGrid}>
+                  {menuOptions.map((option) => (
+                    <TouchableOpacity key={option.id} style={styles.menuItem} onPress={option.onPress}>
+                      <View style={[styles.menuIconContainer, { backgroundColor: option.color + "20" }]}>
+                        <Ionicons name={option.icon} size={28} color={option.color} />
+                      </View>
+                      <Text style={styles.menuLabel}>{option.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Recent Employees Section */}
+              {employees.length > 0 && (
+                <View style={styles.sectionContainer}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>الموظفون الأخيرون</Text>
+                    <TouchableOpacity onPress={() => setActiveScreen("EmployeeList")}>
+                      <Text style={styles.viewAllLink}>عرض الكل</Text>
+                    </TouchableOpacity>
                   </View>
-                  <View style={styles.employeeInfo}>
-                    <Text style={styles.employeeName}>{emp.name}</Text>
-                    <Text style={styles.employeeEmail}>{emp.email}</Text>
+                  <View style={styles.recentEmployeesList}>
+                    {employees.slice(0, 3).map((emp) => (
+                      <View key={emp.id} style={styles.employeeCard}>
+                        <View style={styles.employeeAvatar}>
+                          <Text style={styles.avatarText}>{emp.name.charAt(0)}</Text>
+                        </View>
+                        <View style={styles.employeeInfo}>
+                          <Text style={styles.employeeName}>{emp.name}</Text>
+                          <Text style={styles.employeeEmail}>{emp.email}</Text>
+                        </View>
+                      </View>
+                    ))}
                   </View>
                 </View>
-              ))}
+              )}
+            </>
+          )}
+
+          {/* Placeholder for other screens */}
+          {activeScreen !== "Dashboard" && (
+            <View style={styles.placeholderContainer}>
+              <Ionicons name="document-outline" size={48} color="#ccc" />
+              <Text style={styles.placeholderText}>{activeScreen}</Text>
+              <Text style={styles.placeholderSubtext}>هذه الصفحة قيد التطوير</Text>
             </View>
-          </View>
-        )}
-      </ScrollView>
-    </ScreenWrapper>
+          )}
+        </ScrollView>
+
+        {/* Sidebar Navigation */}
+        <AdminSidebar currentScreen={activeScreen} onNavigate={setActiveScreen} />
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+  },
+  layoutContainer: {
+    flex: 1,
+    flexDirection: "row-reverse",
+  },
+  mainContent: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
@@ -433,6 +468,24 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 50,
     color: "#666",
+  },
+  placeholderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+  placeholderText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#666",
+    marginTop: 12,
+  },
+  placeholderSubtext: {
+    fontSize: 14,
+    color: "#999",
+    marginTop: 8,
   },
 });
 
