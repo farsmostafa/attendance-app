@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { signOut } from "../services/authService";
+import { signOut as firebaseSignOut } from "firebase/auth";
+import { auth } from "../firebaseConfig";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../types";
 
@@ -31,11 +32,15 @@ const TopHeader: React.FC<TopHeaderProps> = ({ userName = "المستخدم", na
         onPress: async () => {
           setLoggingOut(true);
           try {
-            await signOut();
-            // Navigation will be handled by App.tsx auth state change
+            // Call Firebase signOut directly
+            await firebaseSignOut(auth);
+            console.log("✓ Sign out successful");
+            // App.tsx auth state listener will automatically redirect to LoginScreen
+            // No need for manual navigation
           } catch (error) {
+            console.error("❌ Sign out error:", error);
             setLoggingOut(false);
-            Alert.alert("خطأ", "فشل تسجيل الخروج. يرجى المحاولة مرة أخرى.");
+            Alert.alert("خطأ", error instanceof Error ? error.message : "فشل تسجيل الخروج. يرجى المحاولة مرة أخرى.");
           }
         },
         style: "destructive",
