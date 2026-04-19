@@ -60,7 +60,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
         where("userId", "==", userData.uid),
         where("date", "==", todayDateString),
         orderBy("check_in", "desc"),
-        limit(1)
+        limit(1),
       );
 
       const querySnapshot = await getDocs(q);
@@ -225,10 +225,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
 
         // Update states
         setIsCheckedIn(true);
-        Alert.alert(
-          "نجاح",
-          isLate ? "تم تسجيل حضورك بنجاح!\n⚠️ تنبيه: لقد تجاوزت فترة السماح (15 دقيقة)" : "تم تسجيل حضورك بنجاح!"
-        );
+        Alert.alert("نجاح", isLate ? "تم تسجيل حضورك بنجاح!\n⚠️ تنبيه: لقد تجاوزت فترة السماح (15 دقيقة)" : "تم تسجيل حضورك بنجاح!");
       } else {
         // === CHECK-OUT LOGIC ===
         // Find today's check-in record
@@ -240,7 +237,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
           where("userId", "==", userData.uid),
           where("date", "==", todayDateString),
           orderBy("check_in", "desc"),
-          limit(1)
+          limit(1),
         );
 
         const querySnapshot = await getDocs(q);
@@ -252,7 +249,8 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
 
         const attendanceDoc = querySnapshot.docs[0];
         const attendanceRecord = attendanceDoc.data() as AttendanceRecord;
-        const checkInTime = attendanceRecord.check_in instanceof Timestamp ? attendanceRecord.check_in.toDate() : new Date(attendanceRecord.check_in);
+        const checkInTime =
+          attendanceRecord.check_in instanceof Timestamp ? attendanceRecord.check_in.toDate() : new Date(attendanceRecord.check_in);
 
         // Calculate work duration in minutes
         const checkOutTime = new Date();
@@ -271,7 +269,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
         setIsCheckedIn(false);
         Alert.alert(
           "نجاح",
-          `تم تسجيل انصرافك بنجاح!\nمدة العمل: ${Math.floor(workDurationMinutes / 60)} ساعة و ${workDurationMinutes % 60} دقيقة`
+          `تم تسجيل انصرافك بنجاح!\nمدة العمل: ${Math.floor(workDurationMinutes / 60)} ساعة و ${workDurationMinutes % 60} دقيقة`,
         );
       }
     } catch (err) {

@@ -179,7 +179,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
             <Text style={styles.employeeEmail} numberOfLines={1}>
               {employeeEmail}
             </Text>
-            
+
             {/* Department Badge */}
             <View style={styles.departmentBadge}>
               <Text style={styles.departmentText}>{department}</Text>
@@ -190,7 +190,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
               <Ionicons name="call-outline" size={12} color="#666" />
               <Text style={styles.phoneText}>{phone}</Text>
             </View>
-            
+
             <View style={styles.salaryContainer}>
               <Text style={styles.salaryLabel}>الراتب:</Text>
               <Text style={styles.salaryValue}>{typeof salary === "number" ? salary.toLocaleString("ar-EG") : "0"} EGP</Text>
