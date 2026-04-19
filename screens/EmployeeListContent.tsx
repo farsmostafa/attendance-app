@@ -126,16 +126,18 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
         </View>
       </View>
 
-      {/* Employees Grid */}
-      <FlatList
-        data={employees}
-        renderItem={renderEmployeeCard}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.columnWrapper}
-        scrollEnabled={false}
-        contentContainerStyle={styles.listContent}
-      />
+      {/* Employees Grid with Max Width Container */}
+      <View style={styles.gridContainer}>
+        <FlatList
+          data={employees}
+          renderItem={renderEmployeeCard}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
+          scrollEnabled={false}
+          contentContainerStyle={styles.listContent}
+        />
+      </View>
     </View>
   );
 };
@@ -144,6 +146,11 @@ const styles = StyleSheet.create({
   container: {
     paddingVertical: 20,
     paddingHorizontal: 12,
+  },
+  gridContainer: {
+    maxWidth: 800,
+    width: "100%",
+    alignSelf: "center",
   },
   centerContainer: {
     flex: 1,

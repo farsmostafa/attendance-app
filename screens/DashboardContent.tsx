@@ -41,18 +41,20 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ employees }) => {
       {employees.length > 0 && (
         <View style={styles.recentSection}>
           <Text style={styles.sectionTitle}>الموظفون الأخيرون</Text>
-          <View style={styles.recentEmployeesList}>
-            {employees.slice(0, 5).map((emp, index) => (
-              <View key={emp.id} style={[styles.employeeCard, index === employees.slice(0, 5).length - 1 && styles.lastCard]}>
-                <View style={styles.employeeAvatar}>
-                  <Text style={styles.avatarText}>{emp.name.charAt(0)}</Text>
+          <View style={styles.recentEmployeesContainer}>
+            <View style={styles.recentEmployeesList}>
+              {employees.slice(0, 5).map((emp, index) => (
+                <View key={emp.id} style={[styles.employeeCard, index === employees.slice(0, 5).length - 1 && styles.lastCard]}>
+                  <View style={styles.employeeAvatar}>
+                    <Text style={styles.avatarText}>{emp.name.charAt(0)}</Text>
+                  </View>
+                  <View style={styles.employeeInfo}>
+                    <Text style={styles.employeeName}>{emp.name}</Text>
+                    <Text style={styles.employeeEmail}>{emp.email}</Text>
+                  </View>
                 </View>
-                <View style={styles.employeeInfo}>
-                  <Text style={styles.employeeName}>{emp.name}</Text>
-                  <Text style={styles.employeeEmail}>{emp.email}</Text>
-                </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
         </View>
       )}
@@ -131,6 +133,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#333",
     marginBottom: 12,
+  },
+  recentEmployeesContainer: {
+    maxWidth: 800,
+    width: "100%",
+    alignSelf: "center",
   },
   recentEmployeesList: {
     backgroundColor: "#fff",

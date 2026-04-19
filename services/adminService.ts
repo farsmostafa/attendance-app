@@ -31,7 +31,7 @@ export const createNewEmployee = async (
 
     const uid = userCredential.user.uid;
 
-    // Prepare user data for Firestore
+    // Prepare user data for Firestore (camelCase only)
     const basicSalary = employeeData.basicSalary || employeeData.basic_salary || 0;
     const userData: any = {
       uid,
@@ -39,15 +39,14 @@ export const createNewEmployee = async (
       email: employeeData.email,
       role: employeeData.role,
       basicSalary: basicSalary,
-      basic_salary: basicSalary, // Legacy support
-      company_id: adminCompanyId,
+      companyId: adminCompanyId,
       phone: employeeData.phone || "",
       department: employeeData.department || "",
       workStartTime: employeeData.workStartTime || "09:00",
       joinDate: employeeData.joinDate || new Date().toISOString().split("T")[0],
       status: employeeData.status || "active",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     // Save user data to Firestore users collection
@@ -93,7 +92,7 @@ export const fetchCompanyEmployees = async (
   }>
 > => {
   try {
-    const q = query(collection(db, "users"), where("company_id", "==", companyId), where("role", "==", "employee"));
+    const q = query(collection(db, "users"), where("companyId", "==", companyId), where("role", "==", "employee"));
 
     const querySnapshot = await getDocs(q);
     const employees: Array<{
@@ -114,7 +113,7 @@ export const fetchCompanyEmployees = async (
         email: data.email || "",
         phone: data.phone || "",
         department: data.department || "Other",
-        basicSalary: data.basicSalary || data.basic_salary || 0,
+        basicSalary: data.basicSalary || 0,
         status: data.status || "active",
       });
     });

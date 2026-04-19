@@ -24,7 +24,7 @@ interface Employee {
   name: string;
   email: string;
   role: string;
-  company_id: string;
+  companyId: string;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
@@ -47,12 +47,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
           return;
         }
 
-        // Use user's company_id or default
-        const company = userData.company_id || "MainCompany";
+        // Use user's companyId or default
+        const company = userData.companyId || "MainCompany";
         setCompanyId(company);
 
         // Fetch employees for the company
-        const q = query(collection(db, "users"), where("company_id", "==", company), where("role", "==", "employee"));
+        const q = query(collection(db, "users"), where("companyId", "==", company), where("role", "==", "employee"));
         const querySnapshot = await getDocs(q);
         const empList: Employee[] = [];
         querySnapshot.forEach((doc) => {
