@@ -8,12 +8,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebaseConfig";
 import { User, RootStackParamList, EmployeeTabParamList } from "./types";
+import { getCurrentUserData } from "./services/authService";
 
 import AdminDashboard from "./AdminDashboard";
 import LoginScreen from "./LoginScreen";
 import EmployeeDashboard from "./EmployeeDashboard";
 import AttendanceHistory from "./AttendanceHistory";
-import { getCurrentUserData } from "./services/authService";
+import Requests from "./Requests";
+import AddEmployee from "./AddEmployee";
+import EmployeeList from "./EmployeeList";
+import TodayLog from "./TodayLog";
+import EmployeeProfileAdminView from "./EmployeeProfileAdminView";
+import PendingRequests from "./PendingRequests";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const EmployeeTab = createBottomTabNavigator<EmployeeTabParamList>();
@@ -47,6 +53,8 @@ function EmployeeTabs() {
             iconName = focused ? "home" : "home-outline";
           } else if (route.name === "AttendanceHistory") {
             iconName = focused ? "history" : "history";
+          } else if (route.name === "Requests") {
+            iconName = focused ? "document" : "document-outline";
           } else {
             iconName = "help-circle-outline";
           }
@@ -67,6 +75,13 @@ function EmployeeTabs() {
         component={AttendanceHistory}
         options={{
           title: "السجل",
+        }}
+      />
+      <EmployeeTab.Screen
+        name="Requests"
+        component={Requests}
+        options={{
+          title: "الطلبات",
         }}
       />
     </EmployeeTab.Navigator>
@@ -96,7 +111,66 @@ function AdminStack() {
         animationEnabled: false,
       }}
     >
-      <Stack.Screen name="AdminDashboard" component={AdminDashboard} options={{ title: "لوحة التحكم - مسؤول" }} />
+      <Stack.Screen
+        name="AdminDashboard"
+        component={AdminDashboard}
+        options={{
+          title: "لوحة التحكم",
+          headerStyle: { backgroundColor: "#007bff" },
+          headerTintColor: "#fff",
+          headerTitleStyle: { fontWeight: "bold", fontSize: 18 },
+        }}
+      />
+      <Stack.Screen
+        name="AddEmployee"
+        component={AddEmployee}
+        options={{
+          title: "إضافة موظف جديد",
+          headerStyle: { backgroundColor: "#007bff" },
+          headerTintColor: "#fff",
+          headerTitleStyle: { fontWeight: "bold", fontSize: 18 },
+        }}
+      />
+      <Stack.Screen
+        name="EmployeeList"
+        component={EmployeeList}
+        options={{
+          title: "قائمة الموظفين",
+          headerStyle: { backgroundColor: "#007bff" },
+          headerTintColor: "#fff",
+          headerTitleStyle: { fontWeight: "bold", fontSize: 18 },
+        }}
+      />
+      <Stack.Screen
+        name="TodayLog"
+        component={TodayLog}
+        options={{
+          title: "سجل اليوم",
+          headerStyle: { backgroundColor: "#007bff" },
+          headerTintColor: "#fff",
+          headerTitleStyle: { fontWeight: "bold", fontSize: 18 },
+        }}
+      />
+      <Stack.Screen
+        name="EmployeeProfileAdminView"
+        component={EmployeeProfileAdminView}
+        options={{
+          title: "ملف الموظف",
+          headerStyle: { backgroundColor: "#007bff" },
+          headerTintColor: "#fff",
+          headerTitleStyle: { fontWeight: "bold", fontSize: 18 },
+        }}
+      />
+      <Stack.Screen
+        name="PendingRequests"
+        component={PendingRequests}
+        options={{
+          title: "الطلبات المعلقة",
+          headerStyle: { backgroundColor: "#007bff" },
+          headerTintColor: "#fff",
+          headerTitleStyle: { fontWeight: "bold", fontSize: 18 },
+        }}
+      />
     </Stack.Navigator>
   );
 }

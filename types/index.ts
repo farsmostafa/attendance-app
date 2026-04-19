@@ -27,12 +27,18 @@ export interface AuthContextType {
 export type EmployeeTabParamList = {
   EmployeeDashboard: undefined;
   AttendanceHistory: undefined;
+  Requests: undefined;
 };
 
 // Navigation prop types for React Navigation
 export type RootStackParamList = {
   Login: undefined;
   AdminDashboard: undefined;
+  AddEmployee: undefined;
+  EmployeeList: undefined;
+  TodayLog: undefined;
+  EmployeeProfileAdminView: { employeeId: string };
+  PendingRequests: undefined;
   EmployeeTabs: undefined;
   AttendanceHistory: undefined;
 };

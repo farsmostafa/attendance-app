@@ -12,7 +12,12 @@ const firebaseConfig = {
   appId: "1:841292143944:web:ebebbc1428ddc7ceb0277d",
 };
 
-// تهيئة التطبيق وقاعدة البيانات
+// تهيئة التطبيق الأساسي وقاعدة البيانات
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// تهيئة تطبيق ثانوي لعمليات إنشاء المستخدمين من قبل Admin
+// بحيث لا يتم تسجيل الخروج للـ Admin الحالي
+const secondaryApp = initializeApp(firebaseConfig, "secondary");
+export const secondaryAuth = getAuth(secondaryApp);
