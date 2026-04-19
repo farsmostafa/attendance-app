@@ -106,14 +106,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
       label: "التقارير",
       icon: "bar-chart",
       color: "#ffc107",
-      onPress: () => Alert.alert("قريباً", "قريباً ستتوفر التقارير"),
+      onPress: () => navigation.navigate("AdminReports"),
     },
     {
       id: "settings",
       label: "الإعدادات",
       icon: "settings",
       color: "#6c757d",
-      onPress: () => Alert.alert("قريباً", "قريباً ستتوفر الإعدادات"),
+      onPress: () => navigation.navigate("AdminSettings"),
     },
   ];
 

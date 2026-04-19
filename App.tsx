@@ -20,6 +20,8 @@ import EmployeeList from "./EmployeeList";
 import TodayLog from "./TodayLog";
 import EmployeeProfileAdminView from "./EmployeeProfileAdminView";
 import PendingRequests from "./PendingRequests";
+import AdminSettings from "./AdminSettings";
+import AdminReports from "./AdminReports";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const EmployeeTab = createBottomTabNavigator<EmployeeTabParamList>();
@@ -166,6 +168,26 @@ function AdminStack() {
         component={PendingRequests}
         options={{
           title: "الطلبات المعلقة",
+          headerStyle: { backgroundColor: "#007bff" },
+          headerTintColor: "#fff",
+          headerTitleStyle: { fontWeight: "bold", fontSize: 18 },
+        }}
+      />
+      <Stack.Screen
+        name="AdminSettings"
+        component={AdminSettings}
+        options={{
+          title: "الإعدادات",
+          headerStyle: { backgroundColor: "#007bff" },
+          headerTintColor: "#fff",
+          headerTitleStyle: { fontWeight: "bold", fontSize: 18 },
+        }}
+      />
+      <Stack.Screen
+        name="AdminReports"
+        component={AdminReports}
+        options={{
+          title: "التقارير",
           headerStyle: { backgroundColor: "#007bff" },
           headerTintColor: "#fff",
           headerTitleStyle: { fontWeight: "bold", fontSize: 18 },

@@ -39,6 +39,8 @@ export type RootStackParamList = {
   TodayLog: undefined;
   EmployeeProfileAdminView: { employeeId: string };
   PendingRequests: undefined;
+  AdminSettings: undefined;
+  AdminReports: undefined;
   EmployeeTabs: undefined;
   AttendanceHistory: undefined;
 };
