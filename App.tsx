@@ -31,13 +31,13 @@ function EmployeeTabs() {
           borderTopColor: "#e0e0e0",
           borderTopWidth: 1,
           paddingBottom: 10,
-          paddingTop: 8,
-          height: 75,
+          paddingTop: 5,
+          height: 65,
         },
         tabBarLabelStyle: {
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: "600",
-          marginBottom: 5,
+          marginBottom: 3,
           marginTop: 2,
         },
         tabBarIcon: ({ focused, color, size }) => {
