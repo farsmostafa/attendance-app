@@ -2,122 +2,6 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-interface EmployeeSidebarProps {
-  currentScreen: string;
-  onNavigate: (screen: string) => void;
-  onLogout: () => void;
-}
-
-const EmployeeSidebar: React.FC<EmployeeSidebarProps> = ({ currentScreen, onNavigate, onLogout }) => {
-  const menuItems = [
-    { name: "Dashboard", label: "الرئيسية", icon: "home" },
-    { name: "AttendanceHistory", label: "سجل الحضور", icon: "time" },
-    { name: "Requests", label: "الطلبات", icon: "document-text" },
-  ];
-
-  return (
-    <View style={styles.sidebar}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.menuContainer}>
-          {menuItems.map((item) => (
-            <TouchableOpacity
-              key={item.name}
-              style={[styles.menuItem, currentScreen === item.name && styles.menuItemActive]}
-              onPress={() => onNavigate(item.name)}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={item.icon as any}
-                size={20}
-                color={currentScreen === item.name ? "#007bff" : "#666"}
-                style={styles.menuIcon}
-              />
-              <Text style={[styles.menuLabel, currentScreen === item.name && styles.menuLabelActive]}>
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-
-      {/* Logout Button at Bottom */}
-      <TouchableOpacity style={styles.logoutButton} onPress={onLogout} activeOpacity={0.8}>
-        <Ionicons name="log-out" size={18} color="#fff" style={styles.logoutIcon} />
-        <Text style={styles.logoutText}>تسجيل الخروج</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-const styles = StyleSheet.create({
-  sidebar: {
-    width: 240,
-    backgroundColor: "#fff",
-    borderLeftWidth: 1,
-    borderLeftColor: "#e0e0e0",
-    flexDirection: "column",
-    justifyContent: "space-between",
-  },
-  content: {
-    flex: 1,
-  },
-  menuContainer: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-  },
-  menuItem: {
-    flexDirection: "row-reverse",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 8,
-  },
-  menuItemActive: {
-    backgroundColor: "#f0f7ff",
-    borderLeftWidth: 3,
-    borderLeftColor: "#007bff",
-  },
-  menuIcon: {
-    marginLeft: 0,
-  },
-  menuLabel: {
-    fontSize: 14,
-    color: "#666",
-    fontWeight: "500",
-  },
-  menuLabelActive: {
-    color: "#007bff",
-    fontWeight: "600",
-  },
-  logoutButton: {
-    flexDirection: "row-reverse",
-    backgroundColor: "#dc3545",
-    marginHorizontal: 12,
-    marginBottom: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  logoutIcon: {
-    marginLeft: 0,
-  },
-  logoutText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-});
-
-export default EmployeeSidebar;
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-
 interface SidebarItem {
   id: string;
   label: string;
@@ -165,6 +49,7 @@ const EmployeeSidebar: React.FC<EmployeeSidebarProps> = ({ currentScreen, onNavi
             </TouchableOpacity>
           );
         })}
+        ;
       </ScrollView>
 
       <View style={styles.footerContainer}>
