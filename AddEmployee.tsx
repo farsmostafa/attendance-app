@@ -15,6 +15,9 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "./types";
 import { createNewEmployee } from "./services/adminService";
 import { getCurrentUserData } from "./services/authService";
+import ScreenWrapper from "./components/ScreenWrapper";
+import TopHeader from "./components/TopHeader";
+import DashboardMenu from "./components/DashboardMenu";
 
 type AddEmployeeProps = NativeStackScreenProps<RootStackParamList, "AddEmployee">;
 
@@ -29,6 +32,16 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Fetch current user on mount
+  React.useEffect(() => {
+    const fetchUser = async () => {
+      const userData = await getCurrentUserData();
+      setCurrentUser(userData);
+    };
+    fetchUser();
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -124,9 +137,12 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.centeredWrapper}>
+    <ScreenWrapper>
+      <TopHeader userName={currentUser?.name || "المسؤول"} navigation={navigation} />
+      <DashboardMenu navigation={navigation} currentScreen="AddEmployee" />
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardAvoidView}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.centeredWrapper}>
           <View style={styles.headerSection}>
             <Text style={styles.title}>إضافة موظف جديد</Text>
             <Text style={styles.subtitle}>ملء جميع الحقول المطلوبة</Text>
@@ -240,12 +256,16 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ScreenWrapper>
   );
 };
 
 const styles = StyleSheet.create({
+  keyboardAvoidView: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",

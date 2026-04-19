@@ -7,6 +7,9 @@ import { getCurrentUserData } from "./services/authService";
 import { Ionicons } from "@expo/vector-icons";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "./firebaseConfig";
+import ScreenWrapper from "./components/ScreenWrapper";
+import TopHeader from "./components/TopHeader";
+import DashboardMenu from "./components/DashboardMenu";
 
 type EmployeeListProps = NativeStackScreenProps<RootStackParamList, "EmployeeList">;
 
@@ -23,6 +26,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   const fetchEmployees = async () => {
     try {
@@ -36,6 +40,8 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
       if (!userData) {
         throw new Error("فشل في جلب بيانات المستخدم الحالي");
       }
+
+      setCurrentUser(userData);
 
       if (!userData?.company_id) {
         throw new Error("لم نتمكن من العثور على شركتك");
@@ -201,35 +207,36 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
   // Loading state
   if (loading && !refreshing) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>قائمة الموظفين</Text>
-        </View>
+      <ScreenWrapper>
+        <TopHeader userName={currentUser?.name || "الموظف"} navigation={navigation} />
+        <DashboardMenu navigation={navigation} currentScreen="EmployeeList" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007bff" />
           <Text style={styles.loadingText}>جاري تحميل الموظفين...</Text>
         </View>
-      </View>
+      </ScreenWrapper>
     );
   }
 
   // Error state
   if (error && employees.length === 0) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>قائمة الموظفين</Text>
-        </View>
+      <ScreenWrapper>
+        <TopHeader userName={currentUser?.name || "الموظف"} navigation={navigation} />
+        <DashboardMenu navigation={navigation} currentScreen="EmployeeList" />
         {renderErrorState()}
-      </View>
+      </ScreenWrapper>
     );
   }
 
   // Success state
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+    <ScreenWrapper>
+      <TopHeader userName={currentUser?.name || "الموظف"} navigation={navigation} />
+      <DashboardMenu navigation={navigation} currentScreen="EmployeeList" />
+
+      {/* Header with Add Button */}
+      <View style={styles.headerSection}>
         <Text style={styles.headerTitle}>قائمة الموظفين</Text>
         <TouchableOpacity style={styles.addButton} onPress={handleAddEmployee} activeOpacity={0.7}>
           <Ionicons name="add" size={24} color="#fff" />
@@ -262,7 +269,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         />
       )}
-    </View>
+    </ScreenWrapper>
   );
 };
 
@@ -270,6 +277,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  headerSection: {
+    backgroundColor: "#fff",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   header: {
     backgroundColor: "#fff",

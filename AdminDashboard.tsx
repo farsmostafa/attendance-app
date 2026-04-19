@@ -6,6 +6,9 @@ import { db } from "./firebaseConfig";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { getCurrentUserData } from "./services/authService";
 import { User, RootStackParamList } from "./types";
+import ScreenWrapper from "./components/ScreenWrapper";
+import TopHeader from "./components/TopHeader";
+import DashboardMenu from "./components/DashboardMenu";
 
 type AdminDashboardProps = NativeStackScreenProps<RootStackParamList, "AdminDashboard">;
 
@@ -119,53 +122,46 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.loadingText}>جاري التحميل...</Text>
-      </View>
+      <ScreenWrapper>
+        <TopHeader userName={currentUser?.name || "مسؤول"} navigation={navigation} />
+        <View style={styles.centerContainer}>
+          <Text style={styles.loadingText}>جاري التحميل...</Text>
+        </View>
+      </ScreenWrapper>
     );
   }
 
   if (!hasCompany) {
     return (
-      <View style={styles.container}>
-        <View style={styles.headerBar}>
-          <Text style={styles.headerTitle}>لوحة التحكم</Text>
-        </View>
+      <ScreenWrapper>
+        <TopHeader userName={currentUser?.name || "مسؤول"} navigation={navigation} />
+        <DashboardMenu navigation={navigation} currentScreen="AdminDashboard" />
         <View style={styles.messageContainer}>
           <Ionicons name="alert-circle-outline" size={48} color="#ff6b6b" />
           <Text style={styles.messageText}>يرجى ربط حسابك بشركة</Text>
           <Text style={styles.messageSubtext}>لعرض وإدارة الموظفين</Text>
         </View>
-      </View>
+      </ScreenWrapper>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <View style={styles.headerBar}>
-          <Text style={styles.headerTitle}>لوحة التحكم</Text>
-        </View>
+      <ScreenWrapper>
+        <TopHeader userName={currentUser?.name || "مسؤول"} navigation={navigation} />
+        <DashboardMenu navigation={navigation} currentScreen="AdminDashboard" />
         <View style={styles.errorContainer}>
           <Ionicons name="close-circle-outline" size={48} color="#cc0000" />
           <Text style={styles.errorText}>{error}</Text>
         </View>
-      </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header Bar */}
-      <View style={styles.headerBar}>
-        <View>
-          <Text style={styles.headerTitle}>لوحة التحكم</Text>
-          <Text style={styles.adminName}>مرحباً، {currentUser?.name || "مسؤول"}</Text>
-        </View>
-        <Ionicons name="shield-checkmark" size={32} color="#007bff" />
-      </View>
-
-      {/* Main Content */}
+    <ScreenWrapper>
+      <TopHeader userName={currentUser?.name || "مسؤول"} navigation={navigation} />
+      <DashboardMenu navigation={navigation} currentScreen="AdminDashboard" />
       <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
         {/* Statistics Section */}
         <View style={styles.statsSection}>
@@ -221,7 +217,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
           </View>
         )}
       </ScrollView>
-    </View>
+    </ScreenWrapper>
   );
 };
 
@@ -229,6 +225,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
   },
   headerBar: {
     backgroundColor: "#007bff",
