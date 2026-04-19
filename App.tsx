@@ -15,13 +15,7 @@ import LoginScreen from "./LoginScreen";
 import EmployeeDashboard from "./EmployeeDashboard";
 import AttendanceHistory from "./AttendanceHistory";
 import Requests from "./Requests";
-import AddEmployee from "./AddEmployee";
-import EmployeeList from "./EmployeeList";
-import TodayLog from "./TodayLog";
 import EmployeeProfileAdminView from "./EmployeeProfileAdminView";
-import PendingRequests from "./PendingRequests";
-import AdminSettings from "./AdminSettings";
-import AdminReports from "./AdminReports";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const EmployeeTab = createBottomTabNavigator<EmployeeTabParamList>();
@@ -118,39 +112,6 @@ function AdminStack() {
         component={AdminDashboard}
         options={{
           title: "لوحة التحكم",
-          headerStyle: { backgroundColor: "#007bff" },
-          headerTintColor: "#fff",
-          headerTitleStyle: { fontWeight: "bold", fontSize: 18 },
-        }}
-      />
-      <Stack.Screen
-        name="AddEmployee"
-        component={AddEmployee}
-        options={{
-          title: "إضافة موظف جديد",
-          headerStyle: { backgroundColor: "#007bff" },
-          headerTintColor: "#fff",
-          headerTitleStyle: { fontWeight: "bold", fontSize: 18 },
-        }}
-      />
-      <Stack.Screen
-        name="EmployeeList"
-        component={EmployeeList}
-        options={{
-          title: "قائمة الموظفين",
-          headerStyle: { backgroundColor: "#007bff" },
-          headerTintColor: "#fff",
-          headerTitleStyle: { fontWeight: "bold", fontSize: 18 },
-        }}
-      />
-      <Stack.Screen
-        name="TodayLog"
-        component={TodayLog}
-        options={{
-          title: "سجل اليوم",
-          headerStyle: { backgroundColor: "#007bff" },
-          headerTintColor: "#fff",
-          headerTitleStyle: { fontWeight: "bold", fontSize: 18 },
         }}
       />
       <Stack.Screen
@@ -158,36 +119,6 @@ function AdminStack() {
         component={EmployeeProfileAdminView}
         options={{
           title: "ملف الموظف",
-          headerStyle: { backgroundColor: "#007bff" },
-          headerTintColor: "#fff",
-          headerTitleStyle: { fontWeight: "bold", fontSize: 18 },
-        }}
-      />
-      <Stack.Screen
-        name="PendingRequests"
-        component={PendingRequests}
-        options={{
-          title: "الطلبات المعلقة",
-          headerStyle: { backgroundColor: "#007bff" },
-          headerTintColor: "#fff",
-          headerTitleStyle: { fontWeight: "bold", fontSize: 18 },
-        }}
-      />
-      <Stack.Screen
-        name="AdminSettings"
-        component={AdminSettings}
-        options={{
-          title: "الإعدادات",
-          headerStyle: { backgroundColor: "#007bff" },
-          headerTintColor: "#fff",
-          headerTitleStyle: { fontWeight: "bold", fontSize: 18 },
-        }}
-      />
-      <Stack.Screen
-        name="AdminReports"
-        component={AdminReports}
-        options={{
-          title: "التقارير",
           headerStyle: { backgroundColor: "#007bff" },
           headerTintColor: "#fff",
           headerTitleStyle: { fontWeight: "bold", fontSize: 18 },

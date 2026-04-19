@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Dimensions } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { db } from "./firebaseConfig";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { getCurrentUserData } from "./services/authService";
 import { User, RootStackParamList } from "./types";
-import TopHeader from "./components/TopHeader";
-import AdminSidebar from "./components/AdminSidebar";
+import AdminLayout from "./components/AdminLayout";
+
+// Content components
+import DashboardContent from "./screens/DashboardContent";
+import AddEmployeeContent from "./screens/AddEmployeeContent";
+import EmployeeListContent from "./screens/EmployeeListContent";
+import TodayLogContent from "./screens/TodayLogContent";
+import PendingRequestsContent from "./screens/PendingRequestsContent";
+import AdminReportsContent from "./screens/AdminReportsContent";
+import AdminSettingsContent from "./screens/AdminSettingsContent";
 
 type AdminDashboardProps = NativeStackScreenProps<RootStackParamList, "AdminDashboard">;
 
@@ -19,21 +27,13 @@ interface Employee {
   company_id: string;
 }
 
-interface AdminMenuOption {
-  id: string;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  color: string;
-  onPress: () => void;
-}
-
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasCompany, setHasCompany] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeScreen, setActiveScreen] = useState<string>("Dashboard");
+  const [companyId, setCompanyId] = useState<string>("MainCompany");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,12 +47,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
           return;
         }
 
-        // For admins, use default company or user's company_id
-        const companyId = userData.company_id || "MainCompany";
-        setHasCompany(true);
+        // Use user's company_id or default
+        const company = userData.company_id || "MainCompany";
+        setCompanyId(company);
 
         // Fetch employees for the company
-        const q = query(collection(db, "users"), where("company_id", "==", companyId), where("role", "==", "employee"));
+        const q = query(collection(db, "users"), where("company_id", "==", company), where("role", "==", "employee"));
         const querySnapshot = await getDocs(q);
         const empList: Employee[] = [];
         querySnapshot.forEach((doc) => {
@@ -60,6 +60,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
         });
         setEmployees(empList);
       } catch (err) {
+        console.error("Error fetching data:", err);
         setError(err instanceof Error ? err.message : "حدث خطأ أثناء جلب البيانات");
       } finally {
         setLoading(false);
@@ -67,422 +68,103 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
     };
 
     fetchData();
-  }, [navigation]);
+  }, []);
 
-  const menuOptions: AdminMenuOption[] = [
-    {
-      id: "add-employee",
-      label: "إضافة موظف",
-      icon: "person-add",
-      color: "#28a745",
-      onPress: () => navigation.navigate("AddEmployee"),
-    },
-    {
-      id: "employee-list",
-      label: "قائمة الموظفين",
-      icon: "people",
-      color: "#007bff",
-      onPress: () => navigation.navigate("EmployeeList"),
-    },
-    {
-      id: "today-log",
-      label: "سجل اليوم",
-      icon: "calendar-today",
-      color: "#dc3545",
-      onPress: () => navigation.navigate("TodayLog"),
-    },
-    {
-      id: "pending-requests",
-      label: "الطلبات المعلقة",
-      icon: "document-text",
-      color: "#6f42c1",
-      onPress: () => navigation.navigate("PendingRequests"),
-    },
-    {
-      id: "reports",
-      label: "التقارير",
-      icon: "bar-chart",
-      color: "#ffc107",
-      onPress: () => navigation.navigate("AdminReports"),
-    },
-    {
-      id: "settings",
-      label: "الإعدادات",
-      icon: "settings",
-      color: "#6c757d",
-      onPress: () => navigation.navigate("AdminSettings"),
-    },
-  ];
+  const handleScreenChange = (screen: string) => {
+    setActiveScreen(screen);
+  };
 
   if (loading) {
     return (
-      <View style={styles.mainContainer}>
-        <TopHeader userName={currentUser?.name || "مسؤول"} navigation={navigation} />
-        <View style={styles.centerContainer}>
-          <Text style={styles.loadingText}>جاري التحميل...</Text>
-        </View>
-      </View>
-    );
-  }
-
-  if (!hasCompany) {
-    return (
-      <View style={styles.mainContainer}>
-        <TopHeader userName={currentUser?.name || "مسؤول"} navigation={navigation} />
-        <View style={styles.layoutContainer}>
-          <View style={styles.messageContainer}>
-            <Ionicons name="alert-circle-outline" size={48} color="#ff6b6b" />
-            <Text style={styles.messageText}>يرجى ربط حسابك بشركة</Text>
-            <Text style={styles.messageSubtext}>لعرض وإدارة الموظفين</Text>
-          </View>
-          <AdminSidebar currentScreen={activeScreen} onNavigate={setActiveScreen} />
-        </View>
-      </View>
+      <AdminLayout
+        currentScreen={activeScreen}
+        onNavigate={handleScreenChange}
+        showLoading={true}
+        userName={currentUser?.name}
+        navigation={navigation}
+      >
+        <View />
+      </AdminLayout>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.mainContainer}>
-        <TopHeader userName={currentUser?.name || "مسؤول"} navigation={navigation} />
-        <View style={styles.layoutContainer}>
-          <View style={styles.errorContainer}>
-            <Ionicons name="close-circle-outline" size={48} color="#cc0000" />
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-          <AdminSidebar currentScreen={activeScreen} onNavigate={setActiveScreen} />
+      <AdminLayout
+        currentScreen={activeScreen}
+        onNavigate={handleScreenChange}
+        showLoading={false}
+        userName={currentUser?.name}
+        navigation={navigation}
+      >
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color="#dc3545" />
+          <Text style={styles.errorText}>{error}</Text>
         </View>
-      </View>
+      </AdminLayout>
     );
   }
 
+  // Render content based on active screen
+  const renderContent = () => {
+    switch (activeScreen) {
+      case "Dashboard":
+        return <DashboardContent employees={employees} />;
+      case "AddEmployee":
+        return <AddEmployeeContent navigation={navigation} companyId={companyId} />;
+      case "EmployeeList":
+        return <EmployeeListContent navigation={navigation} companyId={companyId} />;
+      case "TodayLog":
+        return <TodayLogContent navigation={navigation} companyId={companyId} />;
+      case "PendingRequests":
+        return <PendingRequestsContent navigation={navigation} companyId={companyId} />;
+      case "AdminReports":
+        return <AdminReportsContent navigation={navigation} companyId={companyId} />;
+      case "AdminSettings":
+        return <AdminSettingsContent navigation={navigation} companyId={companyId} />;
+      default:
+        return <DashboardContent employees={employees} />;
+    }
+  };
+
   return (
-    <View style={styles.mainContainer}>
-      <TopHeader userName={currentUser?.name || "مسؤول"} navigation={navigation} />
-
-      {/* Main Layout: Content + Sidebar */}
-      <View style={styles.layoutContainer}>
-        {/* Main Content Area */}
-        <ScrollView style={styles.mainContent} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
-          {activeScreen === "Dashboard" && (
-            <>
-              {/* Statistics Section */}
-              <View style={styles.statsSection}>
-                <View style={[styles.statCard, styles.statCardBlue]}>
-                  <Ionicons name="people" size={32} color="#007bff" />
-                  <Text style={styles.statValue}>{employees.length}</Text>
-                  <Text style={styles.statLabel}>عدد الموظفين</Text>
-                </View>
-                <View style={[styles.statCard, styles.statCardGreen]}>
-                  <Ionicons name="checkmark-circle" size={32} color="#28a745" />
-                  <Text style={styles.statValue}>{Math.floor(employees.length * 0.8)}</Text>
-                  <Text style={styles.statLabel}>حاضرون اليوم</Text>
-                </View>
-              </View>
-
-              {/* Quick Actions Section */}
-              <View style={styles.sectionContainer}>
-                <Text style={styles.sectionTitle}>الإجراءات السريعة</Text>
-                <View style={styles.menuGrid}>
-                  {menuOptions.map((option) => (
-                    <TouchableOpacity key={option.id} style={styles.menuItem} onPress={option.onPress}>
-                      <View style={[styles.menuIconContainer, { backgroundColor: option.color + "20" }]}>
-                        <Ionicons name={option.icon} size={28} color={option.color} />
-                      </View>
-                      <Text style={styles.menuLabel}>{option.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Recent Employees Section */}
-              {employees.length > 0 && (
-                <View style={styles.sectionContainer}>
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>الموظفون الأخيرون</Text>
-                    <TouchableOpacity onPress={() => setActiveScreen("EmployeeList")}>
-                      <Text style={styles.viewAllLink}>عرض الكل</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <View style={styles.recentEmployeesList}>
-                    {employees.slice(0, 3).map((emp) => (
-                      <View key={emp.id} style={styles.employeeCard}>
-                        <View style={styles.employeeAvatar}>
-                          <Text style={styles.avatarText}>{emp.name.charAt(0)}</Text>
-                        </View>
-                        <View style={styles.employeeInfo}>
-                          <Text style={styles.employeeName}>{emp.name}</Text>
-                          <Text style={styles.employeeEmail}>{emp.email}</Text>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-            </>
-          )}
-
-          {/* Placeholder for other screens */}
-          {activeScreen !== "Dashboard" && (
-            <View style={styles.placeholderContainer}>
-              <Ionicons name="document-outline" size={48} color="#ccc" />
-              <Text style={styles.placeholderText}>{activeScreen}</Text>
-              <Text style={styles.placeholderSubtext}>هذه الصفحة قيد التطوير</Text>
-            </View>
-          )}
-        </ScrollView>
-
-        {/* Sidebar Navigation */}
-        <AdminSidebar currentScreen={activeScreen} onNavigate={setActiveScreen} />
-      </View>
-    </View>
+    <AdminLayout
+      currentScreen={activeScreen}
+      onNavigate={handleScreenChange}
+      showLoading={false}
+      userName={currentUser?.name}
+      navigation={navigation}
+    >
+      {renderContent()}
+    </AdminLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  layoutContainer: {
-    flex: 1,
-    flexDirection: "row-reverse",
-  },
-  mainContent: {
-    flex: 1,
-    backgroundColor: "#f3f4f6",
-  },
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-  },
-  headerBar: {
-    backgroundColor: "#007bff",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 20,
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    alignItems: "center",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  adminName: {
-    fontSize: 12,
-    color: "#e3f2fd",
-    marginTop: 4,
-  },
-  contentContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-  },
-  statsSection: {
-    flexDirection: "row-reverse",
-    gap: 12,
-    marginBottom: 24,
-  },
-  statCard: {
-    flex: 1,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  statCardBlue: {
-    backgroundColor: "#e3f2fd",
-  },
-  statCardGreen: {
-    backgroundColor: "#f0f9f0",
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
-    marginVertical: 8,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#666",
-    fontWeight: "500",
-    textAlign: "center",
-  },
-  sectionContainer: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  viewAllLink: {
-    fontSize: 12,
-    color: "#007bff",
-    fontWeight: "600",
-  },
-  menuGrid: {
-    flexDirection: "row-reverse",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  menuItem: {
-    width: "48%",
-    backgroundColor: "#fff",
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    alignItems: "center",
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  menuIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  menuLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#333",
-    textAlign: "center",
-  },
-  recentEmployeesList: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    overflow: "hidden",
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  employeeCard: {
-    flexDirection: "row-reverse",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  employeeAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#007bff",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 12,
-  },
-  avatarText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  employeeInfo: {
-    flex: 1,
-  },
-  employeeName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-  },
-  employeeEmail: {
-    fontSize: 12,
-    color: "#999",
-    marginTop: 2,
-  },
-  messageContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    backgroundColor: "#f3f4f6",
-  },
-  messageText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#999",
-    marginTop: 12,
-    textAlign: "center",
-  },
-  messageSubtext: {
-    fontSize: 14,
-    color: "#bbb",
-    marginTop: 8,
-    textAlign: "center",
-  },
   errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    backgroundColor: "#f3f4f6",
-  },
-  errorText: {
-    fontSize: 16,
-    color: "#cc0000",
-    marginTop: 12,
-    textAlign: "center",
-    fontWeight: "600",
-  },
-  loadingText: {
-    fontSize: 16,
-    textAlign: "center",
-    marginTop: 50,
-    color: "#666",
-  },
-  placeholderContainer: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 40,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#dc3545",
+    marginTop: 12,
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  placeholderContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 60,
   },
   placeholderText: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#666",
     marginTop: 12,
-  },
-  placeholderSubtext: {
-    fontSize: 14,
-    color: "#999",
-    marginTop: 8,
   },
 });
 
