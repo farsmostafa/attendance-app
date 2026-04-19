@@ -48,7 +48,7 @@ function EmployeeTabs() {
           if (route.name === "EmployeeDashboard") {
             iconName = focused ? "home" : "home-outline";
           } else if (route.name === "AttendanceHistory") {
-            iconName = focused ? "history" : "history";
+            iconName = focused ? "time" : "time-outline";
           } else if (route.name === "Requests") {
             iconName = focused ? "document" : "document-outline";
           } else {

@@ -16,14 +16,7 @@ export interface AdminLayoutProps {
   navigation?: NativeStackNavigationProp<RootStackParamList>;
 }
 
-const AdminLayout: React.FC<AdminLayoutProps> = ({
-  currentScreen,
-  onNavigate,
-  children,
-  showLoading = false,
-  userName,
-  navigation,
-}) => {
+const AdminLayout: React.FC<AdminLayoutProps> = ({ currentScreen, onNavigate, children, showLoading = false, userName, navigation }) => {
   const [currentUserName, setCurrentUserName] = useState<string>(userName || "مسؤول");
 
   useEffect(() => {

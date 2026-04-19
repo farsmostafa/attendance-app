@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from "react-native";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
 import { addDoc, collection, serverTimestamp, query, where, orderBy, limit, getDocs, Timestamp, updateDoc, doc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import { getCurrentUserData } from "./services/authService";
-import { RootStackParamList, AttendanceRecord } from "./types";
+import { EmployeeTabParamList, AttendanceRecord } from "./types";
 
-type EmployeeDashboardProps = NativeStackScreenProps<RootStackParamList, "EmployeeDashboard">;
+type EmployeeDashboardProps = BottomTabScreenProps<EmployeeTabParamList, "EmployeeDashboard">;
 
 // Company location coordinates (Girga - Sohag)
 const COMPANY_LOCATION = {
@@ -249,8 +249,13 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
 
         const attendanceDoc = querySnapshot.docs[0];
         const attendanceRecord = attendanceDoc.data() as AttendanceRecord;
-        const checkInTime =
-          attendanceRecord.check_in instanceof Timestamp ? attendanceRecord.check_in.toDate() : new Date(attendanceRecord.check_in);
+        // Handle both Timestamp and string formats for check_in
+        let checkInTime: Date;
+        if (typeof attendanceRecord.check_in === "object" && attendanceRecord.check_in !== null && "toDate" in attendanceRecord.check_in) {
+          checkInTime = (attendanceRecord.check_in as any).toDate();
+        } else {
+          checkInTime = new Date(attendanceRecord.check_in);
+        }
 
         // Calculate work duration in minutes
         const checkOutTime = new Date();
