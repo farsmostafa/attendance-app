@@ -142,12 +142,21 @@ export default function App() {
   });
 
   useEffect(() => {
+    console.log("App: Setting up auth state listener");
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log("📋 AUTH STATE CHANGED - Auth Listener Fired");
+      console.log("   Current user:", firebaseUser ? firebaseUser.uid : "NULL (LOGGED OUT)");
+      console.log("   Email:", firebaseUser?.email || "N/A");
+
       try {
         if (firebaseUser) {
+          console.log("✓ User logged in:", firebaseUser.uid);
           // User is logged in - fetch their full data including role
           const userData = await getCurrentUserData();
+          console.log("   User data retrieved:", userData?.role);
+
           if (userData) {
+            console.log("✓ Setting user state - role:", userData.role);
             setAppState({
               user: userData,
               userRole: userData.role as "admin" | "employee",
@@ -155,6 +164,7 @@ export default function App() {
             });
           } else {
             // Couldn't fetch user data
+            console.warn("⚠ User data not found in Firestore");
             setAppState({
               user: null,
               userRole: null,
@@ -163,6 +173,7 @@ export default function App() {
           }
         } else {
           // User is logged out
+          console.log("❌ USER LOGGED OUT - Clearing app state and showing LoginScreen");
           setAppState({
             user: null,
             userRole: null,
@@ -170,7 +181,7 @@ export default function App() {
           });
         }
       } catch (err) {
-        console.error("Error checking auth state:", err);
+        console.error("❌ Error checking auth state:", err);
         setAppState({
           user: null,
           userRole: null,

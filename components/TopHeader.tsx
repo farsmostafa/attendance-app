@@ -21,26 +21,57 @@ const TopHeader: React.FC<TopHeaderProps> = ({ userName = "المستخدم", na
   const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
+    console.log("1. Logout button clicked - showing confirmation");
+
     Alert.alert("تأكيد", "هل أنت متأكد من رغبتك في تسجيل الخروج؟", [
       {
         text: "إلغاء",
-        onPress: () => {},
+        onPress: () => {
+          console.log("Logout cancelled by user");
+        },
         style: "cancel",
       },
       {
         text: "نعم، تسجيل خروج",
         onPress: async () => {
+          console.log("2. User confirmed logout - starting signOut process");
           setLoggingOut(true);
+
           try {
+            console.log("3. About to call firebaseSignOut(auth)");
+            console.log("   auth object exists:", !!auth);
+            console.log("   auth uid:", auth?.currentUser?.uid);
+
             // Call Firebase signOut directly
             await firebaseSignOut(auth);
-            console.log("✓ Sign out successful");
+
+            console.log("4. Firebase signOut completed successfully");
+            console.log("   current user after logout:", auth?.currentUser);
+
+            // Alert for debugging
+            Alert.alert("نجاح", "تم تسجيل الخروج بنجاح. سيتم إعادة التوجيه إلى شاشة تسجيل الدخول");
+
             // App.tsx auth state listener will automatically redirect to LoginScreen
-            // No need for manual navigation
-          } catch (error) {
-            console.error("❌ Sign out error:", error);
+            console.log("5. Waiting for auth state listener to handle redirect...");
+          } catch (error: any) {
+            console.error("❌ LOGOUT ERROR - Caught in catch block:", error);
+            console.error("   Error type:", typeof error);
+            console.error("   Error code:", error?.code);
+            console.error("   Error message:", error?.message);
+            console.error("   Full error:", JSON.stringify(error));
+
             setLoggingOut(false);
-            Alert.alert("خطأ", error instanceof Error ? error.message : "فشل تسجيل الخروج. يرجى المحاولة مرة أخرى.");
+
+            // Visual error alert with full error details
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            Alert.alert("خطأ في تسجيل الخروج", `فشل تسجيل الخروج:\n\n${errorMsg}`, [
+              {
+                text: "موافق",
+                onPress: () => {
+                  console.log("User dismissed error alert");
+                },
+              },
+            ]);
           }
         },
         style: "destructive",
