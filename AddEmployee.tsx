@@ -18,8 +18,11 @@ import { getCurrentUserData } from "./services/authService";
 import ScreenWrapper from "./components/ScreenWrapper";
 import TopHeader from "./components/TopHeader";
 import DashboardMenu from "./components/DashboardMenu";
+import { Ionicons } from "@expo/vector-icons";
 
 type AddEmployeeProps = NativeStackScreenProps<RootStackParamList, "AddEmployee">;
+
+const DEPARTMENT_OPTIONS = ["IT", "HR", "Sales", "Accounting"];
 
 const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
   const [formData, setFormData] = useState({
@@ -27,12 +30,16 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
     email: "",
     password: "",
     confirmPassword: "",
+    phone: "",
+    department: "",
+    workStartTime: "09:00",
     role: "employee",
     basic_salary: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
 
   // Fetch current user on mount
   React.useEffect(() => {
@@ -61,6 +68,14 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
     }
     if (!formData.email.includes("@")) {
       Alert.alert("خطأ", "البريد الإلكتروني غير صحيح");
+      return false;
+    }
+    if (!formData.phone.trim()) {
+      Alert.alert("خطأ", "يرجى إدخال رقم الهاتف");
+      return false;
+    }
+    if (!formData.department) {
+      Alert.alert("خطأ", "يرجى اختيار القسم");
       return false;
     }
     if (!formData.password) {
@@ -100,13 +115,22 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
         return;
       }
 
+      // Get current date in YYYY-MM-DD format
+      const today = new Date();
+      const joinDate = today.toISOString().split("T")[0];
+
       const result = await createNewEmployee(
         {
           name: formData.name,
           email: formData.email,
           password: formData.password,
           role: formData.role as "employee" | "admin",
-          basic_salary: parseFloat(formData.basic_salary),
+          basicSalary: parseFloat(formData.basic_salary),
+          phone: formData.phone,
+          department: formData.department,
+          workStartTime: formData.workStartTime,
+          joinDate: joinDate,
+          status: "active",
         },
         userData.company_id,
       );
@@ -121,9 +145,13 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
               email: "",
               password: "",
               confirmPassword: "",
+              phone: "",
+              department: "",
+              workStartTime: "09:00",
               role: "employee",
               basic_salary: "",
             });
+            setShowDepartmentDropdown(false);
             // Navigate back to Employee List
             navigation.goBack();
           },
@@ -174,6 +202,65 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
                   value={formData.email}
                   onChangeText={(value) => handleInputChange("email", value)}
                   editable={!loading}
+                />
+              </View>
+
+              {/* Phone Number Field */}
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>رقم الهاتف *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="أدخل رقم الهاتف"
+                  placeholderTextColor="#999"
+                  keyboardType="phone-pad"
+                  value={formData.phone}
+                  onChangeText={(value) => handleInputChange("phone", value)}
+                  editable={!loading}
+                />
+              </View>
+
+              {/* Department Field */}
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>القسم *</Text>
+                <TouchableOpacity
+                  style={styles.dropdownButton}
+                  onPress={() => setShowDepartmentDropdown(!showDepartmentDropdown)}
+                  disabled={loading}
+                >
+                  <Text style={[styles.dropdownButtonText, !formData.department && styles.placeholderText]}>
+                    {formData.department || "اختر القسم"}
+                  </Text>
+                  <Ionicons name={showDepartmentDropdown ? "chevron-up" : "chevron-down"} size={20} color="#007bff" />
+                </TouchableOpacity>
+                {showDepartmentDropdown && (
+                  <View style={styles.dropdownMenu}>
+                    {DEPARTMENT_OPTIONS.map((dept) => (
+                      <TouchableOpacity
+                        key={dept}
+                        style={[styles.dropdownItem, formData.department === dept && styles.dropdownItemActive]}
+                        onPress={() => {
+                          handleInputChange("department", dept);
+                          setShowDepartmentDropdown(false);
+                        }}
+                      >
+                        <Text style={[styles.dropdownItemText, formData.department === dept && styles.dropdownItemTextActive]}>{dept}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {/* Shift Start Time Field */}
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>وقت بدء الدوام (HH:mm)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="09:00"
+                  placeholderTextColor="#999"
+                  value={formData.workStartTime}
+                  onChangeText={(value) => handleInputChange("workStartTime", value)}
+                  editable={!loading}
+                  maxLength={5}
                 />
               </View>
 
@@ -328,6 +415,57 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9f9f9",
     textAlign: "right",
     width: "100%",
+  },
+  dropdownButton: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#f9f9f9",
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
+  },
+  dropdownButtonText: {
+    fontSize: 14,
+    color: "#333",
+    flex: 1,
+    textAlign: "right",
+  },
+  placeholderText: {
+    color: "#999",
+  },
+  dropdownMenu: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    backgroundColor: "#fff",
+    marginTop: -8,
+    paddingTop: 8,
+    zIndex: 10,
+    overflow: "hidden",
+  },
+  dropdownItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  dropdownItemActive: {
+    backgroundColor: "#e7f3ff",
+  },
+  dropdownItemText: {
+    fontSize: 14,
+    color: "#333",
+    textAlign: "right",
+  },
+  dropdownItemTextActive: {
+    color: "#007bff",
+    fontWeight: "600",
   },
   roleButtonsContainer: {
     flexDirection: "row-reverse",

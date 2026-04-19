@@ -3,6 +3,12 @@ export interface User {
   uid: string;
   name?: string;
   email?: string;
+  phone?: string;
+  department?: string;
+  joinDate?: string; // ISO date string (YYYY-MM-DD)
+  status?: "active" | "inactive";
+  workStartTime?: string; // Format: HH:mm (e.g., "09:00")
+  basicSalary?: number;
   role: "admin" | "employee";
   company_id?: string;
   id?: string;
@@ -47,14 +53,88 @@ export type RootStackParamList = {
 
 // Employee details for dashboard
 export interface EmployeeDetails extends User {
-  base_salary?: number;
+  basicSalary?: number;
   attendance?: AttendanceRecord[];
+  leaveRequests?: LeaveRequest[];
+  financialRecords?: FinancialRecord[];
 }
 
 // Attendance record
 export interface AttendanceRecord {
-  check_in: string;
-  check_out?: string;
-  date: string;
+  id?: string;
+  userId?: string;
+  check_in: string; // ISO timestamp
+  check_out?: string; // ISO timestamp
+  date: string; // Format: YYYY-MM-DD
+  workDuration?: number; // In minutes
+  isLate?: boolean;
+  location?: {
+    lat: number;
+    lng: number;
+  };
   [key: string]: any;
+}
+
+// Leave Request interface
+export interface LeaveRequest {
+  id: string;
+  userId: string;
+  type: "sick" | "vacation" | "personal" | "unpaid" | "other";
+  status: "pending" | "approved" | "rejected" | "cancelled";
+  startDate: string; // Format: YYYY-MM-DD
+  endDate: string; // Format: YYYY-MM-DD
+  reason: string;
+  approvedBy?: string;
+  approvalDate?: string;
+  rejectionReason?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: any;
+}
+
+// Financial Record interface
+export interface FinancialRecord {
+  id: string;
+  userId: string;
+  type: "bonus" | "deduction" | "salary" | "allowance" | "other";
+  amount: number;
+  reason: string;
+  timestamp: string; // ISO timestamp
+  processedBy?: string;
+  notes?: string;
+  month?: string; // Format: YYYY-MM for monthly records
+  [key: string]: any;
+}
+
+// Location data interface (for geo-tracking)
+export interface LocationData {
+  lat: number;
+  lng: number;
+  accuracy?: number;
+  timestamp?: string;
+}
+
+// Payroll Summary interface (for financial reports)
+export interface PayrollSummary {
+  userId: string;
+  month: string; // Format: YYYY-MM
+  baseSalary: number;
+  bonuses: number;
+  deductions: number;
+  netSalary: number;
+  attendanceBonus?: number;
+  notes?: string;
+  generatedAt?: string;
+}
+
+// Attendance Summary interface (for reports)
+export interface AttendanceSummary {
+  userId: string;
+  month: string; // Format: YYYY-MM
+  totalDays: number;
+  presentDays: number;
+  absentDays: number;
+  lateDays: number;
+  leaveCount: number;
+  attendanceRate: number; // Percentage
 }

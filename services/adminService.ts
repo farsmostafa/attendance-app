@@ -7,8 +7,14 @@ export interface NewEmployeeData {
   name: string;
   email: string;
   password: string;
+  phone?: string;
+  department?: string;
+  workStartTime?: string;
+  joinDate?: string;
+  status?: "active" | "inactive";
   role: "employee" | "admin";
-  basic_salary: number;
+  basicSalary?: number;
+  basic_salary?: number; // Legacy support
 }
 
 /**
@@ -25,17 +31,27 @@ export const createNewEmployee = async (
 
     const uid = userCredential.user.uid;
 
-    // Save user data to Firestore users collection
-    await setDoc(doc(db, "users", uid), {
+    // Prepare user data for Firestore
+    const basicSalary = employeeData.basicSalary || employeeData.basic_salary || 0;
+    const userData: any = {
       uid,
       name: employeeData.name,
       email: employeeData.email,
       role: employeeData.role,
-      basic_salary: employeeData.basic_salary,
+      basicSalary: basicSalary,
+      basic_salary: basicSalary, // Legacy support
       company_id: adminCompanyId,
+      phone: employeeData.phone || "",
+      department: employeeData.department || "",
+      workStartTime: employeeData.workStartTime || "09:00",
+      joinDate: employeeData.joinDate || new Date().toISOString().split("T")[0],
+      status: employeeData.status || "active",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    });
+    };
+
+    // Save user data to Firestore users collection
+    await setDoc(doc(db, "users", uid), userData);
 
     // Sign out from secondary auth to prevent unwanted session changes
     await signOut(secondaryAuth);
