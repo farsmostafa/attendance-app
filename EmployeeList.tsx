@@ -120,21 +120,12 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
     });
   };
 
-  const renderTableHeader = () => (
-    <View style={styles.tableHeader}>
-      <View style={[styles.tableCell, styles.nameColumn]}>
-        <Text style={styles.headerText}>الاسم</Text>
-      </View>
-      <View style={[styles.tableCell, styles.emailColumn]}>
-        <Text style={styles.headerText}>البريد الإلكتروني</Text>
-      </View>
-      <View style={[styles.tableCell, styles.salaryColumn]}>
-        <Text style={styles.headerText}>الراتب</Text>
-      </View>
-    </View>
-  );
+  const handleManageEmployee = (employeeId: string, employeeName: string) => {
+    // Placeholder for manage action - can be extended later
+    Alert.alert("إدارة الموظف", `إدارة ${employeeName}`);
+  };
 
-  const renderEmployeeRow = ({ item, index }: { item: Employee; index: number }) => {
+  const renderEmployeeCard = ({ item, index }: { item: Employee; index: number }) => {
     // Safe null checks - return nothing if no valid item
     if (!item?.id) {
       return null;
@@ -143,29 +134,42 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
     const employeeName = item?.name || "غير محدد";
     const employeeEmail = item?.email || "غير محدد";
     const salary = item?.basic_salary ?? 0;
+    const initials = employeeName
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
 
     return (
-      <TouchableOpacity
-        style={[styles.tableRow, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}
-        onPress={() => handleEmployeePress(item.id)}
-        activeOpacity={0.7}
-      >
-        <View style={[styles.tableCell, styles.nameColumn]}>
-          <Text style={styles.cellText} numberOfLines={1}>
-            {employeeName}
-          </Text>
-        </View>
-        <View style={[styles.tableCell, styles.emailColumn]}>
-          <Text style={styles.cellText} numberOfLines={1}>
-            {employeeEmail}
-          </Text>
-        </View>
-        <View style={[styles.tableCell, styles.salaryColumn]}>
-          <Text style={styles.cellText} numberOfLines={1}>
-            {typeof salary === "number" ? salary.toLocaleString("ar-EG") : "0"}
-          </Text>
-        </View>
-      </TouchableOpacity>
+      <View style={styles.cardWrapper}>
+        <TouchableOpacity style={styles.employeeCard} onPress={() => handleEmployeePress(item.id)} activeOpacity={0.85}>
+          {/* Avatar */}
+          <View style={styles.avatarContainer}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+
+          {/* Employee Info */}
+          <View style={styles.cardContent}>
+            <Text style={styles.employeeName} numberOfLines={1}>
+              {employeeName}
+            </Text>
+            <Text style={styles.employeeEmail} numberOfLines={1}>
+              {employeeEmail}
+            </Text>
+            <View style={styles.salaryContainer}>
+              <Text style={styles.salaryLabel}>الراتب:</Text>
+              <Text style={styles.salaryValue}>{typeof salary === "number" ? salary.toLocaleString("ar-EG") : "0"} EGP</Text>
+            </View>
+          </View>
+
+          {/* Manage Button */}
+          <TouchableOpacity style={styles.manageButton} onPress={() => handleManageEmployee(item.id, employeeName)} activeOpacity={0.7}>
+            <Ionicons name="settings-outline" size={16} color="#007bff" />
+            <Text style={styles.manageButtonText}>إدارة</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -240,18 +244,17 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
         </View>
       )}
 
-      {/* Table */}
+      {/* Grid */}
       {employees && employees.length > 0 ? (
-        <View style={styles.tableContainer}>
-          {renderTableHeader()}
-          <FlatList
-            data={employees}
-            renderItem={renderEmployeeRow}
-            keyExtractor={(item, index) => (item?.id ? item.id : `employee-${index}`)}
-            scrollEnabled={false}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-          />
-        </View>
+        <FlatList
+          data={employees}
+          renderItem={renderEmployeeCard}
+          keyExtractor={(item, index) => (item?.id ? item.id : `employee-${index}`)}
+          numColumns={2}
+          columnWrapperStyle={styles.gridRow}
+          contentContainerStyle={styles.gridContainer}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+        />
       ) : (
         <FlatList
           data={[]}
@@ -325,62 +328,101 @@ const styles = StyleSheet.create({
     color: "#666",
     fontWeight: "500",
   },
-  tableContainer: {
-    flex: 1,
-    backgroundColor: "#fff",
-    marginHorizontal: 10,
-    marginVertical: 10,
-    borderRadius: 8,
-    overflow: "hidden",
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  tableHeader: {
-    flexDirection: "row-reverse",
-    backgroundColor: "#007bff",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#005fa3",
-  },
-  tableRow: {
-    flexDirection: "row-reverse",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  rowEven: {
-    backgroundColor: "#fff",
-  },
-  rowOdd: {
-    backgroundColor: "#f9f9f9",
-  },
-  tableCell: {
-    justifyContent: "center",
+  // Grid Layout Styles
+  gridContainer: {
     paddingHorizontal: 8,
+    paddingVertical: 12,
   },
-  nameColumn: {
-    flex: 1.2,
+  gridRow: {
+    justifyContent: "space-between",
+    marginBottom: 12,
+    paddingHorizontal: 4,
   },
-  emailColumn: {
-    flex: 1.5,
+  cardWrapper: {
+    flex: 1,
+    marginHorizontal: 4,
   },
-  salaryColumn: {
-    flex: 0.8,
-    alignItems: "flex-end",
+  employeeCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    alignItems: "center",
+    minHeight: 240,
+    justifyContent: "space-between",
   },
-  headerText: {
-    color: "#fff",
+  avatarContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#007bff",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  avatarText: {
+    fontSize: 22,
     fontWeight: "bold",
-    fontSize: 13,
+    color: "#fff",
   },
-  cellText: {
-    fontSize: 13,
+  cardContent: {
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  employeeName: {
+    fontSize: 16,
+    fontWeight: "bold",
     color: "#333",
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  employeeEmail: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  salaryContainer: {
+    backgroundColor: "#f9f9f9",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  salaryLabel: {
+    fontSize: 11,
+    color: "#666",
+    fontWeight: "500",
+  },
+  salaryValue: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#007bff",
+    marginTop: 2,
+  },
+  manageButton: {
+    backgroundColor: "#f0f8ff",
+    borderWidth: 1,
+    borderColor: "#007bff",
+    flexDirection: "row-reverse",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: "center",
+    gap: 6,
+    width: "100%",
+    justifyContent: "center",
+  },
+  manageButtonText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#007bff",
   },
   emptyContainer: {
     flex: 1,

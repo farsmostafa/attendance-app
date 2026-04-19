@@ -126,113 +126,119 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerSection}>
-          <Text style={styles.title}>إضافة موظف جديد</Text>
-          <Text style={styles.subtitle}>ملء جميع الحقول المطلوبة</Text>
-        </View>
-
-        <View style={styles.formContainer}>
-          {/* Name Field */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>اسم الموظف *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="أدخل اسم الموظف الكامل"
-              placeholderTextColor="#999"
-              value={formData.name}
-              onChangeText={(value) => handleInputChange("name", value)}
-              editable={!loading}
-            />
+        <View style={styles.centeredWrapper}>
+          <View style={styles.headerSection}>
+            <Text style={styles.title}>إضافة موظف جديد</Text>
+            <Text style={styles.subtitle}>ملء جميع الحقول المطلوبة</Text>
           </View>
 
-          {/* Email Field */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>البريد الإلكتروني *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="أدخل البريد الإلكتروني"
-              placeholderTextColor="#999"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={formData.email}
-              onChangeText={(value) => handleInputChange("email", value)}
-              editable={!loading}
-            />
-          </View>
-
-          {/* Password Field */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>كلمة المرور *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="أدخل كلمة المرور (6 أحرف على الأقل)"
-              placeholderTextColor="#999"
-              secureTextEntry
-              value={formData.password}
-              onChangeText={(value) => handleInputChange("password", value)}
-              editable={!loading}
-            />
-          </View>
-
-          {/* Confirm Password Field */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>تأكيد كلمة المرور *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="أدخل كلمة المرور مرة أخرى"
-              placeholderTextColor="#999"
-              secureTextEntry
-              value={formData.confirmPassword}
-              onChangeText={(value) => handleInputChange("confirmPassword", value)}
-              editable={!loading}
-            />
-          </View>
-
-          {/* Role Field */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>الدور *</Text>
-            <View style={styles.roleButtonsContainer}>
-              <TouchableOpacity
-                style={[styles.roleButton, formData.role === "employee" && styles.roleButtonActive]}
-                onPress={() => handleInputChange("role", "employee")}
-                disabled={loading}
-              >
-                <Text style={[styles.roleButtonText, formData.role === "employee" && styles.roleButtonTextActive]}>موظف</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.roleButton, formData.role === "admin" && styles.roleButtonActive]}
-                onPress={() => handleInputChange("role", "admin")}
-                disabled={loading}
-              >
-                <Text style={[styles.roleButtonText, formData.role === "admin" && styles.roleButtonTextActive]}>مسؤول</Text>
-              </TouchableOpacity>
+          <View style={styles.formContainer}>
+            {/* Name Field */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>اسم الموظف *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="أدخل اسم الموظف الكامل"
+                placeholderTextColor="#999"
+                value={formData.name}
+                onChangeText={(value) => handleInputChange("name", value)}
+                editable={!loading}
+              />
             </View>
+
+            {/* Email Field */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>البريد الإلكتروني *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="أدخل البريد الإلكتروني"
+                placeholderTextColor="#999"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={formData.email}
+                onChangeText={(value) => handleInputChange("email", value)}
+                editable={!loading}
+              />
+            </View>
+
+            {/* Password Field */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>كلمة المرور *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="أدخل كلمة المرور (6 أحرف على الأقل)"
+                placeholderTextColor="#999"
+                secureTextEntry
+                value={formData.password}
+                onChangeText={(value) => handleInputChange("password", value)}
+                editable={!loading}
+              />
+            </View>
+
+            {/* Confirm Password Field */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>تأكيد كلمة المرور *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="أدخل كلمة المرور مرة أخرى"
+                placeholderTextColor="#999"
+                secureTextEntry
+                value={formData.confirmPassword}
+                onChangeText={(value) => handleInputChange("confirmPassword", value)}
+                editable={!loading}
+              />
+            </View>
+
+            {/* Role Field */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>الدور *</Text>
+              <View style={styles.roleButtonsContainer}>
+                <TouchableOpacity
+                  style={[styles.roleButton, formData.role === "employee" && styles.roleButtonActive]}
+                  onPress={() => handleInputChange("role", "employee")}
+                  disabled={loading}
+                >
+                  <Text style={[styles.roleButtonText, formData.role === "employee" && styles.roleButtonTextActive]}>موظف</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.roleButton, formData.role === "admin" && styles.roleButtonActive]}
+                  onPress={() => handleInputChange("role", "admin")}
+                  disabled={loading}
+                >
+                  <Text style={[styles.roleButtonText, formData.role === "admin" && styles.roleButtonTextActive]}>مسؤول</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Basic Salary Field */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>الراتب الأساسي (EGP) *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="أدخل الراتب الأساسي"
+                placeholderTextColor="#999"
+                keyboardType="decimal-pad"
+                value={formData.basic_salary}
+                onChangeText={(value) => handleInputChange("basic_salary", value)}
+                editable={!loading}
+              />
+            </View>
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitButtonText}>إنشاء الموظف</Text>}
+            </TouchableOpacity>
+
+            {/* Cancel Button */}
+            <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()} disabled={loading}>
+              <Text style={styles.cancelButtonText}>إلغاء</Text>
+            </TouchableOpacity>
           </View>
-
-          {/* Basic Salary Field */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>الراتب الأساسي (EGP) *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="أدخل الراتب الأساسي"
-              placeholderTextColor="#999"
-              keyboardType="decimal-pad"
-              value={formData.basic_salary}
-              onChangeText={(value) => handleInputChange("basic_salary", value)}
-              editable={!loading}
-            />
-          </View>
-
-          {/* Submit Button */}
-          <TouchableOpacity style={[styles.submitButton, loading && styles.submitButtonDisabled]} onPress={handleSubmit} disabled={loading}>
-            {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitButtonText}>إنشاء الموظف</Text>}
-          </TouchableOpacity>
-
-          {/* Cancel Button */}
-          <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()} disabled={loading}>
-            <Text style={styles.cancelButtonText}>إلغاء</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -247,6 +253,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingVertical: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  centeredWrapper: {
+    width: "100%",
+    maxWidth: 600,
+    alignSelf: "center",
   },
   headerSection: {
     marginBottom: 30,
@@ -272,6 +285,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    width: "100%",
   },
   formGroup: {
     marginBottom: 20,
@@ -293,6 +307,7 @@ const styles = StyleSheet.create({
     color: "#333",
     backgroundColor: "#f9f9f9",
     textAlign: "right",
+    width: "100%",
   },
   roleButtonsContainer: {
     flexDirection: "row-reverse",
@@ -326,6 +341,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     marginTop: 10,
+    width: "100%",
   },
   submitButtonDisabled: {
     opacity: 0.6,
@@ -341,6 +357,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     marginTop: 12,
+    width: "100%",
   },
   cancelButtonText: {
     color: "#666",
