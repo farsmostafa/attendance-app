@@ -150,7 +150,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       setLocationError(null);
 
       // Wait 3 seconds for GPS sensor to stabilize before calculating distance
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
 
       // Calculate distance to company
       const companyCoords = companySettings
