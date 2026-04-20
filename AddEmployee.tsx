@@ -336,11 +336,6 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
               >
                 {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitButtonText}>إنشاء الموظف</Text>}
               </TouchableOpacity>
-
-              {/* Cancel Button */}
-              <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()} disabled={loading}>
-                <Text style={styles.cancelButtonText}>إلغاء</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
@@ -510,19 +505,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
-  },
-  cancelButton: {
-    backgroundColor: "#e9ecef",
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 12,
-    width: "100%",
-  },
-  cancelButtonText: {
-    color: "#666",
-    fontSize: 16,
-    fontWeight: "600",
   },
 });
 
