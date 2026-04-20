@@ -11,14 +11,27 @@ import { getCurrentUserData } from "./services/authService";
 
 import AdminDashboard from "./AdminDashboard";
 import LoginScreen from "./LoginScreen";
-import EmployeeScreenWrapper from "./EmployeeScreenWrapper";
+import EmployeeDashboard from "./EmployeeDashboard";
+import AttendanceHistory from "./AttendanceHistory";
+import Requests from "./Requests";
 import EmployeeProfileAdminView from "./EmployeeProfileAdminView";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-// Employee Layout with Sidebar
-function EmployeeTabs(props: any) {
-  return <EmployeeScreenWrapper {...props} />;
+// Employee Stack - for employee users
+function EmployeeStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        animationEnabled: false,
+      }}
+    >
+      <Stack.Screen name="EmployeeDashboard" component={EmployeeDashboard} options={{ title: "لوحة الموظف" }} />
+      <Stack.Screen name="AttendanceHistory" component={AttendanceHistory} options={{ title: "سجل الحضور" }} />
+      <Stack.Screen name="Requests" component={Requests} options={{ title: "الطلبات" }} />
+    </Stack.Navigator>
+  );
 }
 
 // Auth Stack - for unauthenticated users
@@ -149,8 +162,8 @@ export default function App() {
         // Admin user - show Admin Stack
         <AdminStack />
       ) : (
-        // Employee user - show Employee Tabs
-        <EmployeeTabs />
+        // Employee user - show Employee Stack
+        <EmployeeStack />
       )}
       <StatusBar style="auto" />
     </NavigationContainer>

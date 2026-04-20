@@ -17,6 +17,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "./types";
 import { addFinancialRecord, getMonthlyFinancialSummary, getMonthlyFinancialRecords } from "./services/financialService";
 import { fetchCompanyEmployees } from "./services/adminService";
+import { db } from "./firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
 
 type EmployeeProfileAdminViewProps = NativeStackScreenProps<RootStackParamList, "EmployeeProfileAdminView">;
 
@@ -68,11 +70,7 @@ const EmployeeProfileAdminView: React.FC<EmployeeProfileAdminViewProps> = ({ rou
         // For now, let's assume we pass employee data through route
         // We need to fetch it from database using employeeId
 
-        // Create a simple fetch for this employee
-        // We'll query the users collection directly
-        const { db } = await import("./firebaseConfig");
-        const { doc, getDoc } = await import("firebase/firestore");
-
+        // Fetch the employee document directly from Firestore
         const docRef = doc(db, "users", employeeId);
         const docSnap = await getDoc(docRef);
 

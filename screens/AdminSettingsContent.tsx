@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, ScrollView } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../types";
+import { RootStackNavigationProp } from "../types";
 import { db } from "../firebaseConfig";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
 interface Props {
-  navigation?: NativeStackNavigationProp<RootStackParamList>;
+  navigation?: RootStackNavigationProp;
   companyId: string;
 }
 
@@ -243,7 +243,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9fafb",
     fontSize: 14,
     color: "#111827",
-    outlineStyle: "none",
   },
   errorBox: {
     backgroundColor: "#fdecea",

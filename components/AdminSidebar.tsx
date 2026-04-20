@@ -36,7 +36,7 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   {
     id: "today-log",
     label: "سجل اليوم",
-    icon: "calendar-today",
+    icon: "calendar",
     screen: "TodayLog",
   },
   {

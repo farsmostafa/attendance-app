@@ -1,10 +1,9 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../types";
+import { RootStackNavigationProp } from "../types";
 
 interface Props {
-  navigation?: NativeStackNavigationProp<RootStackParamList>;
+  navigation?: RootStackNavigationProp;
   companyId: string;
 }
 

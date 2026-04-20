@@ -16,7 +16,10 @@ export interface LeaveRequest {
 /**
  * Submit a new leave/late request
  */
-export const submitLeaveRequest = async (userId: string, request: Omit<LeaveRequest, "id" | "status" | "created_at">): Promise<string> => {
+export const submitLeaveRequest = async (
+  userId: string,
+  request: Omit<LeaveRequest, "id" | "status" | "created_at" | "userId">,
+): Promise<string> => {
   try {
     const docRef = await addDoc(collection(db, "requests"), {
       ...request,

@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, ScrollView, ActivityIndicator, Text } from "react-native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import TopHeader from "./TopHeader";
 import AdminSidebar from "./AdminSidebar";
 import { getCurrentUserData } from "../services/authService";
-import { User, RootStackParamList } from "../types";
+import { User, RootStackNavigationProp } from "../types";
 
 export interface AdminLayoutProps {
   currentScreen: string;
@@ -13,7 +12,7 @@ export interface AdminLayoutProps {
   children: React.ReactNode;
   showLoading?: boolean;
   userName?: string;
-  navigation?: NativeStackNavigationProp<RootStackParamList>;
+  navigation?: RootStackNavigationProp;
 }
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ currentScreen, onNavigate, children, showLoading = false, userName, navigation }) => {

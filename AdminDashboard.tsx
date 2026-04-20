@@ -24,7 +24,7 @@ interface Employee {
   name: string;
   email: string;
   role: string;
-  companyId: string;
+  company_id: string;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
@@ -56,7 +56,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
         const querySnapshot = await getDocs(q);
         const empList: Employee[] = [];
         querySnapshot.forEach((doc) => {
-          empList.push({ id: doc.id, ...doc.data() } as Employee);
+          const data = doc.data();
+          empList.push({
+            id: doc.id,
+            name: data.name || "",
+            email: data.email || "",
+            role: data.role || "employee",
+            company_id: data.company_id || data.companyId || "",
+          });
         });
         setEmployees(empList);
       } catch (err) {

@@ -1,24 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ScrollView, ActivityIndicator, Text, Alert } from "react-native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { getCurrentUserData } from "../services/authService";
-import { RootStackParamList } from "../types";
 import TopHeader from "./TopHeader";
 import EmployeeSidebar from "./EmployeeSidebar";
-import EmployeeDashboard from "../EmployeeDashboard";
-import AttendanceHistory from "../AttendanceHistory";
-import Requests from "../Requests";
 
 interface EmployeeLayoutProps {
-  navigation: NativeStackNavigationProp<RootStackParamList>;
+  navigation: any;
+  activeScreen: string;
+  children: React.ReactNode;
 }
 
-const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation }) => {
-  const [currentScreen, setCurrentScreen] = useState("Dashboard");
+const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, activeScreen, children }) => {
   const [currentUserName, setCurrentUserName] = useState("الموظف");
-  const [loading, setLoading] = useState(true);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -30,7 +26,7 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation }) => {
       } catch (error) {
         console.error("Error loading employee name:", error);
       } finally {
-        setLoading(false);
+        setLoadingUser(false);
       }
     };
 
@@ -40,26 +36,14 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation }) => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      navigation.replace("Login");
     } catch (error: any) {
       console.error("Logout failed:", error);
       Alert.alert("خطأ", error?.message || "فشل في تسجيل الخروج");
     }
   };
 
-  const renderContent = () => {
-    const dummyRoute = { key: "dummy", name: currentScreen } as any;
-    switch (currentScreen) {
-      case "AttendanceHistory":
-        return <AttendanceHistory navigation={navigation as any} route={dummyRoute} />;
-      case "Requests":
-        return <Requests navigation={navigation as any} route={dummyRoute} />;
-      case "Dashboard":
-      default:
-        return <EmployeeDashboard navigation={navigation as any} route={dummyRoute} />;
-    }
-  };
-
-  if (loading) {
+  if (loadingUser) {
     return (
       <View style={styles.container}>
         <TopHeader userName={currentUserName} navigation={navigation} />
@@ -76,9 +60,9 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation }) => {
       <TopHeader userName={currentUserName} navigation={navigation} />
       <View style={styles.layoutContainer}>
         <ScrollView style={styles.mainContent} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
-          {renderContent()}
+          {children}
         </ScrollView>
-        <EmployeeSidebar currentScreen={currentScreen} onNavigate={setCurrentScreen} onLogout={handleLogout} />
+        <EmployeeSidebar currentScreen={activeScreen} onNavigate={(screen) => navigation.navigate(screen as any)} onLogout={handleLogout} />
       </View>
     </View>
   );
@@ -109,8 +93,8 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 16,
     color: "#666",
+    fontSize: 16,
   },
 });
 

@@ -56,7 +56,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>البريد الإلكتروني</Text>
               <TextInput
-                style={[styles.input, error && !password && styles.inputError]}
+                style={[styles.input, !!error && !password ? styles.inputError : undefined]}
                 placeholder="أدخل بريدك الإلكتروني"
                 placeholderTextColor="#999"
                 value={email}
@@ -76,7 +76,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>كلمة المرور</Text>
               <TextInput
-                style={[styles.input, error && password && styles.inputError]}
+                style={[styles.input, !!error && password ? styles.inputError : undefined]}
                 placeholder="أدخل كلمة المرور"
                 placeholderTextColor="#999"
                 value={password}
@@ -182,7 +182,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#333",
     backgroundColor: "#fafafa",
-    transition: "border-color 0.2s",
   },
   inputError: {
     borderColor: "#d32f2f",

@@ -15,11 +15,12 @@ import {
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
-import { EmployeeTabParamList } from "./types";
+import { RootStackParamList } from "./types";
 import { submitLeaveRequest, getEmployeeRequests, LeaveRequest } from "./services/requestsService";
 import { getCurrentUserData } from "./services/authService";
+import EmployeeLayout from "./components/EmployeeLayout";
 
-type RequestsProps = NativeStackScreenProps<EmployeeTabParamList, "Requests">;
+type RequestsProps = NativeStackScreenProps<RootStackParamList, "Requests">;
 
 const Requests: React.FC<RequestsProps> = ({ navigation }) => {
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
@@ -169,125 +170,129 @@ const Requests: React.FC<RequestsProps> = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#007bff" />
-      </View>
+      <EmployeeLayout navigation={navigation} activeScreen="Requests">
+        <View style={styles.container}>
+          <ActivityIndicator size="large" color="#007bff" />
+        </View>
+      </EmployeeLayout>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.newRequestButton} onPress={() => setModalVisible(true)}>
-          <Ionicons name="add-circle" size={20} color="#fff" />
-          <Text style={styles.newRequestText}>طلب جديد</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>طلباتي</Text>
-      </View>
+    <EmployeeLayout navigation={navigation} activeScreen="Requests">
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.newRequestButton} onPress={() => setModalVisible(true)}>
+            <Ionicons name="add-circle" size={20} color="#fff" />
+            <Text style={styles.newRequestText}>طلب جديد</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>طلباتي</Text>
+        </View>
 
-      {/* Requests List */}
-      {requests.length > 0 ? (
-        <FlatList
-          data={requests}
-          renderItem={renderRequestItem}
-          keyExtractor={(item) => item.id || ""}
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
-        />
-      ) : (
-        <ScrollView contentContainerStyle={styles.emptyContainer}>{renderEmptyState()}</ScrollView>
-      )}
+        {/* Requests List */}
+        {requests.length > 0 ? (
+          <FlatList
+            data={requests}
+            renderItem={renderRequestItem}
+            keyExtractor={(item) => item.id || ""}
+            contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+          />
+        ) : (
+          <ScrollView contentContainerStyle={styles.emptyContainer}>{renderEmptyState()}</ScrollView>
+        )}
 
-      {/* Submit Request Modal */}
-      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setModalVisible(false)} disabled={submitting}>
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>طلب جديد</Text>
-              <View style={{ width: 24 }} />
-            </View>
+        {/* Submit Request Modal */}
+        <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setModalVisible(false)} disabled={submitting}>
+                  <Ionicons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+                <Text style={styles.modalTitle}>طلب جديد</Text>
+                <View style={{ width: 24 }} />
+              </View>
 
-            <ScrollView style={styles.modalForm}>
-              {/* Request Type */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>نوع الطلب</Text>
-                <View style={styles.typeButtonsContainer}>
-                  <TouchableOpacity
-                    style={[styles.typeButton, requestType === "leave" && styles.typeButtonActive]}
-                    onPress={() => setRequestType("leave")}
-                    disabled={submitting}
-                  >
-                    <Ionicons name="calendar-outline" size={18} color={requestType === "leave" ? "#007bff" : "#999"} />
-                    <Text style={[styles.typeButtonText, requestType === "leave" && styles.typeButtonTextActive]}>إجازة</Text>
-                  </TouchableOpacity>
+              <ScrollView style={styles.modalForm}>
+                {/* Request Type */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>نوع الطلب</Text>
+                  <View style={styles.typeButtonsContainer}>
+                    <TouchableOpacity
+                      style={[styles.typeButton, requestType === "leave" && styles.typeButtonActive]}
+                      onPress={() => setRequestType("leave")}
+                      disabled={submitting}
+                    >
+                      <Ionicons name="calendar-outline" size={18} color={requestType === "leave" ? "#007bff" : "#999"} />
+                      <Text style={[styles.typeButtonText, requestType === "leave" && styles.typeButtonTextActive]}>إجازة</Text>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[styles.typeButton, requestType === "late" && styles.typeButtonActive]}
-                    onPress={() => setRequestType("late")}
-                    disabled={submitting}
-                  >
-                    <Ionicons name="alert-circle-outline" size={18} color={requestType === "late" ? "#ffc107" : "#999"} />
-                    <Text style={[styles.typeButtonText, requestType === "late" && styles.typeButtonTextActive]}>تأخير</Text>
+                    <TouchableOpacity
+                      style={[styles.typeButton, requestType === "late" && styles.typeButtonActive]}
+                      onPress={() => setRequestType("late")}
+                      disabled={submitting}
+                    >
+                      <Ionicons name="alert-circle-outline" size={18} color={requestType === "late" ? "#ffc107" : "#999"} />
+                      <Text style={[styles.typeButtonText, requestType === "late" && styles.typeButtonTextActive]}>تأخير</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Date Field */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>التاريخ</Text>
+                  <TouchableOpacity style={styles.dateInput} disabled={submitting}>
+                    <Ionicons name="calendar" size={18} color="#007bff" />
+                    <TextInput
+                      style={styles.dateInputText}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor="#999"
+                      value={requestDate}
+                      onChangeText={setRequestDate}
+                      editable={!submitting}
+                    />
                   </TouchableOpacity>
                 </View>
-              </View>
 
-              {/* Date Field */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>التاريخ</Text>
-                <TouchableOpacity style={styles.dateInput} disabled={submitting}>
-                  <Ionicons name="calendar" size={18} color="#007bff" />
+                {/* Reason Field */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>السبب</Text>
                   <TextInput
-                    style={styles.dateInputText}
-                    placeholder="YYYY-MM-DD"
+                    style={[styles.formInput, styles.formTextArea]}
+                    placeholder="أدخل سبب الطلب"
                     placeholderTextColor="#999"
-                    value={requestDate}
-                    onChangeText={setRequestDate}
+                    multiline
+                    numberOfLines={4}
+                    value={reason}
+                    onChangeText={setReason}
                     editable={!submitting}
+                    textAlignVertical="top"
                   />
+                </View>
+
+                {/* Submit Button */}
+                <TouchableOpacity
+                  style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
+                  onPress={handleSubmitRequest}
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                      <Text style={styles.submitButtonText}>تقديم الطلب</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
-              </View>
-
-              {/* Reason Field */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>السبب</Text>
-                <TextInput
-                  style={[styles.formInput, styles.formTextArea]}
-                  placeholder="أدخل سبب الطلب"
-                  placeholderTextColor="#999"
-                  multiline
-                  numberOfLines={4}
-                  value={reason}
-                  onChangeText={setReason}
-                  editable={!submitting}
-                  textAlignVertical="top"
-                />
-              </View>
-
-              {/* Submit Button */}
-              <TouchableOpacity
-                style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
-                onPress={handleSubmitRequest}
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Ionicons name="checkmark-circle" size={18} color="#fff" />
-                    <Text style={styles.submitButtonText}>تقديم الطلب</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-    </View>
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+      </View>
+    </EmployeeLayout>
   );
 };
 

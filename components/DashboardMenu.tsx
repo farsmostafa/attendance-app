@@ -1,11 +1,10 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { RootStackParamList } from "../types";
+import { RootStackNavigationProp, RootStackParamList } from "../types";
 
 interface DashboardMenuProps {
-  navigation: NativeStackNavigationProp<RootStackParamList>;
+  navigation: RootStackNavigationProp;
   currentScreen?: string;
 }
 
@@ -69,7 +68,7 @@ const MENU_ITEMS: MenuItemType[] = [
 const DashboardMenu: React.FC<DashboardMenuProps> = ({ navigation, currentScreen }) => {
   const handleNavigation = (screen: keyof RootStackParamList) => {
     if (screen !== currentScreen) {
-      navigation.navigate(screen);
+      navigation.navigate(screen as any);
     }
   };
 

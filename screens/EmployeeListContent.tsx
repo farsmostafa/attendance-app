@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ActivityIndicator, FlatList, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../types";
+import { RootStackNavigationProp } from "../types";
 import { fetchCompanyEmployees } from "../services/adminService";
 
 interface EmployeeCard {
@@ -13,11 +13,11 @@ interface EmployeeCard {
   department: string;
   basicSalary: number;
   status: string;
-  joinDate: string;
+  joinDate?: string;
 }
 
 interface Props {
-  navigation?: NativeStackNavigationProp<RootStackParamList>;
+  navigation?: RootStackNavigationProp;
   companyId: string;
 }
 

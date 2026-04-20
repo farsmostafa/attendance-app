@@ -9,8 +9,9 @@ import { getCurrentUserData } from "./services/authService";
 import { checkTodayAttendance, recordCheckIn, AttendanceCheckResult } from "./services/attendanceService";
 import { calculateDistance, isWithinGeofence, Coordinates } from "./utils/geo";
 import { RootStackParamList } from "./types";
+import EmployeeLayout from "./components/EmployeeLayout";
 
-type EmployeeDashboardProps = NativeStackScreenProps<RootStackParamList>;
+type EmployeeDashboardProps = NativeStackScreenProps<RootStackParamList, "EmployeeDashboard">;
 
 // Constants - Defaults for fallback scenarios
 const DEFAULT_COMPANY_LOCATION: Coordinates = {
@@ -314,7 +315,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
   // ============================================================================
 
   const geofenceRadius = DEFAULT_GEOFENCE_RADIUS_METERS;
-  const isWithinGeofence =
+  const withinGeofence =
     distance !== null &&
     isWithinGeofence(
       {
@@ -338,7 +339,8 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
   // ============================================================================
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <EmployeeLayout navigation={navigation} activeScreen="Dashboard">
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>لوحة الموظف</Text>
 
       {isLoading && (
@@ -365,11 +367,11 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
                 المسافة بينك وبين الشركة: {distance ? distance.toFixed(2) : "--"} متر
               </Text>
 
-              <Text style={[styles.statusBadge, isWithinGeofence ? styles.statusGood : styles.statusBad]}>
-                {isWithinGeofence ? "أنت داخل نطاق العمل" : "أنت خارج نطاق الشركة"}
+              <Text style={[styles.statusBadge, withinGeofence ? styles.statusGood : styles.statusBad]}>
+                {withinGeofence ? "أنت داخل نطاق العمل" : "أنت خارج نطاق الشركة"}
               </Text>
 
-              {!isWithinGeofence ? (
+              {!withinGeofence ? (
                 <View style={styles.warningContainer}>
                   <Text style={styles.warningIcon}>📍</Text>
                   <Text style={styles.warningTitle}>خارج النطاق الجغرافي</Text>
@@ -411,6 +413,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
         </View>
       )}
     </ScrollView>
+    </EmployeeLayout>
   );
 };
 

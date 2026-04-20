@@ -36,6 +36,8 @@ export type EmployeeTabParamList = {
   Requests: undefined;
 };
 
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+
 // Navigation prop types for React Navigation
 export type RootStackParamList = {
   Login: undefined;
@@ -48,8 +50,12 @@ export type RootStackParamList = {
   AdminSettings: undefined;
   AdminReports: undefined;
   EmployeeTabs: undefined;
+  EmployeeDashboard: undefined;
   AttendanceHistory: undefined;
+  Requests: undefined;
 };
+
+export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList, keyof RootStackParamList>;
 
 // Employee details for dashboard
 export interface EmployeeDetails extends User {

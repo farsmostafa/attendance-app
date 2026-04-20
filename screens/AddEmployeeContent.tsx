@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../types";
+import { RootStackNavigationProp } from "../types";
 import { createNewEmployee } from "../services/adminService";
 import { getCurrentUserData } from "../services/authService";
 
 interface Props {
-  navigation?: NativeStackNavigationProp<RootStackParamList>;
+  navigation?: RootStackNavigationProp;
   companyId: string;
 }
 
@@ -127,7 +127,7 @@ const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
         {/* Full Name */}
         <View style={styles.formGroup}>
           <Text style={styles.label}>الاسم الكامل</Text>
-          <View style={[styles.inputContainer, errors.name && styles.inputError]}>
+          <View style={[styles.inputContainer, errors.name ? styles.inputError : undefined]}>
             <Ionicons name="person" size={18} color="#007bff" />
             <TextInput
               style={styles.input}
@@ -144,7 +144,7 @@ const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
         {/* Email */}
         <View style={styles.formGroup}>
           <Text style={styles.label}>البريد الإلكتروني</Text>
-          <View style={[styles.inputContainer, errors.email && styles.inputError]}>
+          <View style={[styles.inputContainer, errors.email ? styles.inputError : undefined]}>
             <Ionicons name="mail" size={18} color="#007bff" />
             <TextInput
               style={styles.input}
@@ -162,7 +162,7 @@ const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
         {/* Password */}
         <View style={styles.formGroup}>
           <Text style={styles.label}>كلمة المرور</Text>
-          <View style={[styles.inputContainer, errors.password && styles.inputError]}>
+          <View style={[styles.inputContainer, errors.password ? styles.inputError : undefined]}>
             <Ionicons name="lock-closed" size={18} color="#007bff" />
             <TextInput
               style={styles.input}
@@ -180,7 +180,7 @@ const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
         {/* Confirm Password */}
         <View style={styles.formGroup}>
           <Text style={styles.label}>تأكيد كلمة المرور</Text>
-          <View style={[styles.inputContainer, errors.confirmPassword && styles.inputError]}>
+          <View style={[styles.inputContainer, errors.confirmPassword ? styles.inputError : undefined]}>
             <Ionicons name="lock-closed" size={18} color="#007bff" />
             <TextInput
               style={styles.input}
@@ -198,7 +198,7 @@ const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
         {/* Phone */}
         <View style={styles.formGroup}>
           <Text style={styles.label}>رقم الهاتف</Text>
-          <View style={[styles.inputContainer, errors.phone && styles.inputError]}>
+          <View style={[styles.inputContainer, errors.phone ? styles.inputError : undefined]}>
             <Ionicons name="call" size={18} color="#007bff" />
             <TextInput
               style={styles.input}
@@ -217,7 +217,7 @@ const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
         <View style={styles.formGroup}>
           <Text style={styles.label}>القسم</Text>
           <TouchableOpacity
-            style={[styles.inputContainer, errors.department && styles.inputError]}
+            style={[styles.inputContainer, errors.department ? styles.inputError : undefined]}
             onPress={() => setShowDepartmentDropdown(!showDepartmentDropdown)}
             disabled={loading}
           >
@@ -248,7 +248,7 @@ const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
         {/* Basic Salary */}
         <View style={styles.formGroup}>
           <Text style={styles.label}>الراتب الأساسي (LE)</Text>
-          <View style={[styles.inputContainer, errors.basicSalary && styles.inputError]}>
+          <View style={[styles.inputContainer, errors.basicSalary ? styles.inputError : undefined]}>
             <Ionicons name="cash" size={18} color="#007bff" />
             <TextInput
               style={styles.input}
@@ -360,7 +360,6 @@ const styles = StyleSheet.create({
     color: "#333",
     marginHorizontal: 8,
     padding: 0,
-    outlineStyle: "none",
   },
   errorText: {
     color: "#dc3545",

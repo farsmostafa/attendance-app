@@ -3,12 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } fr
 import { Ionicons } from "@expo/vector-icons";
 import { signOut as firebaseSignOut } from "firebase/auth";
 import { auth } from "../firebaseConfig";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { RootStackParamList } from "../types";
+import { RootStackNavigationProp } from "../types";
 
 interface TopHeaderProps {
   userName?: string;
-  navigation: NativeStackNavigationProp<RootStackParamList>;
+  navigation: RootStackNavigationProp;
 }
 
 /**
