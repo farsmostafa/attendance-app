@@ -7,6 +7,7 @@ import { auth } from "./firebaseConfig";
 import { db } from "./firebaseConfig";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { getCurrentUserData } from "./services/authService";
+import { countPresentToday } from "./services/attendanceService";
 import { User, RootStackParamList } from "./types";
 import AdminLayout from "./components/AdminLayout";
 
@@ -31,6 +32,7 @@ interface Employee {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [presentToday, setPresentToday] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -68,6 +70,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
           });
         });
         setEmployees(empList);
+
+        // Fetch today's present count
+        const today = new Date().toISOString().split("T")[0];
+        const presentCount = await countPresentToday(today);
+        setPresentToday(presentCount);
       } catch (err) {
         console.error("Error fetching data:", err);
         setError(err instanceof Error ? err.message : "حدث خطأ أثناء جلب البيانات");
@@ -132,7 +139,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
   const renderContent = () => {
     switch (activeScreen) {
       case "Dashboard":
-        return <DashboardContent employees={employees} />;
+        return <DashboardContent employees={employees} presentToday={presentToday} />;
       case "AddEmployee":
         return <AddEmployeeContent navigation={navigation} companyId={companyId} />;
       case "EmployeeList":
@@ -146,7 +153,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
       case "AdminSettings":
         return <AdminSettingsContent navigation={navigation} companyId={companyId} />;
       default:
-        return <DashboardContent employees={employees} />;
+        return <DashboardContent employees={employees} presentToday={presentToday} />;
     }
   };
 

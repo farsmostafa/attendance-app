@@ -190,3 +190,67 @@ export const fetchAllAttendanceRecords = async (): Promise<CheckInRecord[]> => {
     throw error;
   }
 };
+
+/**
+ * Fetch today's attendance records for admin dashboard
+ * Returns records for today's date, ordered by check_in time (descending)
+ *
+ * @param todayDate - Date in YYYY-MM-DD format
+ * @returns Array of today's attendance records
+ */
+export const fetchTodaysAttendanceRecords = async (todayDate: string): Promise<CheckInRecord[]> => {
+  try {
+    const attendanceQuery = query(collection(db, "attendance"), where("date", "==", todayDate), orderBy("check_in", "desc"));
+
+    const querySnapshot = await getDocs(attendanceQuery);
+    const records: CheckInRecord[] = [];
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      records.push({
+        id: doc.id,
+        userId: data.userId,
+        userName: data.userName,
+        date: data.date,
+        check_in: data.check_in,
+        check_out: data.check_out,
+        isLate: data.isLate,
+        status: data.status || (data.isLate ? "late" : "on-time"),
+        location: data.location,
+        workDuration: data.workDuration,
+      });
+    });
+
+    return records;
+  } catch (error) {
+    console.error("Error fetching today's attendance records:", error);
+    throw error;
+  }
+};
+
+/**
+ * Count employees present today (who have checked in)
+ *
+ * @param todayDate - Date in YYYY-MM-DD format
+ * @returns Number of unique employees checked in today
+ */
+export const countPresentToday = async (todayDate: string): Promise<number> => {
+  try {
+    const attendanceQuery = query(collection(db, "attendance"), where("date", "==", todayDate));
+
+    const querySnapshot = await getDocs(attendanceQuery);
+    const uniqueUserIds = new Set<string>();
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.userId) {
+        uniqueUserIds.add(data.userId);
+      }
+    });
+
+    return uniqueUserIds.size;
+  } catch (error) {
+    console.error("Error counting present today:", error);
+    throw error;
+  }
+};

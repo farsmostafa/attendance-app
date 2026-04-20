@@ -26,9 +26,10 @@ interface AttendanceRecord {
 
 interface DashboardContentProps {
   employees: Employee[];
+  presentToday?: number;
 }
 
-const DashboardContent: React.FC<DashboardContentProps> = ({ employees }) => {
+const DashboardContent: React.FC<DashboardContentProps> = ({ employees, presentToday = 0 }) => {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(true);
   const [attendanceError, setAttendanceError] = useState<string | null>(null);
@@ -95,7 +96,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ employees }) => {
         </View>
         <View style={[styles.statCard, styles.statCardGreen]}>
           <Ionicons name="checkmark-circle" size={32} color="#28a745" />
-          <Text style={styles.statValue}>{Math.floor(employees.length * 0.8)}</Text>
+          <Text style={styles.statValue}>{presentToday}</Text>
           <Text style={styles.statLabel}>حاضرون اليوم</Text>
         </View>
       </View>
