@@ -285,11 +285,6 @@ const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
             </>
           )}
         </TouchableOpacity>
-
-        {/* Cancel Button */}
-        <TouchableOpacity style={styles.cancelButton} disabled={loading} activeOpacity={0.7}>
-          <Text style={styles.cancelText}>إلغاء</Text>
-        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -452,16 +447,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
-  },
-  cancelButton: {
-    paddingVertical: 12,
-    alignItems: "center",
-    marginTop: 12,
-  },
-  cancelText: {
-    color: "#999",
-    fontSize: 14,
-    fontWeight: "500",
   },
 });
 
