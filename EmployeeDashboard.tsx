@@ -135,7 +135,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
 
   /**
    * Request and fetch user's current GPS location
-   * Calculates distance to company office
+   * Calculates distance to company office with 3-second GPS stabilization delay
    */
   const initializeLocation = async () => {
     try {
@@ -148,6 +148,9 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       const currentLocation = await Location.getCurrentPositionAsync({});
       setUserLocation(currentLocation);
       setLocationError(null);
+
+      // Wait 3 seconds for GPS sensor to stabilize before calculating distance
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       // Calculate distance to company
       const companyCoords = companySettings
@@ -385,6 +388,22 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
   // Render
   // ============================================================================
 
+  // Guard: Show loader until distance is determined
+  if (distance === null && !locationError) {
+    return (
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>لوحة الموظف</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>نظام الحضور والانصراف</Text>
+          <View style={styles.cardLoadingContainer}>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text style={styles.statusText}>جاري فحص موقعك الجغرافي بدقة... برجاء الانتظار</Text>
+          </View>
+        </View>
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>لوحة الموظف</Text>
@@ -402,11 +421,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
 
           {locationError ? (
             <Text style={styles.errorText}>{locationError}</Text>
-          ) : distance === null ? (
-            <View style={styles.cardLoadingContainer}>
-              <ActivityIndicator size="large" color="#0000ff" />
-              <Text style={styles.statusText}>جاري تحديد موقعك بدقة...</Text>
-            </View>
           ) : (
             <View style={styles.locationInfo}>
               <Text style={styles.infoText}>المسافة بينك وبين الشركة: {distance.toFixed(2)} متر</Text>
