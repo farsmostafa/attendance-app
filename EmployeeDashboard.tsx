@@ -5,7 +5,7 @@ import * as Location from "expo-location";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import { getCurrentUserData } from "./services/authService";
-import { checkTodayAttendance, recordCheckIn, AttendanceCheckResult } from "./services/attendanceService";
+import { checkTodayAttendance, recordCheckIn, recordCheckOut, AttendanceCheckResult } from "./services/attendanceService";
 import { calculateDistance, isWithinGeofence, Coordinates } from "./utils/geo";
 import { RootStackParamList } from "./types";
 
@@ -43,6 +43,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
 
   // UI State
   const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   // Refs for preventing race conditions
   const isProcessingRef = useRef(false);
@@ -252,6 +253,17 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
    * Handle check-in or check-out action
    * Validates permissions, geofence, and time, then records to Firestore
    */
+  /**
+   * Helper: Web-compatible alert using window.alert
+   */
+  const showAlert = (message: string) => {
+    if (typeof window !== "undefined" && typeof window.alert === "function") {
+      window.alert(message);
+    } else {
+      Alert.alert("تنبيه", message);
+    }
+  };
+
   const handleCheckIn = async () => {
     if (isProcessingRef.current) return;
     isProcessingRef.current = true;
@@ -261,20 +273,20 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       // 1. Fetch user data
       const userData = await getCurrentUserData();
       if (!userData?.uid) {
-        Alert.alert("خطأ", "فشل في جلب بيانات المستخدم. يرجى المحاولة مرة أخرى.");
+        showAlert("خطأ: فشل في جلب بيانات المستخدم. يرجى المحاولة مرة أخرى.");
         return;
       }
 
       // 2. Validate company association
       const companyId = userData.companyId || userData.company_id;
       if (!companyId) {
-        Alert.alert("خطأ", "حسابك غير مرتبط بشركة. يرجى التواصل مع الإدارة.");
+        showAlert("خطأ: حسابك غير مرتبط بشركة. يرجى التواصل مع الإدارة.");
         return;
       }
 
       // 3. Validate location
       if (!userLocation) {
-        Alert.alert("خطأ", "لم نتمكن من الحصول على موقعك الحالي.");
+        showAlert("خطأ: لم نتمكن من الحصول على موقعك الحالي.");
         return;
       }
 
@@ -293,40 +305,38 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       );
 
       if (!isInGeofence) {
-        Alert.alert("خطأ", "أنت خارج نطاق العمل. لا يمكنك تسجيل الحضور.");
+        showAlert("خطأ: أنت خارج نطاق العمل. لا يمكنك تسجيل الحضور.");
         return;
       }
 
-      const isCheckInAction = !attendanceStatus?.hasCheckedIn;
+      // ===== CHECK-IN =====
+      const now = new Date();
+      const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
 
-      if (isCheckInAction) {
-        // ===== CHECK-IN =====
-        const now = new Date();
-        const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
+      const workStartTime = companySettings?.workStartTime || "09:00";
+      const [startHour, startMinute] = workStartTime.split(":").map(Number);
+      const workStartTimeInMinutes = startHour * 60 + startMinute;
 
-        const workStartTime = companySettings?.workStartTime || "09:00";
-        const [startHour, startMinute] = workStartTime.split(":").map(Number);
-        const workStartTimeInMinutes = startHour * 60 + startMinute;
+      const gracePeriodMinutes = companySettings?.gracePeriodMinutes || DEFAULT_GRACE_PERIOD_MINUTES;
+      const isLate = currentTimeInMinutes > workStartTimeInMinutes + gracePeriodMinutes;
+      const status = isLate ? "late" : "on-time";
 
-        const gracePeriodMinutes = companySettings?.gracePeriodMinutes || DEFAULT_GRACE_PERIOD_MINUTES;
-        const isLate = currentTimeInMinutes > workStartTimeInMinutes + gracePeriodMinutes;
-        const status = isLate ? "late" : "on-time";
+      const todayDate = now.toISOString().split("T")[0];
 
-        const todayDate = now.toISOString().split("T")[0];
+      const checkInPayload = {
+        userId: userData.uid,
+        userName: userData.name || userData.email || "Unknown",
+        companyId,
+        date: todayDate,
+        isLate,
+        status,
+        location: {
+          latitude: userLocation.coords.latitude,
+          longitude: userLocation.coords.longitude,
+        },
+      };
 
-        const checkInPayload = {
-          userId: userData.uid,
-          userName: userData.name || userData.email || "Unknown",
-          companyId,
-          date: todayDate,
-          isLate,
-          status,
-          location: {
-            latitude: userLocation.coords.latitude,
-            longitude: userLocation.coords.longitude,
-          },
-        };
-
+      try {
         const docId = await recordCheckIn(checkInPayload);
         attendanceDocIdRef.current = docId;
 
@@ -347,25 +357,60 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
           },
         });
 
-        const message = isLate ? "تم تسجيل حضورك بنجاح!\n⚠️ تنبيه: لقد تجاوزت فترة السماح" : "تم تسجيل حضورك بنجاح!";
-        Alert.alert("نجاح", message);
-      } else {
-        // ===== CHECK-OUT =====
-        if (!attendanceDocIdRef.current) {
-          Alert.alert("خطأ", "لم نتمكن من العثور على سجل الحضور.");
-          return;
-        }
-
-        // TODO: Implement check-out logic using recordCheckOut service
-        Alert.alert("نجاح", "تم تسجيل انصرافك بنجاح!");
+        const message = isLate ? "✓ تم تسجيل حضورك بنجاح!\n⚠️ تنبيه: لقد تجاوزت فترة السماح" : "✓ تم تسجيل حضورك بنجاح!";
+        showAlert(message);
+        console.log("Check-in successful:", docId);
+      } catch (checkInError) {
+        console.error("Check-in DB Error:", checkInError);
+        showAlert(`خطأ في تسجيل الحضور: ${checkInError instanceof Error ? checkInError.message : "خطأ غير معروف"}`);
+        throw checkInError;
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "حدث خطأ غير متوقع";
-      Alert.alert("خطأ", `فشل العملية: ${message}`);
       console.error("Check-in error:", error);
+      showAlert(`فشل تسجيل الحضور: ${message}`);
     } finally {
       isProcessingRef.current = false;
       setIsCheckingIn(false);
+    }
+  };
+
+  const handleCheckOut = async () => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+    setIsCheckingOut(true);
+
+    try {
+      const docId = attendanceDocIdRef.current || attendanceStatus?.checkInRecord?.id;
+      if (!docId) {
+        showAlert("خطأ: لم نتمكن من العثور على سجل الحضور.");
+        console.error("Check-out failed: No attendance document ID found");
+        return;
+      }
+
+      try {
+        await recordCheckOut(docId);
+
+        setAttendanceStatus({
+          hasCheckedIn: true,
+          hasCheckedOut: true,
+          checkInRecord: attendanceStatus?.checkInRecord,
+        });
+
+        showAlert("✓ تم تسجيل انصرافك بنجاح!");
+        console.log("Check-out successful:", docId);
+      } catch (checkOutError) {
+        console.error("Check-out Error:", checkOutError);
+        showAlert(`خطأ في تسجيل الانصراف: ${checkOutError instanceof Error ? checkOutError.message : "خطأ غير معروف"}`);
+        throw checkOutError;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "حدث خطأ غير متوقع";
+      console.error("Check-out error:", error);
+      showAlert(`فشل تسجيل الانصراف: ${message}`);
+    } finally {
+      isProcessingRef.current = false;
+      setIsCheckingOut(false);
     }
   };
 
@@ -381,7 +426,8 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
 
   const hasCheckedOut = attendanceStatus?.hasCheckedOut ?? false;
   const shiftCompleted = hasCheckedIn && hasCheckedOut;
-  const buttonDisabled = isCheckingIn || shiftCompleted || !withinGeofence;
+  const isProcessing = isCheckingIn || isCheckingOut;
+  const buttonDisabled = isProcessing || shiftCompleted || !withinGeofence;
 
   // ============================================================================
   // Render
@@ -451,10 +497,10 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
                         hasCheckedIn ? styles.buttonCheckOut : styles.buttonCheckIn,
                         buttonDisabled && styles.buttonDisabled,
                       ]}
-                      onPress={handleCheckIn}
+                      onPress={hasCheckedIn ? handleCheckOut : handleCheckIn}
                       disabled={buttonDisabled}
                     >
-                      {isCheckingIn ? (
+                      {isProcessing ? (
                         <ActivityIndicator color="#fff" />
                       ) : (
                         <Text style={styles.buttonText}>{hasCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور"}</Text>
