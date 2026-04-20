@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, ScrollView, Platform } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import { signInAndBindDevice } from "./services/authService";
 import { User, RootStackParamList, FirebaseErrorType } from "./types";
 
@@ -40,25 +41,26 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     }
   };
 
+  const handlePasswordSubmit = () => {
+    handleLogin();
+  };
+
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
+    <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
       <View style={styles.container}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.appTitle}>تطبيق الحضور والغياب</Text>
-          <Text style={styles.appSubtitle}>نظام إدارة الموارد البشرية</Text>
-        </View>
+        {/* 3D Card Wrapper */}
+        <View style={styles.cardWrap}>
+          <View style={styles.card}>
+            {/* Title */}
+            <Text style={styles.title}>تسجيل الدخول</Text>
 
-        <View style={styles.formContainer}>
-          <View style={styles.formContent}>
-            <Text style={styles.formTitle}>تسجيل الدخول</Text>
-
-            {/* Email Input */}
+            {/* Email Input Group */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>البريد الإلكتروني</Text>
+              <Ionicons name="mail-outline" size={20} style={styles.icon} />
               <TextInput
-                style={[styles.input, !!error && !password ? styles.inputError : undefined]}
-                placeholder="أدخل بريدك الإلكتروني"
-                placeholderTextColor="#999"
+                style={styles.input}
+                placeholder="البريد الإلكتروني"
+                placeholderTextColor="#6b6b7b"
                 value={email}
                 onChangeText={(text) => {
                   setEmail(text);
@@ -72,13 +74,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               />
             </View>
 
-            {/* Password Input */}
+            {/* Password Input Group */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>كلمة المرور</Text>
+              <Ionicons name="lock-closed-outline" size={20} style={styles.icon} />
               <TextInput
-                style={[styles.input, !!error && password ? styles.inputError : undefined]}
-                placeholder="أدخل كلمة المرور"
-                placeholderTextColor="#999"
+                style={styles.input}
+                placeholder="كلمة المرور"
+                placeholderTextColor="#6b6b7b"
                 value={password}
                 onChangeText={(text) => {
                   setPassword(text);
@@ -86,6 +88,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 }}
                 secureTextEntry
                 editable={!loading}
+                onSubmitEditing={handlePasswordSubmit}
+                returnKeyType="done"
                 testID="password-input"
               />
             </View>
@@ -93,23 +97,37 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             {/* Error Message */}
             {error && (
               <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle" size={16} color="#ff6b6b" />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             )}
 
-            {/* Login Button */}
+            {/* Submit Button */}
             <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
+              style={[styles.btn, loading && styles.btnDisabled]}
               onPress={handleLogin}
               disabled={loading}
-              activeOpacity={0.8}
+              activeOpacity={0.9}
             >
-              {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.buttonText}>دخول</Text>}
+              {loading ? (
+                <ActivityIndicator color="#102770" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="arrow-forward" size={18} color="#102770" style={{ marginRight: 8 }} />
+                  <Text style={styles.btnText}>دخول</Text>
+                </>
+              )}
             </TouchableOpacity>
 
             {/* Info Text */}
-            <Text style={styles.infoText}>استخدم بيانات اعتمادك للدخول إلى النظام</Text>
+            <Text style={styles.infoText}>اضغط Enter أو اضغط الزر للدخول</Text>
           </View>
+        </View>
+
+        {/* Branding */}
+        <View style={styles.brandingContainer}>
+          <Text style={styles.brandTitle}>نظام الحضور والغياب</Text>
+          <Text style={styles.brandSubtitle}>إدارة موحدة للموارد البشرية</Text>
         </View>
       </View>
     </ScrollView>
@@ -120,108 +138,126 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
+    alignItems: "center",
   },
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
-    alignItems: "center",
+    backgroundColor: "#1f2029",
     justifyContent: "center",
-    padding: 20,
-  },
-  headerContainer: {
-    marginBottom: 40,
     alignItems: "center",
-  },
-  appTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#1976d2",
-    marginBottom: 8,
-  },
-  appSubtitle: {
-    fontSize: 14,
-    color: "#666",
-  },
-  formContainer: {
     width: "100%",
-    maxWidth: 380,
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    paddingHorizontal: 16,
+  },
+  cardWrap: {
+    width: "100%",
+    maxWidth: 440,
+    perspective: 1000,
+  },
+  card: {
+    backgroundColor: "#2a2b38",
+    borderRadius: 10,
+    padding: 35,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
-    overflow: "hidden",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    elevation: 20,
+    ...(Platform.OS === "web" && {
+      transform: [{ perspective: "1000px" }, { rotateX: "2deg" }],
+    }),
   },
-  formContent: {
-    padding: 28,
-  },
-  formTitle: {
-    fontSize: 20,
+  title: {
+    color: "#fff",
+    fontSize: 24,
     fontWeight: "700",
-    color: "#333",
-    marginBottom: 24,
     textAlign: "center",
+    marginBottom: 30,
+    letterSpacing: 0.5,
   },
   inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 10,
+    position: "relative",
+    marginBottom: 15,
   },
   input: {
-    borderWidth: 1.5,
-    borderColor: "#e0e0e0",
+    backgroundColor: "#1f2029",
+    color: "#c4c3ca",
+    padding: 15,
+    paddingLeft: 50,
     borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    fontSize: 15,
-    color: "#333",
-    backgroundColor: "#fafafa",
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: "#3a3b48",
+    outlineWidth: 0,
   },
-  inputError: {
-    borderColor: "#d32f2f",
-    backgroundColor: "#ffebee",
+  icon: {
+    position: "absolute",
+    left: 15,
+    top: 12,
+    color: "#ffeba7",
+    zIndex: 10,
   },
   errorContainer: {
-    backgroundColor: "#ffebee",
-    borderLeftWidth: 4,
-    borderLeftColor: "#d32f2f",
+    flexDirection: "row-reverse",
+    backgroundColor: "rgba(255, 107, 107, 0.1)",
+    borderRadius: 8,
     padding: 12,
-    borderRadius: 6,
     marginBottom: 20,
+    alignItems: "center",
+    gap: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: "#ff6b6b",
   },
   errorText: {
-    color: "#d32f2f",
-    fontSize: 14,
+    color: "#ff9999",
+    fontSize: 13,
     fontWeight: "500",
-    textAlign: "right",
+    flex: 1,
   },
-  button: {
-    backgroundColor: "#1976d2",
-    paddingVertical: 14,
+  btn: {
+    backgroundColor: "#ffeba7",
+    padding: 15,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 48,
-    marginBottom: 16,
+    marginTop: 25,
+    flexDirection: "row-reverse",
+    shadowColor: "#ffeba7",
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
   },
-  buttonDisabled: {
+  btnDisabled: {
     opacity: 0.7,
   },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
+  btnText: {
+    color: "#102770",
     fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    fontSize: 14,
   },
   infoText: {
+    color: "#8f8f9e",
     fontSize: 12,
-    color: "#999",
     textAlign: "center",
+    marginTop: 16,
+    fontStyle: "italic",
+  },
+  brandingContainer: {
+    marginTop: 60,
+    alignItems: "center",
+  },
+  brandTitle: {
+    color: "#ffeba7",
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
+  brandSubtitle: {
+    color: "#8f8f9e",
+    fontSize: 12,
+    marginTop: 6,
+    fontStyle: "italic",
   },
 });
 
