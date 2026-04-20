@@ -234,6 +234,15 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     }
   }, [companySettings]);
 
+  // Auto-refresh location every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshLocation();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [companySettings]);
+
   // ============================================================================
   // Check-In / Check-Out Handler
   // ============================================================================
@@ -401,58 +410,67 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
             <Text style={styles.errorText}>{locationError}</Text>
           ) : (
             <View style={styles.locationInfo}>
-              <Text style={styles.infoText}>
-                المسافة بينك وبين الشركة: {distance ? distance.toFixed(2) : "--"} متر
-              </Text>
-
-              <Text style={styles.radiusInfo}>
-                النطاق المسموح: {geofenceRadius} متر
-              </Text>
-
-              <TouchableOpacity style={styles.refreshButton} onPress={refreshLocation}>
-                <Text style={styles.refreshButtonText}>🔄 تحديث الموقع</Text>
-              </TouchableOpacity>
-
-              <Text style={[styles.statusBadge, withinGeofence ? styles.statusGood : styles.statusBad]}>
-                {withinGeofence ? "✓ أنت داخل نطاق العمل" : "✗ أنت خارج نطاق الشركة"}
-              </Text>
-
-              {!withinGeofence ? (
-                <View style={styles.warningContainer}>
-                  <Text style={styles.warningIcon}>📍</Text>
-                  <Text style={styles.warningTitle}>خارج النطاق الجغرافي</Text>
-                  <Text style={styles.warningText}>
-                    أنت على بعد {distance ? distance.toFixed(0) : "--"} متر من نطاق الشركة. لا يمكنك تسجيل الحضور في الوقت الحالي.
-                  </Text>
-                </View>
-              ) : (
+              {distance !== null ? (
                 <>
-                  {shiftCompleted ? (
-                    <View style={styles.completionMessageContainer}>
-                      <Text style={styles.completionMessage}>
-                        تم تسجيل الحضور والانصراف بنجاح. نراك غداً!
+                  <Text style={styles.infoText}>
+                    المسافة بينك وبين الشركة: {distance.toFixed(2)} متر
+                  </Text>
+
+                  <Text style={styles.radiusInfo}>
+                    النطاق المسموح: {geofenceRadius} متر
+                  </Text>
+
+                  <TouchableOpacity style={styles.secondaryButton} onPress={refreshLocation}>
+                    <Text style={styles.secondaryButtonText}>🔄 تحديث الموقع</Text>
+                  </TouchableOpacity>
+
+                  <Text style={[styles.statusBadge, withinGeofence ? styles.statusGood : styles.statusBad]}>
+                    {withinGeofence ? "✓ أنت داخل نطاق العمل" : "✗ أنت خارج نطاق الشركة"}
+                  </Text>
+
+                  {!withinGeofence ? (
+                    <View style={styles.warningContainer}>
+                      <Text style={styles.warningIcon}>📍</Text>
+                      <Text style={styles.warningTitle}>خارج النطاق الجغرافي</Text>
+                      <Text style={styles.warningText}>
+                        أنت على بعد {distance.toFixed(0)} متر من نطاق الشركة. لا يمكنك تسجيل الحضور في الوقت الحالي.
                       </Text>
                     </View>
                   ) : (
-                    <TouchableOpacity
-                      style={[
-                        styles.button,
-                        hasCheckedIn ? styles.buttonCheckOut : styles.buttonCheckIn,
-                        buttonDisabled && styles.buttonDisabled,
-                      ]}
-                      onPress={handleCheckIn}
-                      disabled={buttonDisabled}
-                    >
-                      {isCheckingIn ? (
-                        <ActivityIndicator color="#fff" />
+                    <>
+                      {shiftCompleted ? (
+                        <View style={styles.completionMessageContainer}>
+                          <Text style={styles.completionMessage}>
+                            تم تسجيل الحضور والانصراف بنجاح. نراك غداً!
+                          </Text>
+                        </View>
                       ) : (
-                        <Text style={styles.buttonText}>
-                          {hasCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور"}
-                        </Text>
+                        <TouchableOpacity
+                          style={[
+                            styles.button,
+                            hasCheckedIn ? styles.buttonCheckOut : styles.buttonCheckIn,
+                            buttonDisabled && styles.buttonDisabled,
+                          ]}
+                          onPress={handleCheckIn}
+                          disabled={buttonDisabled}
+                        >
+                          {isCheckingIn ? (
+                            <ActivityIndicator color="#fff" />
+                          ) : (
+                            <Text style={styles.buttonText}>
+                              {hasCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور"}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
                       )}
-                    </TouchableOpacity>
+                    </>
                   )}
                 </>
+              ) : (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#007bff" />
+                  <Text style={styles.statusText}>جاري تحديد موقعك...</Text>
+                </View>
               )}
             </View>
           )}
@@ -573,16 +591,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     fontStyle: "italic",
   },
-  refreshButton: {
+  secondaryButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
-    backgroundColor: "#007bff",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#007bff",
     marginBottom: 15,
     marginTop: 10,
   },
-  refreshButtonText: {
-    color: "#fff",
+  secondaryButtonText: {
+    color: "#007bff",
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
