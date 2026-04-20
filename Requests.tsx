@@ -20,9 +20,9 @@ import { submitLeaveRequest, getEmployeeRequests, LeaveRequest } from "./service
 import { getCurrentUserData } from "./services/authService";
 
 
-type RequestsProps = NativeStackScreenProps<RootStackParamList, "Requests">;
+type RequestsProps = NativeStackScreenProps<RootStackParamList, "Requests"> & { isFocused?: boolean };
 
-const Requests: React.FC<RequestsProps> = ({ navigation }) => {
+const Requests: React.FC<RequestsProps> = ({ navigation, isFocused = true }) => {
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);

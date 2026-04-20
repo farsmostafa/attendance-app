@@ -3,18 +3,20 @@ import { View, StyleSheet, ScrollView, ActivityIndicator, Text, Alert } from "re
 import { signOut } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { getCurrentUserData } from "../services/authService";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../types";
 import TopHeader from "./TopHeader";
 import EmployeeSidebar from "./EmployeeSidebar";
+import EmployeeDashboard from "../EmployeeDashboard";
+import AttendanceHistory from "../AttendanceHistory";
+import Requests from "../Requests";
 
-interface EmployeeLayoutProps {
-  navigation: any;
-  activeScreen: string;
-  children: React.ReactNode;
-}
+type EmployeeLayoutProps = NativeStackScreenProps<RootStackParamList, "EmployeeDashboard">;
 
-const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, activeScreen, children }) => {
+const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation }) => {
   const [currentUserName, setCurrentUserName] = useState("الموظف");
   const [loadingUser, setLoadingUser] = useState(true);
+  const [currentScreen, setCurrentScreen] = useState("Dashboard");
 
   useEffect(() => {
     const loadUser = async () => {
@@ -60,9 +62,11 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, activeScree
       <TopHeader userName={currentUserName} />
       <View style={styles.layoutContainer}>
         <ScrollView style={styles.mainContent} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
-          {children}
+          {currentScreen === "Dashboard" && <EmployeeDashboard navigation={navigation} isFocused={currentScreen === "Dashboard"} />}
+          {currentScreen === "AttendanceHistory" && <AttendanceHistory navigation={navigation} isFocused={currentScreen === "AttendanceHistory"} />}
+          {currentScreen === "Requests" && <Requests navigation={navigation} isFocused={currentScreen === "Requests"} />}
         </ScrollView>
-        <EmployeeSidebar currentScreen={activeScreen} onNavigate={(screen) => navigation.navigate(screen as any)} onLogout={handleLogout} />
+        <EmployeeSidebar currentScreen={currentScreen} onNavigate={(screen) => setCurrentScreen(screen)} onLogout={handleLogout} />
       </View>
     </View>
   );

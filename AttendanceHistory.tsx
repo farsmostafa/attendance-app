@@ -6,7 +6,7 @@ import { db } from "./firebaseConfig";
 import { getCurrentUserData } from "./services/authService";
 import { RootStackParamList } from "./types";
 
-type AttendanceHistoryProps = NativeStackScreenProps<RootStackParamList, "AttendanceHistory">;
+type AttendanceHistoryProps = NativeStackScreenProps<RootStackParamList, "AttendanceHistory"> & { isFocused?: boolean };
 
 interface AttendanceRecord {
   id: string;
@@ -27,7 +27,7 @@ interface MonthlyGroup {
   bonus: number;
 }
 
-const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation }) => {
+const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation, isFocused = true }) => {
   const [monthlyData, setMonthlyData] = useState<MonthlyGroup[]>([]);
   const [loading, setLoading] = useState(true);
 

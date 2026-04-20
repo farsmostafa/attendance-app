@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
@@ -10,7 +9,7 @@ import { checkTodayAttendance, recordCheckIn, AttendanceCheckResult } from "./se
 import { calculateDistance, isWithinGeofence, Coordinates } from "./utils/geo";
 import { RootStackParamList } from "./types";
 
-type EmployeeDashboardProps = NativeStackScreenProps<RootStackParamList, "EmployeeDashboard">;
+type EmployeeDashboardProps = NativeStackScreenProps<RootStackParamList, "EmployeeDashboard"> & { isFocused?: boolean };
 
 // Constants - Defaults for fallback scenarios
 const DEFAULT_COMPANY_LOCATION: Coordinates = {
@@ -29,7 +28,7 @@ interface CompanySettings {
   gracePeriodMinutes: number;
 }
 
-const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => {
+const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFocused = true }) => {
   // Location & Geofence State
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
@@ -165,12 +164,12 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
     initialize();
   }, []);
 
-  // Refresh attendance on screen focus
-  useFocusEffect(
-    React.useCallback(() => {
+  // Refresh attendance when screen comes into focus
+  useEffect(() => {
+    if (isFocused) {
       fetchAttendanceStatus();
-    }, []),
-  );
+    }
+  }, [isFocused]);
 
   // Recalculate distance when company settings load
   useEffect(() => {

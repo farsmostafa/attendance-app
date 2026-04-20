@@ -11,33 +11,10 @@ import { getCurrentUserData } from "./services/authService";
 
 import AdminDashboard from "./AdminDashboard";
 import LoginScreen from "./LoginScreen";
-import EmployeeDashboard from "./EmployeeDashboard";
-import AttendanceHistory from "./AttendanceHistory";
-import Requests from "./Requests";
-import EmployeeProfileAdminView from "./EmployeeProfileAdminView";
 import EmployeeLayout from "./components/EmployeeLayout";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import EmployeeProfileAdminView from "./EmployeeProfileAdminView";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-
-// Wrapper components to apply EmployeeLayout to each screen
-const DashboardWithLayout = (props: NativeStackScreenProps<RootStackParamList, "EmployeeDashboard">) => (
-  <EmployeeLayout navigation={props.navigation} activeScreen="Dashboard">
-    <EmployeeDashboard {...props} />
-  </EmployeeLayout>
-);
-
-const AttendanceHistoryWithLayout = (props: NativeStackScreenProps<RootStackParamList, "AttendanceHistory">) => (
-  <EmployeeLayout navigation={props.navigation} activeScreen="AttendanceHistory">
-    <AttendanceHistory {...props} />
-  </EmployeeLayout>
-);
-
-const RequestsWithLayout = (props: NativeStackScreenProps<RootStackParamList, "Requests">) => (
-  <EmployeeLayout navigation={props.navigation} activeScreen="Requests">
-    <Requests {...props} />
-  </EmployeeLayout>
-);
 
 // Employee Stack - for employee users
 function EmployeeStack() {
@@ -48,9 +25,11 @@ function EmployeeStack() {
         animationEnabled: false,
       }}
     >
-      <Stack.Screen name="EmployeeDashboard" component={DashboardWithLayout} options={{ title: "لوحة الموظف" }} />
-      <Stack.Screen name="AttendanceHistory" component={AttendanceHistoryWithLayout} options={{ title: "سجل الحضور" }} />
-      <Stack.Screen name="Requests" component={RequestsWithLayout} options={{ title: "الطلبات" }} />
+      <Stack.Screen 
+        name="EmployeeDashboard" 
+        component={EmployeeLayout} 
+        options={{ title: "لوحة الموظف" }} 
+      />
     </Stack.Navigator>
   );
 }
