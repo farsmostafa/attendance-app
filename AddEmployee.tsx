@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#e0e0e0",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
   },
   dropdownButton: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#e0e0e0",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
   },
   dropdownMenu: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#e0e0e0",
     borderTopWidth: 0,
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#e0e0e0",
     borderRadius: 8,
     alignItems: "center",
     backgroundColor: "#f9f9f9",
