@@ -15,6 +15,7 @@ interface EmployeeLayoutProps {
 const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, activeScreen, children }) => {
   const [currentUserName, setCurrentUserName] = useState("الموظف");
   const [loadingUser, setLoadingUser] = useState(true);
+  const [currentScreen, setCurrentScreen] = useState(activeScreen);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -46,7 +47,7 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, activeScree
   if (loadingUser) {
     return (
       <View style={styles.container}>
-        <TopHeader userName={currentUserName} navigation={navigation} />
+        <TopHeader userName={currentUserName} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007bff" />
           <Text style={styles.loadingText}>جاري التحميل...</Text>
@@ -57,12 +58,12 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, activeScree
 
   return (
     <View style={styles.container}>
-      <TopHeader userName={currentUserName} navigation={navigation} />
+      <TopHeader userName={currentUserName} />
       <View style={styles.layoutContainer}>
         <ScrollView style={styles.mainContent} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
           {children}
         </ScrollView>
-        <EmployeeSidebar currentScreen={activeScreen} onNavigate={(screen) => navigation.navigate(screen as any)} onLogout={handleLogout} />
+        <EmployeeSidebar currentScreen={currentScreen} onNavigate={(screen) => setCurrentScreen(screen)} onLogout={handleLogout} />
       </View>
     </View>
   );

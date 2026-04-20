@@ -1,54 +1,18 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { signOut as firebaseSignOut } from "firebase/auth";
-import { auth } from "../firebaseConfig";
-import { RootStackNavigationProp } from "../types";
 
 interface TopHeaderProps {
   userName?: string;
-  navigation: RootStackNavigationProp;
 }
 
 /**
  * TopHeader Component
  * Professional header displayed at the top of all screens
  * - Shows app name on left
- * - Shows user info and logout button on right
+ * - Shows user info on right
  */
-const TopHeader: React.FC<TopHeaderProps> = ({ userName = "المستخدم", navigation }) => {
-  const [loggingOut, setLoggingOut] = useState(false);
-
-  const handleLogout = async () => {
-    console.log("1. Logout button clicked - initiating signOut immediately");
-    setLoggingOut(true);
-
-    try {
-      console.log("2. About to call firebaseSignOut(auth)");
-      console.log("   auth object exists:", !!auth);
-      console.log("   auth uid:", auth?.currentUser?.uid);
-
-      // Call Firebase signOut directly - NO ALERT CONFIRMATION
-      await firebaseSignOut(auth);
-
-      console.log("3. Firebase signOut completed successfully");
-      console.log("   current user after logout:", auth?.currentUser);
-      console.log("4. Waiting for auth state listener in App.tsx to handle redirect...");
-    } catch (error: any) {
-      console.error("❌ LOGOUT ERROR - Caught in catch block:", error);
-      console.error("   Error type:", typeof error);
-      console.error("   Error code:", error?.code);
-      console.error("   Error message:", error?.message);
-      console.error("   Full error:", JSON.stringify(error));
-
-      setLoggingOut(false);
-
-      // Show error alert with full details
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      alert("Logout Failed: " + errorMsg);
-    }
-  };
-
+const TopHeader: React.FC<TopHeaderProps> = ({ userName = "المستخدم" }) => {
   return (
     <View style={styles.container}>
       {/* Left Section - App Name */}
@@ -57,23 +21,11 @@ const TopHeader: React.FC<TopHeaderProps> = ({ userName = "المستخدم", na
         <Text style={styles.appName}>Employees Pro</Text>
       </View>
 
-      {/* Right Section - User Info and Logout */}
       <View style={styles.rightSection}>
         <View style={styles.userInfo}>
           <Ionicons name="person-circle" size={28} color="#007bff" />
           <Text style={styles.userName}>{userName}</Text>
         </View>
-
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} disabled={loggingOut} activeOpacity={0.7}>
-          {loggingOut ? (
-            <ActivityIndicator size="small" color="#dc3545" />
-          ) : (
-            <>
-              <Ionicons name="log-out" size={18} color="#dc3545" />
-              <Text style={styles.logoutText}>خروج</Text>
-            </>
-          )}
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -120,22 +72,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#333",
     maxWidth: 120,
-  },
-  logoutButton: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    backgroundColor: "#ffe0e0",
-    borderWidth: 1,
-    borderColor: "#ffcccc",
-  },
-  logoutText: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#dc3545",
   },
 });
 
