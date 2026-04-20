@@ -94,36 +94,42 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       const companyDoc = await getDoc(doc(db, "companies", "MainCompany"));
       if (companyDoc.exists()) {
         const data = companyDoc.data();
-        setCompanySettings({
+        const settings = {
           latitude: data.latitude || DEFAULT_COMPANY_LOCATION.latitude,
           longitude: data.longitude || DEFAULT_COMPANY_LOCATION.longitude,
           workStartTime: data.workStartTime || "09:00",
           workEndTime: data.workEndTime || "17:00",
           gracePeriodMinutes: data.gracePeriodMinutes || DEFAULT_GRACE_PERIOD_MINUTES,
           geofenceRadiusMeters: data.geofenceRadiusMeters || DEFAULT_GEOFENCE_RADIUS_METERS,
-        });
+        };
+        setCompanySettings(settings);
+        console.log("🔵 [DB] Company Settings Fetched:", settings);
       } else {
         // Set defaults if document doesn't exist
-        setCompanySettings({
+        const defaultSettings = {
           latitude: DEFAULT_COMPANY_LOCATION.latitude,
           longitude: DEFAULT_COMPANY_LOCATION.longitude,
           workStartTime: "09:00",
           workEndTime: "17:00",
           gracePeriodMinutes: DEFAULT_GRACE_PERIOD_MINUTES,
           geofenceRadiusMeters: DEFAULT_GEOFENCE_RADIUS_METERS,
-        });
+        };
+        setCompanySettings(defaultSettings);
+        console.log("🔵 [DB] Company Settings NOT FOUND. Using Defaults:", defaultSettings);
       }
     } catch (error) {
       console.error("Error fetching company settings:", error);
       // Set defaults on error
-      setCompanySettings({
+      const defaultSettings = {
         latitude: DEFAULT_COMPANY_LOCATION.latitude,
         longitude: DEFAULT_COMPANY_LOCATION.longitude,
         workStartTime: "09:00",
         workEndTime: "17:00",
         gracePeriodMinutes: DEFAULT_GRACE_PERIOD_MINUTES,
         geofenceRadiusMeters: DEFAULT_GEOFENCE_RADIUS_METERS,
-      });
+      };
+      setCompanySettings(defaultSettings);
+      console.log("🔵 [DB] Error fetching settings. Using Defaults:", defaultSettings);
     } finally {
       setSettingsLoading(false);
     }
@@ -141,11 +147,19 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
+        console.log("🟣 [GPS] Permission DENIED");
         setLocationError("تم رفض صلاحية الوصول للموقع. لا يمكنك تسجيل الحضور.");
         return;
       }
 
       const currentLocation = await Location.getCurrentPositionAsync({});
+      console.log(
+        "🟣 [GPS] Raw Location Received. Accuracy:",
+        currentLocation.coords.accuracy,
+        "Lat/Lng:",
+        currentLocation.coords.latitude,
+        currentLocation.coords.longitude,
+      );
       setUserLocation(currentLocation);
       setLocationError(null);
 
@@ -164,9 +178,18 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
         },
         companyCoords,
       );
+      console.log(
+        "🟢 [CALC] Calculating Distance. Using User Loc:",
+        { lat: currentLocation.coords.latitude, lng: currentLocation.coords.longitude },
+        "And Company Loc:",
+        companyCoords,
+        "=> Result:",
+        dist,
+      );
       setDistance(dist);
     } catch (error) {
       console.error("Location error:", error);
+      console.log("🟣 [GPS] Error:", error);
       setLocationError("حدث خطأ أثناء جلب موقعك الحالي.");
     }
   };
@@ -193,6 +216,13 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
 
   // Initialize on mount - RESET all stale data
   useEffect(() => {
+    console.log("🟡 [INIT] Component Mounted. Initial States:", {
+      distance,
+      userLocation: userLocation
+        ? { lat: userLocation.coords.latitude, lng: userLocation.coords.longitude, accuracy: userLocation.coords.accuracy }
+        : null,
+      companySettings,
+    });
     // Explicit reset on mount to clear any stale data from previous sessions
     setUserLocation(null);
     setDistance(null);
@@ -218,6 +248,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
   useEffect(() => {
     if (userLocation && companySettings) {
       const accuracy = userLocation.coords.accuracy;
+      console.log("🟢 [CALC] Distance Sync Triggered. Accuracy:", accuracy, "Threshold: 100m");
       // Only calculate and show distance if GPS accuracy is high (< 100m)
       if (accuracy < 100) {
         const dist = calculateDistance(
@@ -227,7 +258,10 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
           },
           { latitude: companySettings.latitude, longitude: companySettings.longitude },
         );
+        console.log("🟢 [CALC] Distance UPDATED (Accuracy OK):", dist, "meters");
         setDistance(dist);
+      } else {
+        console.log("🟡 [CALC] Distance NOT updated (Accuracy > 100m). Waiting for better signal...");
       }
     }
   }, [userLocation, companySettings]);
@@ -238,9 +272,17 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       try {
         setLocationError(null);
         const currentLocation = await Location.getCurrentPositionAsync({});
+        console.log(
+          "🟣 [GPS] Auto-Refresh Location. Accuracy:",
+          currentLocation.coords.accuracy,
+          "Lat/Lng:",
+          currentLocation.coords.latitude,
+          currentLocation.coords.longitude,
+        );
         setUserLocation(currentLocation);
       } catch (error) {
         console.error("Auto-refresh location error:", error);
+        console.log("🟣 [GPS] Auto-Refresh Error:", error);
         setLocationError("حدث خطأ أثناء تحديث الموقع.");
       }
     };
@@ -253,7 +295,10 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       refresh();
     }, 5000);
 
-    return () => clearInterval(interval);
+    return () => {
+      console.log("🔴 [CLEANUP] Clearing 5-second auto-refresh interval.");
+      clearInterval(interval);
+    };
   }, []);
 
   // ============================================================================
