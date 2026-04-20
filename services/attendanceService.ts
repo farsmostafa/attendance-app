@@ -3,19 +3,7 @@
  * Handles check-in/check-out and attendance queries
  */
 
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-  getDocs,
-  addDoc,
-  serverTimestamp,
-  updateDoc,
-  doc,
-  Timestamp,
-} from "firebase/firestore";
+import { collection, query, where, orderBy, limit, getDocs, addDoc, serverTimestamp, updateDoc, doc, Timestamp } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { Coordinates } from "../utils/geo";
 
@@ -32,6 +20,7 @@ export interface CheckInRecord {
   check_in: Timestamp;
   check_out?: Timestamp;
   isLate: boolean;
+  status: "on-time" | "late";
   location: Coordinates;
   workDuration?: number;
 }
@@ -42,6 +31,7 @@ export interface CheckInPayload {
   companyId: string;
   date: string;
   isLate: boolean;
+  status: "on-time" | "late";
   location: Coordinates;
 }
 
@@ -53,10 +43,7 @@ export interface CheckInPayload {
  * @param todayDate - Date in YYYY-MM-DD format
  * @returns Attendance status and record details
  */
-export const checkTodayAttendance = async (
-  userId: string,
-  todayDate: string,
-): Promise<AttendanceCheckResult> => {
+export const checkTodayAttendance = async (userId: string, todayDate: string): Promise<AttendanceCheckResult> => {
   try {
     const attendanceQuery = query(
       collection(db, "attendance"),
@@ -85,6 +72,7 @@ export const checkTodayAttendance = async (
       check_in: recordData.check_in,
       check_out: recordData.check_out,
       isLate: recordData.isLate,
+      status: recordData.status || (recordData.isLate ? "late" : "on-time"),
       location: recordData.location,
       workDuration: recordData.workDuration,
     };
@@ -116,6 +104,7 @@ export const recordCheckIn = async (payload: CheckInPayload): Promise<string> =>
       date: payload.date,
       check_in: serverTimestamp(),
       isLate: payload.isLate,
+      status: payload.status,
       location: {
         latitude: payload.location.latitude,
         longitude: payload.location.longitude,
@@ -144,9 +133,7 @@ export const recordCheckOut = async (attendanceDocId: string): Promise<void> => 
     const attendanceDocRef = doc(db, "attendance", attendanceDocId);
 
     // Get current record to calculate work duration
-    const attendanceSnap = await getDocs(
-      query(collection(db, "attendance"), where("__name__", "==", attendanceDocId)),
-    );
+    const attendanceSnap = await getDocs(query(collection(db, "attendance"), where("__name__", "==", attendanceDocId)));
 
     if (!attendanceSnap.empty) {
       const recordData = attendanceSnap.docs[0].data();

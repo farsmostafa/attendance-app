@@ -310,6 +310,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
 
         const gracePeriodMinutes = companySettings?.gracePeriodMinutes || DEFAULT_GRACE_PERIOD_MINUTES;
         const isLate = currentTimeInMinutes > workStartTimeInMinutes + gracePeriodMinutes;
+        const status = isLate ? "late" : "on-time";
 
         const todayDate = now.toISOString().split("T")[0];
 
@@ -319,6 +320,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
           companyId,
           date: todayDate,
           isLate,
+          status,
           location: {
             latitude: userLocation.coords.latitude,
             longitude: userLocation.coords.longitude,
@@ -337,6 +339,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
             date: todayDate,
             check_in: {} as any,
             isLate,
+            status,
             location: {
               latitude: userLocation.coords.latitude,
               longitude: userLocation.coords.longitude,
