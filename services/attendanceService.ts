@@ -16,6 +16,7 @@ export interface AttendanceCheckResult {
 export interface CheckInRecord {
   id: string;
   userId: string;
+  userName?: string;
   date: string;
   check_in: Timestamp;
   check_out?: Timestamp;
@@ -150,6 +151,42 @@ export const recordCheckOut = async (attendanceDocId: string): Promise<void> => 
     }
   } catch (error) {
     console.error("Error recording check-out:", error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch all attendance records for admin dashboard
+ * Returns records ordered by date and check_in time (descending)
+ *
+ * @returns Array of attendance records
+ */
+export const fetchAllAttendanceRecords = async (): Promise<CheckInRecord[]> => {
+  try {
+    const attendanceQuery = query(collection(db, "attendance"), orderBy("date", "desc"), orderBy("check_in", "desc"));
+
+    const querySnapshot = await getDocs(attendanceQuery);
+    const records: CheckInRecord[] = [];
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      records.push({
+        id: doc.id,
+        userId: data.userId,
+        userName: data.userName,
+        date: data.date,
+        check_in: data.check_in,
+        check_out: data.check_out,
+        isLate: data.isLate,
+        status: data.status || (data.isLate ? "late" : "on-time"),
+        location: data.location,
+        workDuration: data.workDuration,
+      });
+    });
+
+    return records;
+  } catch (error) {
+    console.error("Error fetching all attendance records:", error);
     throw error;
   }
 };
