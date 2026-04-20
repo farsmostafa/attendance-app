@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
@@ -378,14 +377,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
   const isLoading = settingsLoading || attendanceLoading;
   const hasCheckedIn = attendanceStatus?.hasCheckedIn ?? false;
 
-  if (userLocation === null && !locationError) {
-    return (
-      <View style={styles.centeredLoadingContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text style={styles.loadingText}>جاري تحديد موقعك...</Text>
-      </View>
-    );
-  }
   const hasCheckedOut = attendanceStatus?.hasCheckedOut ?? false;
   const shiftCompleted = hasCheckedIn && hasCheckedOut;
   const buttonDisabled = isCheckingIn || shiftCompleted || !withinGeofence;
@@ -409,71 +400,58 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
         <View style={styles.card}>
           <Text style={styles.cardTitle}>نظام الحضور والانصراف</Text>
 
-          {!userLocation && !locationError ? (
-            <View style={styles.loadingContainer}>
+          {locationError ? (
+            <Text style={styles.errorText}>{locationError}</Text>
+          ) : distance === null ? (
+            <View style={styles.cardLoadingContainer}>
               <ActivityIndicator size="large" color="#0000ff" />
               <Text style={styles.statusText}>جاري تحديد موقعك بدقة...</Text>
             </View>
-          ) : locationError ? (
-            <Text style={styles.errorText}>{locationError}</Text>
           ) : (
             <View style={styles.locationInfo}>
-              {distance !== null ? (
-                <>
-                  <View style={styles.distanceRow}>
-                    <Text style={styles.infoText}>المسافة بينك وبين الشركة: {distance.toFixed(2)} متر</Text>
-                    <TouchableOpacity style={styles.refreshIconButton} onPress={refreshLocation}>
-                      <Ionicons name="refresh" size={18} color="#007bff" />
-                    </TouchableOpacity>
-                  </View>
+              <Text style={styles.infoText}>المسافة بينك وبين الشركة: {distance.toFixed(2)} متر</Text>
 
-                  <Text style={styles.radiusInfo}>النطاق المسموح: {geofenceRadius} متر</Text>
+              <Text style={styles.radiusInfo}>النطاق المسموح: {geofenceRadius} متر</Text>
 
-                  <Text style={[styles.statusBadge, withinGeofence ? styles.statusGood : styles.statusBad]}>
-                    {withinGeofence ? "✓ أنت داخل نطاق العمل" : "✗ أنت خارج نطاق الشركة"}
+              <Text style={[styles.statusBadge, withinGeofence ? styles.statusGood : styles.statusBad]}>
+                {withinGeofence ? "✓ أنت داخل نطاق العمل" : "✗ أنت خارج نطاق الشركة"}
+              </Text>
+
+              {!withinGeofence ? (
+                <View style={styles.warningContainer}>
+                  <Text style={styles.warningIcon}>📍</Text>
+                  <Text style={styles.warningTitle}>خارج النطاق الجغرافي</Text>
+                  <Text style={styles.warningText}>
+                    أنت على بعد {distance.toFixed(0)} متر من نطاق الشركة. لا يمكنك تسجيل الحضور في الوقت الحالي.
                   </Text>
-
-                  {!withinGeofence ? (
-                    <View style={styles.warningContainer}>
-                      <Text style={styles.warningIcon}>📍</Text>
-                      <Text style={styles.warningTitle}>خارج النطاق الجغرافي</Text>
-                      <Text style={styles.warningText}>
-                        أنت على بعد {distance.toFixed(0)} متر من نطاق الشركة. لا يمكنك تسجيل الحضور في الوقت الحالي.
-                      </Text>
+                </View>
+              ) : (
+                <>
+                  {shiftCompleted ? (
+                    <View style={styles.completionMessageContainer}>
+                      <Text style={styles.completionMessage}>تم تسجيل الحضور والانصراف بنجاح. نراك غداً!</Text>
                     </View>
                   ) : (
-                    <>
-                      {shiftCompleted ? (
-                        <View style={styles.completionMessageContainer}>
-                          <Text style={styles.completionMessage}>تم تسجيل الحضور والانصراف بنجاح. نراك غداً!</Text>
-                        </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.button,
+                        hasCheckedIn ? styles.buttonCheckOut : styles.buttonCheckIn,
+                        buttonDisabled && styles.buttonDisabled,
+                      ]}
+                      onPress={handleCheckIn}
+                      disabled={buttonDisabled}
+                    >
+                      {isCheckingIn ? (
+                        <ActivityIndicator color="#fff" />
                       ) : (
-                        <TouchableOpacity
-                          style={[
-                            styles.button,
-                            hasCheckedIn ? styles.buttonCheckOut : styles.buttonCheckIn,
-                            buttonDisabled && styles.buttonDisabled,
-                          ]}
-                          onPress={handleCheckIn}
-                          disabled={buttonDisabled}
-                        >
-                          {isCheckingIn ? (
-                            <ActivityIndicator color="#fff" />
-                          ) : (
-                            <Text style={styles.buttonText}>{hasCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور"}</Text>
-                          )}
-                        </TouchableOpacity>
+                        <Text style={styles.buttonText}>{hasCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور"}</Text>
                       )}
-                    </>
+                    </TouchableOpacity>
                   )}
                 </>
-              ) : (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color="#007bff" />
-                  <Text style={styles.statusText}>جاري تحديد موقعك...</Text>
-                </View>
               )}
             </View>
+          )}
           )}
         </View>
       )}
@@ -505,6 +483,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: 20,
     borderRadius: 10,
+    minHeight: 320,
     elevation: 3,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -528,14 +507,7 @@ const styles = StyleSheet.create({
   statusGood: { backgroundColor: "#28a745" },
   statusBad: { backgroundColor: "#dc3545" },
   distanceRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
     marginBottom: 10,
-  },
-  refreshIconButton: {
-    padding: 8,
-    marginLeft: 10,
   },
   button: {
     paddingVertical: 15,
@@ -602,6 +574,12 @@ const styles = StyleSheet.create({
     color: "#c82333",
     textAlign: "center",
     lineHeight: 20,
+  },
+  cardLoadingContainer: {
+    minHeight: 180,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 20,
   },
   radiusInfo: {
     fontSize: 14,
