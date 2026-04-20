@@ -26,6 +26,7 @@ interface CompanySettings {
   workStartTime: string;
   workEndTime: string;
   gracePeriodMinutes: number;
+  geofenceRadiusMeters: number;
 }
 
 const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFocused = true }) => {
@@ -86,7 +87,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
 
   /**
    * Fetch company settings from Firestore
-   * Retrieves geofence coordinates, work times, and grace period
+   * Retrieves geofence coordinates, work times, grace period, and radius
    */
   const fetchCompanySettings = async () => {
     setSettingsLoading(true);
@@ -95,16 +96,35 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       if (companyDoc.exists()) {
         const data = companyDoc.data();
         setCompanySettings({
-          latitude: data.latitude,
-          longitude: data.longitude,
+          latitude: data.latitude || DEFAULT_COMPANY_LOCATION.latitude,
+          longitude: data.longitude || DEFAULT_COMPANY_LOCATION.longitude,
           workStartTime: data.workStartTime || "09:00",
           workEndTime: data.workEndTime || "17:00",
           gracePeriodMinutes: data.gracePeriodMinutes || DEFAULT_GRACE_PERIOD_MINUTES,
+          geofenceRadiusMeters: data.geofenceRadiusMeters || DEFAULT_GEOFENCE_RADIUS_METERS,
+        });
+      } else {
+        // Set defaults if document doesn't exist
+        setCompanySettings({
+          latitude: DEFAULT_COMPANY_LOCATION.latitude,
+          longitude: DEFAULT_COMPANY_LOCATION.longitude,
+          workStartTime: "09:00",
+          workEndTime: "17:00",
+          gracePeriodMinutes: DEFAULT_GRACE_PERIOD_MINUTES,
+          geofenceRadiusMeters: DEFAULT_GEOFENCE_RADIUS_METERS,
         });
       }
     } catch (error) {
       console.error("Error fetching company settings:", error);
-      setCompanySettings(null);
+      // Set defaults on error
+      setCompanySettings({
+        latitude: DEFAULT_COMPANY_LOCATION.latitude,
+        longitude: DEFAULT_COMPANY_LOCATION.longitude,
+        workStartTime: "09:00",
+        workEndTime: "17:00",
+        gracePeriodMinutes: DEFAULT_GRACE_PERIOD_MINUTES,
+        geofenceRadiusMeters: DEFAULT_GEOFENCE_RADIUS_METERS,
+      });
     } finally {
       setSettingsLoading(false);
     }
@@ -146,6 +166,35 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     } catch (error) {
       console.error("Location error:", error);
       setLocationError("حدث خطأ أثناء جلب موقعك الحالي.");
+    }
+  };
+
+  /**
+   * Refresh location and recalculate distance
+   * Called when user presses the refresh button
+   */
+  const refreshLocation = async () => {
+    try {
+      setLocationError(null);
+      const currentLocation = await Location.getCurrentPositionAsync({});
+      setLocation(currentLocation);
+
+      // Calculate distance to company
+      const companyCoords = companySettings
+        ? { latitude: companySettings.latitude, longitude: companySettings.longitude }
+        : DEFAULT_COMPANY_LOCATION;
+
+      const dist = calculateDistance(
+        {
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude,
+        },
+        companyCoords,
+      );
+      setDistance(dist);
+    } catch (error) {
+      console.error("Refresh location error:", error);
+      setLocationError("حدث خطأ أثناء تحديث الموقع.");
     }
   };
 
@@ -220,6 +269,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       }
 
       // 4. Validate geofence
+      const geofenceRadius = companySettings?.geofenceRadiusMeters || DEFAULT_GEOFENCE_RADIUS_METERS;
       const isInGeofence = isWithinGeofence(
         {
           latitude: location.coords.latitude,
@@ -229,7 +279,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
           latitude: companySettings?.latitude || DEFAULT_COMPANY_LOCATION.latitude,
           longitude: companySettings?.longitude || DEFAULT_COMPANY_LOCATION.longitude,
         },
-        DEFAULT_GEOFENCE_RADIUS_METERS,
+        geofenceRadius,
       );
 
       if (!isInGeofence) {
@@ -312,25 +362,16 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
   // Computed UI Values
   // ============================================================================
 
-  const geofenceRadius = DEFAULT_GEOFENCE_RADIUS_METERS;
+  const geofenceRadius = companySettings?.geofenceRadiusMeters || DEFAULT_GEOFENCE_RADIUS_METERS;
   const withinGeofence =
     distance !== null &&
-    isWithinGeofence(
-      {
-        latitude: location?.coords.latitude || 0,
-        longitude: location?.coords.longitude || 0,
-      },
-      {
-        latitude: companySettings?.latitude || DEFAULT_COMPANY_LOCATION.latitude,
-        longitude: companySettings?.longitude || DEFAULT_COMPANY_LOCATION.longitude,
-      },
-      geofenceRadius,
-    );
+    distance <= geofenceRadius;
 
   const isLoading = settingsLoading || attendanceLoading;
   const hasCheckedIn = attendanceStatus?.hasCheckedIn ?? false;
   const hasCheckedOut = attendanceStatus?.hasCheckedOut ?? false;
   const shiftCompleted = hasCheckedIn && hasCheckedOut;
+  const buttonDisabled = isCheckingIn || shiftCompleted || !withinGeofence;
 
   // ============================================================================
   // Render
@@ -364,8 +405,16 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
                 المسافة بينك وبين الشركة: {distance ? distance.toFixed(2) : "--"} متر
               </Text>
 
+              <Text style={styles.radiusInfo}>
+                النطاق المسموح: {geofenceRadius} متر
+              </Text>
+
+              <TouchableOpacity style={styles.refreshButton} onPress={refreshLocation}>
+                <Text style={styles.refreshButtonText}>🔄 تحديث الموقع</Text>
+              </TouchableOpacity>
+
               <Text style={[styles.statusBadge, withinGeofence ? styles.statusGood : styles.statusBad]}>
-                {withinGeofence ? "أنت داخل نطاق العمل" : "أنت خارج نطاق الشركة"}
+                {withinGeofence ? "✓ أنت داخل نطاق العمل" : "✗ أنت خارج نطاق الشركة"}
               </Text>
 
               {!withinGeofence ? (
@@ -373,7 +422,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
                   <Text style={styles.warningIcon}>📍</Text>
                   <Text style={styles.warningTitle}>خارج النطاق الجغرافي</Text>
                   <Text style={styles.warningText}>
-                    أنت خارج منطقة الشركة. لا يمكنك تسجيل الحضور في الوقت الحالي.
+                    أنت على بعد {distance ? distance.toFixed(0) : "--"} متر من نطاق الشركة. لا يمكنك تسجيل الحضور في الوقت الحالي.
                   </Text>
                 </View>
               ) : (
@@ -389,10 +438,10 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
                       style={[
                         styles.button,
                         hasCheckedIn ? styles.buttonCheckOut : styles.buttonCheckIn,
-                        (isCheckingIn || shiftCompleted) && styles.buttonDisabled,
+                        buttonDisabled && styles.buttonDisabled,
                       ]}
                       onPress={handleCheckIn}
-                      disabled={isCheckingIn || shiftCompleted}
+                      disabled={buttonDisabled}
                     >
                       {isCheckingIn ? (
                         <ActivityIndicator color="#fff" />
@@ -517,6 +566,26 @@ const styles = StyleSheet.create({
     color: "#c82333",
     textAlign: "center",
     lineHeight: 20,
+  },
+  radiusInfo: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 10,
+    fontStyle: "italic",
+  },
+  refreshButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: "#007bff",
+    marginBottom: 15,
+    marginTop: 10,
+  },
+  refreshButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });
 
