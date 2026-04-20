@@ -12,6 +12,7 @@ interface SidebarItem {
 interface AdminSidebarProps {
   currentScreen: string;
   onNavigate: (screen: string) => void;
+  onLogout: () => void;
 }
 
 const SIDEBAR_ITEMS: SidebarItem[] = [
@@ -59,7 +60,7 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   },
 ];
 
-const AdminSidebar: React.FC<AdminSidebarProps> = ({ currentScreen, onNavigate }) => {
+const AdminSidebar: React.FC<AdminSidebarProps> = ({ currentScreen, onNavigate, onLogout }) => {
   return (
     <View style={styles.sidebar}>
       {/* Sidebar Header */}
@@ -92,10 +93,12 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ currentScreen, onNavigate }
         })}
       </ScrollView>
 
-      {/* Sidebar Footer - Optional branding */}
-      <View style={styles.sidebarFooter}>
-        <Text style={styles.footerText}>نظام إدارة الحضور</Text>
-        <Text style={styles.footerVersion}>v1.0</Text>
+      {/* Sidebar Footer - Logout */}
+      <View style={styles.footerContainer}>
+        <TouchableOpacity style={styles.logoutButton} onPress={onLogout} activeOpacity={0.7}>
+          <Ionicons name="log-out-outline" size={20} color="#dc3545" />
+          <Text style={styles.logoutText}>تسجيل الخروج</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -176,23 +179,27 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     marginLeft: 8,
   },
-  sidebarFooter: {
+  footerContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
+    borderTopColor: "#e5e7eb",
+  },
+  logoutButton: {
+    flexDirection: "row-reverse",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 14,
     backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#ffe5e5",
   },
-  footerText: {
-    fontSize: 12,
-    color: "#666",
-    fontWeight: "500",
-    marginBottom: 4,
-  },
-  footerVersion: {
-    fontSize: 10,
-    color: "#999",
+  logoutText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#dc3545",
   },
 });
 

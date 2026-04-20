@@ -13,9 +13,18 @@ export interface AdminLayoutProps {
   showLoading?: boolean;
   userName?: string;
   navigation?: RootStackNavigationProp;
+  onLogout?: () => void;
 }
 
-const AdminLayout: React.FC<AdminLayoutProps> = ({ currentScreen, onNavigate, children, showLoading = false, userName, navigation }) => {
+const AdminLayout: React.FC<AdminLayoutProps> = ({
+  currentScreen,
+  onNavigate,
+  children,
+  showLoading = false,
+  userName,
+  navigation,
+  onLogout,
+}) => {
   const [currentUserName, setCurrentUserName] = useState<string>(userName || "مسؤول");
 
   useEffect(() => {
@@ -59,7 +68,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ currentScreen, onNavigate, ch
         </ScrollView>
 
         {/* Persistent Sidebar */}
-        <AdminSidebar currentScreen={currentScreen} onNavigate={onNavigate} />
+        <AdminSidebar currentScreen={currentScreen} onNavigate={onNavigate} onLogout={onLogout || (() => {})} />
       </View>
     </View>
   );

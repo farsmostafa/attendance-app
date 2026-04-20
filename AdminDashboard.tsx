@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import { signOut } from "firebase/auth";
+import { auth } from "./firebaseConfig";
 import { db } from "./firebaseConfig";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { getCurrentUserData } from "./services/authService";
@@ -81,6 +83,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
     setActiveScreen(screen);
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Login" }],
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
   if (loading) {
     return (
       <AdminLayout
@@ -89,6 +103,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
         showLoading={true}
         userName={currentUser?.name}
         navigation={navigation}
+        onLogout={handleLogout}
       >
         <View />
       </AdminLayout>
@@ -103,6 +118,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
         showLoading={false}
         userName={currentUser?.name}
         navigation={navigation}
+        onLogout={handleLogout}
       >
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={48} color="#dc3545" />
@@ -141,6 +157,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
       showLoading={false}
       userName={currentUser?.name}
       navigation={navigation}
+      onLogout={handleLogout}
     >
       {renderContent()}
     </AdminLayout>
