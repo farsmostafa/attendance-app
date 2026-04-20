@@ -195,12 +195,17 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation }) => 
   }
 
   return (
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>سجل الحضور والانصراف</Text>
+        <Text style={styles.subtitle}>تقرير شامل للحضور والانصراف</Text>
+      </View>
 
-        {monthlyData.map((monthData) => renderMonthlyStats(monthData))}
+      {monthlyData.map((monthData) => renderMonthlyStats(monthData))}
 
-        <View style={styles.footerSpacer} />
-      </ScrollView>
-    );
+      <View style={styles.footerSpacer} />
+    </ScrollView>
+  );
 };
 
 const styles = StyleSheet.create({
