@@ -32,7 +32,7 @@ interface CompanySettings {
 
 const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFocused = true }) => {
   // Location & Geofence State
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [userLocation, setUserLocation] = useState<any>(null);
   const [distance, setDistance] = useState<number | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -147,7 +147,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       }
 
       const currentLocation = await Location.getCurrentPositionAsync({});
-      setLocation(currentLocation);
+      setUserLocation(currentLocation);
       setLocationError(null);
 
       // Calculate distance to company
@@ -177,7 +177,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     try {
       setLocationError(null);
       const currentLocation = await Location.getCurrentPositionAsync({});
-      setLocation(currentLocation);
+      setUserLocation(currentLocation);
 
       // Calculate distance to company
       const companyCoords = companySettings
@@ -221,11 +221,11 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
 
   // Recalculate distance when company settings load
   useEffect(() => {
-    if (companySettings && location) {
+    if (companySettings && userLocation) {
       const dist = calculateDistance(
         {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
+          latitude: userLocation.coords.latitude,
+          longitude: userLocation.coords.longitude,
         },
         { latitude: companySettings.latitude, longitude: companySettings.longitude },
       );
@@ -275,7 +275,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       }
 
       // 3. Validate location
-      if (!location) {
+      if (!userLocation) {
         Alert.alert("خطأ", "لم نتمكن من الحصول على موقعك الحالي.");
         return;
       }
@@ -284,8 +284,8 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       const geofenceRadius = companySettings?.geofenceRadiusMeters || DEFAULT_GEOFENCE_RADIUS_METERS;
       const isInGeofence = isWithinGeofence(
         {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
+          latitude: userLocation.coords.latitude,
+          longitude: userLocation.coords.longitude,
         },
         {
           latitude: companySettings?.latitude || DEFAULT_COMPANY_LOCATION.latitude,
@@ -322,8 +322,8 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
           date: todayDate,
           isLate,
           location: {
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
+            latitude: userLocation.coords.latitude,
+            longitude: userLocation.coords.longitude,
           },
         };
 
@@ -340,8 +340,8 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
             check_in: {} as any,
             isLate,
             location: {
-              latitude: location.coords.latitude,
-              longitude: location.coords.longitude,
+              latitude: userLocation.coords.latitude,
+              longitude: userLocation.coords.longitude,
             },
           },
         });
@@ -377,6 +377,15 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
 
   const isLoading = settingsLoading || attendanceLoading;
   const hasCheckedIn = attendanceStatus?.hasCheckedIn ?? false;
+
+  if (userLocation === null && !locationError) {
+    return (
+      <View style={styles.centeredLoadingContainer}>
+        <ActivityIndicator size="large" color="#007bff" />
+        <Text style={styles.loadingText}>جاري تحديد موقعك...</Text>
+      </View>
+    );
+  }
   const hasCheckedOut = attendanceStatus?.hasCheckedOut ?? false;
   const shiftCompleted = hasCheckedIn && hasCheckedOut;
   const buttonDisabled = isCheckingIn || shiftCompleted || !withinGeofence;
@@ -400,7 +409,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
         <View style={styles.card}>
           <Text style={styles.cardTitle}>نظام الحضور والانصراف</Text>
 
-          {!location && !locationError ? (
+          {!userLocation && !locationError ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#0000ff" />
               <Text style={styles.statusText}>جاري تحديد موقعك بدقة...</Text>
@@ -546,6 +555,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     textAlign: "center",
+  },
+  centeredLoadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+    padding: 20,
   },
   completionMessageContainer: {
     marginTop: 20,

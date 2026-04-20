@@ -63,9 +63,6 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, route }) =>
       <View style={styles.layoutContainer}>
         <ScrollView style={styles.mainContent} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
           {currentScreen === "Dashboard" && (
-            <EmployeeDashboard navigation={navigation as any} route={route} isFocused={currentScreen === "Dashboard"} />
-          )}
-          {currentScreen === "Dashboard" && (
             <EmployeeDashboard {...({ navigation, route } as any)} isFocused={currentScreen === "Dashboard"} />
           )}
           {currentScreen === "AttendanceHistory" && (
