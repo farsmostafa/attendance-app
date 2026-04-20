@@ -357,6 +357,10 @@ const styles = StyleSheet.create({
     color: "#333",
     marginHorizontal: 8,
     padding: 0,
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    outlineStyle: "none",
+    outlineWidth: 0,
   },
   errorText: {
     color: "#dc3545",
