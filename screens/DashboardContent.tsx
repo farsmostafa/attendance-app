@@ -176,12 +176,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ employees, presentT
                   {formatTime(record.check_out)}
                 </Text>
                 <View style={[styles.tableCell, styles.cellStatus]}>
-                  <Text
-                    style={[
-                      styles.statusBadge,
-                      record.status === "late" ? styles.statusBadgeLate : styles.statusBadgeOnTime,
-                    ]}
-                  >
+                  <Text style={[styles.statusBadge, record.status === "late" ? styles.statusBadgeLate : styles.statusBadgeOnTime]}>
                     {record.status === "late" ? "متأخر" : "في الموعد"}
                   </Text>
                 </View>
@@ -205,6 +200,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
     paddingBottom: 40,
+  },
   statsSection: {
     flexDirection: "row-reverse",
     gap: 12,
