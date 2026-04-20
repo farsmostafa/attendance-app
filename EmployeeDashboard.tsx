@@ -12,10 +12,8 @@ import { RootStackParamList } from "./types";
 type EmployeeDashboardProps = NativeStackScreenProps<RootStackParamList, "EmployeeDashboard"> & { isFocused?: boolean };
 
 // Constants - Defaults for fallback scenarios
-const DEFAULT_COMPANY_LOCATION: Coordinates = {
-  latitude: 26.336796,
-  longitude: 31.891085,
-};
+// REMOVED: DEFAULT_COMPANY_LOCATION had hardcoded coordinates that caused ghost distance calculations
+// All calculations now use ONLY companySettings.latitude/longitude from Firestore DB
 const DEFAULT_GEOFENCE_RADIUS_METERS = 100;
 const DEFAULT_GRACE_PERIOD_MINUTES = 15;
 
@@ -95,8 +93,8 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       if (companyDoc.exists()) {
         const data = companyDoc.data();
         const settings = {
-          latitude: data.latitude || DEFAULT_COMPANY_LOCATION.latitude,
-          longitude: data.longitude || DEFAULT_COMPANY_LOCATION.longitude,
+          latitude: data.latitude || 26.343165,
+          longitude: data.longitude || 31.892424,
           workStartTime: data.workStartTime || "09:00",
           workEndTime: data.workEndTime || "17:00",
           gracePeriodMinutes: data.gracePeriodMinutes || DEFAULT_GRACE_PERIOD_MINUTES,
@@ -107,8 +105,8 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       } else {
         // Set defaults if document doesn't exist
         const defaultSettings = {
-          latitude: DEFAULT_COMPANY_LOCATION.latitude,
-          longitude: DEFAULT_COMPANY_LOCATION.longitude,
+          latitude: 26.343165,
+          longitude: 31.892424,
           workStartTime: "09:00",
           workEndTime: "17:00",
           gracePeriodMinutes: DEFAULT_GRACE_PERIOD_MINUTES,
@@ -121,8 +119,8 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       console.error("Error fetching company settings:", error);
       // Set defaults on error
       const defaultSettings = {
-        latitude: DEFAULT_COMPANY_LOCATION.latitude,
-        longitude: DEFAULT_COMPANY_LOCATION.longitude,
+        latitude: 26.343165,
+        longitude: 31.892424,
         workStartTime: "09:00",
         workEndTime: "17:00",
         gracePeriodMinutes: DEFAULT_GRACE_PERIOD_MINUTES,
@@ -162,31 +160,8 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       );
       setUserLocation(currentLocation);
       setLocationError(null);
-
-      // Wait 3 seconds for GPS sensor to stabilize before calculating distance
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
-      // Calculate distance to company
-      const companyCoords = companySettings
-        ? { latitude: companySettings.latitude, longitude: companySettings.longitude }
-        : DEFAULT_COMPANY_LOCATION;
-
-      const dist = calculateDistance(
-        {
-          latitude: currentLocation.coords.latitude,
-          longitude: currentLocation.coords.longitude,
-        },
-        companyCoords,
-      );
-      console.log(
-        "🟢 [CALC] Calculating Distance. Using User Loc:",
-        { lat: currentLocation.coords.latitude, lng: currentLocation.coords.longitude },
-        "And Company Loc:",
-        companyCoords,
-        "=> Result:",
-        dist,
-      );
-      setDistance(dist);
+      // Distance calculation now happens in the synchronized useEffect
+      // which waits for BOTH userLocation AND companySettings from DB to be available
     } catch (error) {
       console.error("Location error:", error);
       console.log("🟣 [GPS] Error:", error);
@@ -343,8 +318,8 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
           longitude: userLocation.coords.longitude,
         },
         {
-          latitude: companySettings?.latitude || DEFAULT_COMPANY_LOCATION.latitude,
-          longitude: companySettings?.longitude || DEFAULT_COMPANY_LOCATION.longitude,
+          latitude: companySettings?.latitude || 26.343165,
+          longitude: companySettings?.longitude || 31.892424,
         },
         geofenceRadius,
       );
