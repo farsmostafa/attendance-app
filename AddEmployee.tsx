@@ -408,6 +408,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e0e0e0",
     borderRadius: 8,
+    borderStyle: "solid",
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
@@ -415,6 +416,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9f9f9",
     textAlign: "right",
     width: "100%",
+    outlineWidth: 0,
   },
   dropdownButton: {
     borderWidth: 1,
