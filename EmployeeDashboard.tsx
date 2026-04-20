@@ -85,7 +85,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     }
   };
 
-
   /**
    * Fetch company settings from Firestore
    * Retrieves geofence coordinates, work times, grace period, and radius
@@ -199,7 +198,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     }
   };
 
-
   // ============================================================================
   // Lifecycle Hooks
   // ============================================================================
@@ -235,8 +233,12 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     }
   }, [companySettings]);
 
-  // Auto-refresh location every 5 seconds
+  // Auto-refresh location every 5 seconds (starts immediately)
   useEffect(() => {
+    // Start tracking immediately
+    refreshLocation();
+
+    // Then continue every 5 seconds
     const interval = setInterval(() => {
       refreshLocation();
     }, 5000);
@@ -344,9 +346,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
           },
         });
 
-        const message = isLate
-          ? "تم تسجيل حضورك بنجاح!\n⚠️ تنبيه: لقد تجاوزت فترة السماح"
-          : "تم تسجيل حضورك بنجاح!";
+        const message = isLate ? "تم تسجيل حضورك بنجاح!\n⚠️ تنبيه: لقد تجاوزت فترة السماح" : "تم تسجيل حضورك بنجاح!";
         Alert.alert("نجاح", message);
       } else {
         // ===== CHECK-OUT =====
@@ -373,9 +373,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
   // ============================================================================
 
   const geofenceRadius = companySettings?.geofenceRadiusMeters || DEFAULT_GEOFENCE_RADIUS_METERS;
-  const withinGeofence =
-    distance !== null &&
-    distance <= geofenceRadius;
+  const withinGeofence = distance !== null && distance <= geofenceRadius;
 
   const isLoading = settingsLoading || attendanceLoading;
   const hasCheckedIn = attendanceStatus?.hasCheckedIn ?? false;
@@ -414,17 +412,13 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
               {distance !== null ? (
                 <>
                   <View style={styles.distanceRow}>
-                    <Text style={styles.infoText}>
-                      المسافة بينك وبين الشركة: {distance.toFixed(2)} متر
-                    </Text>
+                    <Text style={styles.infoText}>المسافة بينك وبين الشركة: {distance.toFixed(2)} متر</Text>
                     <TouchableOpacity style={styles.refreshIconButton} onPress={refreshLocation}>
                       <Ionicons name="refresh" size={18} color="#007bff" />
                     </TouchableOpacity>
                   </View>
 
-                  <Text style={styles.radiusInfo}>
-                    النطاق المسموح: {geofenceRadius} متر
-                  </Text>
+                  <Text style={styles.radiusInfo}>النطاق المسموح: {geofenceRadius} متر</Text>
 
                   <Text style={[styles.statusBadge, withinGeofence ? styles.statusGood : styles.statusBad]}>
                     {withinGeofence ? "✓ أنت داخل نطاق العمل" : "✗ أنت خارج نطاق الشركة"}
@@ -442,9 +436,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
                     <>
                       {shiftCompleted ? (
                         <View style={styles.completionMessageContainer}>
-                          <Text style={styles.completionMessage}>
-                            تم تسجيل الحضور والانصراف بنجاح. نراك غداً!
-                          </Text>
+                          <Text style={styles.completionMessage}>تم تسجيل الحضور والانصراف بنجاح. نراك غداً!</Text>
                         </View>
                       ) : (
                         <TouchableOpacity
@@ -459,9 +451,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
                           {isCheckingIn ? (
                             <ActivityIndicator color="#fff" />
                           ) : (
-                            <Text style={styles.buttonText}>
-                              {hasCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور"}
-                            </Text>
+                            <Text style={styles.buttonText}>{hasCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور"}</Text>
                           )}
                         </TouchableOpacity>
                       )}

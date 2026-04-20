@@ -166,7 +166,7 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
 
   return (
     <ScreenWrapper>
-      <TopHeader userName={currentUser?.name || "المسؤول"} navigation={navigation} />
+      <TopHeader userName={currentUser?.name || "المسؤول"} />
       <DashboardMenu navigation={navigation} currentScreen="AddEmployee" />
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardAvoidView}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>

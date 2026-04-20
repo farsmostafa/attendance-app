@@ -236,7 +236,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
   if (loading && !refreshing) {
     return (
       <ScreenWrapper>
-        <TopHeader userName={currentUser?.name || "الموظف"} navigation={navigation} />
+        <TopHeader userName={currentUser?.name || "الموظف"} />
         <DashboardMenu navigation={navigation} currentScreen="EmployeeList" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007bff" />
@@ -250,7 +250,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
   if (error && employees.length === 0) {
     return (
       <ScreenWrapper>
-        <TopHeader userName={currentUser?.name || "الموظف"} navigation={navigation} />
+        <TopHeader userName={currentUser?.name || "الموظف"} />
         <DashboardMenu navigation={navigation} currentScreen="EmployeeList" />
         {renderErrorState()}
       </ScreenWrapper>
@@ -260,7 +260,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
   // Success state
   return (
     <ScreenWrapper>
-      <TopHeader userName={currentUser?.name || "الموظف"} navigation={navigation} />
+      <TopHeader userName={currentUser?.name || "الموظف"} />
       <DashboardMenu navigation={navigation} currentScreen="EmployeeList" />
 
       {/* Header with Add Button */}

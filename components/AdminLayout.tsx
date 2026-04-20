@@ -37,7 +37,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ currentScreen, onNavigate, ch
   if (showLoading) {
     return (
       <View style={styles.container}>
-        <TopHeader userName={currentUserName} navigation={navigation as any} />
+        <TopHeader userName={currentUserName} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007bff" />
           <Text style={styles.loadingText}>جاري التحميل...</Text>
@@ -49,7 +49,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ currentScreen, onNavigate, ch
   return (
     <View style={styles.container}>
       {/* Header */}
-      <TopHeader userName={currentUserName} navigation={navigation as any} />
+      <TopHeader userName={currentUserName} />
 
       {/* Main Layout: Content + Sidebar */}
       <View style={styles.layoutContainer}>
