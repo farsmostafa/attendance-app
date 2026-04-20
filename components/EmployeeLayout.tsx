@@ -62,10 +62,24 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, route }) =>
       <TopHeader userName={currentUserName} />
       <View style={styles.layoutContainer}>
         <ScrollView style={styles.mainContent} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
-          {currentScreen === "Dashboard" && <EmployeeDashboard navigation={navigation as any} route={route} isFocused={currentScreen === "Dashboard"} />}
-          {currentScreen === "Dashboard" && <EmployeeDashboard {...({ navigation, route } as any)} isFocused={currentScreen === "Dashboard"} />}
-          {currentScreen === "AttendanceHistory" && <AttendanceHistory {...({ navigation, route: { ...route, name: "AttendanceHistory", key: "AttendanceHistory" } } as any)} isFocused={currentScreen === "AttendanceHistory"} />}
-          {currentScreen === "Requests" && <Requests {...({ navigation, route: { ...route, name: "Requests", key: "Requests" } } as any)} isFocused={currentScreen === "Requests"} />}
+          {currentScreen === "Dashboard" && (
+            <EmployeeDashboard navigation={navigation as any} route={route} isFocused={currentScreen === "Dashboard"} />
+          )}
+          {currentScreen === "Dashboard" && (
+            <EmployeeDashboard {...({ navigation, route } as any)} isFocused={currentScreen === "Dashboard"} />
+          )}
+          {currentScreen === "AttendanceHistory" && (
+            <AttendanceHistory
+              {...({ navigation, route: { ...route, name: "AttendanceHistory", key: "AttendanceHistory" } } as any)}
+              isFocused={currentScreen === "AttendanceHistory"}
+            />
+          )}
+          {currentScreen === "Requests" && (
+            <Requests
+              {...({ navigation, route: { ...route, name: "Requests", key: "Requests" } } as any)}
+              isFocused={currentScreen === "Requests"}
+            />
+          )}
         </ScrollView>
         <EmployeeSidebar currentScreen={currentScreen} onNavigate={(screen) => setCurrentScreen(screen)} onLogout={handleLogout} />
       </View>
