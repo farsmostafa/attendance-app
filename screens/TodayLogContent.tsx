@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TextInput, TouchableOpacity, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackNavigationProp } from "../types";
@@ -24,27 +24,29 @@ interface AttendanceRecord {
 }
 
 const TodayLogContent: React.FC<Props> = ({ companyId }) => {
+  const today = new Date().toISOString().split("T")[0];
+  const [selectedDate, setSelectedDate] = useState<string>(today);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchTodaysRecords = async () => {
+    const fetchRecords = async () => {
       try {
         setLoading(true);
-        const today = new Date().toISOString().split("T")[0];
-        const records = await fetchTodaysAttendanceRecords(today);
+        setError(null);
+        const records = await fetchTodaysAttendanceRecords(selectedDate);
         setAttendanceRecords(records);
       } catch (err) {
-        console.error("Error fetching today's attendance records:", err);
-        setError("فشل تحميل سجلات اليوم");
+        console.error("Error fetching attendance records:", err);
+        setError("فشل تحميل السجلات");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTodaysRecords();
-  }, []);
+    fetchRecords();
+  }, [selectedDate]);
 
   const formatTime = (timestamp: any) => {
     if (!timestamp) return "—";
@@ -80,13 +82,67 @@ const TodayLogContent: React.FC<Props> = ({ companyId }) => {
     }
   };
 
-  const today = new Date().toISOString().split("T")[0];
+  const handlePreviousDay = () => {
+    const currentDate = new Date(selectedDate);
+    currentDate.setDate(currentDate.getDate() - 1);
+    setSelectedDate(currentDate.toISOString().split("T")[0]);
+  };
+
+  const handleNextDay = () => {
+    const currentDate = new Date(selectedDate);
+    const today = new Date(new Date().toISOString().split("T")[0]);
+    currentDate.setDate(currentDate.getDate() + 1);
+
+    // Prevent selecting future dates
+    if (currentDate <= today) {
+      setSelectedDate(currentDate.toISOString().split("T")[0]);
+    }
+  };
+
+  const handleToday = () => {
+    setSelectedDate(today);
+  };
+
+  const isToday = selectedDate === today;
+  const canGoForward = new Date(selectedDate) < new Date(today);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
       <View style={styles.headerSection}>
         <Text style={styles.title}>سجل اليوم</Text>
-        <Text style={styles.subtitle}>{formatDate(today)}</Text>
+
+        {/* Date Picker Section */}
+        <View style={styles.datePickerContainer}>
+          <TouchableOpacity style={styles.dateNavButton} onPress={handlePreviousDay}>
+            <Ionicons name="chevron-back" size={20} color="#007bff" />
+          </TouchableOpacity>
+
+          <View style={styles.dateInputWrapper}>
+            <TextInput
+              style={styles.dateInput}
+              value={selectedDate}
+              onChangeText={setSelectedDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor="#999"
+              editable={true}
+            />
+            {isToday && <Text style={styles.todayBadge}>اليوم</Text>}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.dateNavButton, !canGoForward && styles.dateNavButtonDisabled]}
+            onPress={handleNextDay}
+            disabled={!canGoForward}
+          >
+            <Ionicons name="chevron-forward" size={20} color={canGoForward ? "#007bff" : "#ccc"} />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity style={styles.todayButton} onPress={handleToday}>
+          <Text style={styles.todayButtonText}>العودة لليوم</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.subtitle}>{formatDate(selectedDate)}</Text>
       </View>
 
       {loading ? (
@@ -293,6 +349,66 @@ const styles = StyleSheet.create({
   statusBadgeOnTime: {
     backgroundColor: "#e8f5e9",
     color: "#2e7d32",
+  },
+  datePickerContainer: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    marginTop: 12,
+    marginBottom: 12,
+    gap: 8,
+  },
+  dateNavButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  dateNavButtonDisabled: {
+    opacity: 0.5,
+  },
+  dateInputWrapper: {
+    flex: 1,
+    position: "relative",
+  },
+  dateInput: {
+    borderWidth: 1,
+    borderColor: "#007bff",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: "#333",
+    backgroundColor: "#fff",
+    textAlign: "center",
+  },
+  todayBadge: {
+    position: "absolute",
+    top: -10,
+    right: 12,
+    backgroundColor: "#007bff",
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "600",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  todayButton: {
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: "#e3f2fd",
+    borderRadius: 6,
+    alignSelf: "flex-start",
+  },
+  todayButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#007bff",
   },
 });
 
