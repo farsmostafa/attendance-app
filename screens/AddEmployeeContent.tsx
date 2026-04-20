@@ -346,9 +346,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e0e0e0",
     borderRadius: 8,
+    borderStyle: "solid",
     paddingHorizontal: 12,
     paddingVertical: 12,
     backgroundColor: "#f9f9f9",
+    outlineWidth: 0,
   },
   inputError: {
     borderColor: "#dc3545",
