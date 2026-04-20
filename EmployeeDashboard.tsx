@@ -9,7 +9,6 @@ import { getCurrentUserData } from "./services/authService";
 import { checkTodayAttendance, recordCheckIn, AttendanceCheckResult } from "./services/attendanceService";
 import { calculateDistance, isWithinGeofence, Coordinates } from "./utils/geo";
 import { RootStackParamList } from "./types";
-import EmployeeLayout from "./components/EmployeeLayout";
 
 type EmployeeDashboardProps = NativeStackScreenProps<RootStackParamList, "EmployeeDashboard">;
 
@@ -339,8 +338,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
   // ============================================================================
 
   return (
-    <EmployeeLayout navigation={navigation} activeScreen="Dashboard">
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>لوحة الموظف</Text>
 
       {isLoading && (
@@ -413,7 +411,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation }) => 
         </View>
       )}
     </ScrollView>
-    </EmployeeLayout>
   );
 };
 

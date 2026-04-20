@@ -18,7 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "./types";
 import { submitLeaveRequest, getEmployeeRequests, LeaveRequest } from "./services/requestsService";
 import { getCurrentUserData } from "./services/authService";
-import EmployeeLayout from "./components/EmployeeLayout";
+
 
 type RequestsProps = NativeStackScreenProps<RootStackParamList, "Requests">;
 
@@ -170,17 +170,14 @@ const Requests: React.FC<RequestsProps> = ({ navigation }) => {
 
   if (loading) {
     return (
-      <EmployeeLayout navigation={navigation} activeScreen="Requests">
-        <View style={styles.container}>
-          <ActivityIndicator size="large" color="#007bff" />
-        </View>
-      </EmployeeLayout>
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#007bff" />
+      </View>
     );
   }
 
   return (
-    <EmployeeLayout navigation={navigation} activeScreen="Requests">
-      <View style={styles.container}>
+    <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.newRequestButton} onPress={() => setModalVisible(true)}>
@@ -292,8 +289,7 @@ const Requests: React.FC<RequestsProps> = ({ navigation }) => {
           </KeyboardAvoidingView>
         </Modal>
       </View>
-    </EmployeeLayout>
-  );
+    );
 };
 
 const styles = StyleSheet.create({

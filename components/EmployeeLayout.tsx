@@ -5,9 +5,6 @@ import { auth } from "../firebaseConfig";
 import { getCurrentUserData } from "../services/authService";
 import TopHeader from "./TopHeader";
 import EmployeeSidebar from "./EmployeeSidebar";
-import EmployeeDashboard from "../EmployeeDashboard";
-import AttendanceHistory from "../AttendanceHistory";
-import Requests from "../Requests";
 
 interface EmployeeLayoutProps {
   navigation: any;
@@ -18,7 +15,6 @@ interface EmployeeLayoutProps {
 const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, activeScreen, children }) => {
   const [currentUserName, setCurrentUserName] = useState("الموظف");
   const [loadingUser, setLoadingUser] = useState(true);
-  const [currentScreen, setCurrentScreen] = useState(activeScreen);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -37,11 +33,6 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, activeScree
     loadUser();
   }, []);
 
-  // Sync currentScreen with activeScreen prop when it changes
-  useEffect(() => {
-    setCurrentScreen(activeScreen);
-  }, [activeScreen]);
-
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -49,20 +40,6 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, activeScree
     } catch (error: any) {
       console.error("Logout failed:", error);
       Alert.alert("خطأ", error?.message || "فشل في تسجيل الخروج");
-    }
-  };
-
-  // Render the appropriate screen based on currentScreen
-  const renderScreen = () => {
-    switch (currentScreen) {
-      case "Dashboard":
-        return <EmployeeDashboard navigation={navigation} />;
-      case "AttendanceHistory":
-        return <AttendanceHistory navigation={navigation} />;
-      case "Requests":
-        return <Requests navigation={navigation} />;
-      default:
-        return <EmployeeDashboard navigation={navigation} />;
     }
   };
 
@@ -83,9 +60,9 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, activeScree
       <TopHeader userName={currentUserName} />
       <View style={styles.layoutContainer}>
         <ScrollView style={styles.mainContent} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
-          {renderScreen()}
+          {children}
         </ScrollView>
-        <EmployeeSidebar currentScreen={currentScreen} onNavigate={(screen) => setCurrentScreen(screen)} onLogout={handleLogout} />
+        <EmployeeSidebar currentScreen={activeScreen} onNavigate={(screen) => navigation.navigate(screen as any)} onLogout={handleLogout} />
       </View>
     </View>
   );

@@ -5,7 +5,6 @@ import { collection, query, where, orderBy, getDocs, Timestamp } from "firebase/
 import { db } from "./firebaseConfig";
 import { getCurrentUserData } from "./services/authService";
 import { RootStackParamList } from "./types";
-import EmployeeLayout from "./components/EmployeeLayout";
 
 type AttendanceHistoryProps = NativeStackScreenProps<RootStackParamList, "AttendanceHistory">;
 
@@ -180,45 +179,33 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation }) => 
 
   if (loading) {
     return (
-      <EmployeeLayout navigation={navigation} activeScreen="AttendanceHistory">
-        <View style={styles.container}>
-          <ActivityIndicator size="large" color="#0000ff" />
-          <Text style={styles.loadingText}>جاري تحميل السجل...</Text>
-        </View>
-      </EmployeeLayout>
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text style={styles.loadingText}>جاري تحميل السجل...</Text>
+      </View>
     );
   }
 
   if (monthlyData.length === 0) {
     return (
-      <EmployeeLayout navigation={navigation} activeScreen="AttendanceHistory">
-        <View style={styles.container}>
-          <Text style={styles.emptyText}>لا توجد سجلات حضور بعد.</Text>
-        </View>
-      </EmployeeLayout>
+      <View style={styles.container}>
+        <Text style={styles.emptyText}>لا توجد سجلات حضور بعد.</Text>
+      </View>
     );
   }
 
   return (
-    <EmployeeLayout navigation={navigation} activeScreen="AttendanceHistory">
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.title}>سجل الحضور والانصراف</Text>
-          <Text style={styles.subtitle}>تقرير شامل للحضور والانصراف</Text>
-        </View>
 
         {monthlyData.map((monthData) => renderMonthlyStats(monthData))}
 
         <View style={styles.footerSpacer} />
       </ScrollView>
-    </EmployeeLayout>
-  );
+    );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
+      backgroundColor: "#f5f5f5",
     paddingHorizontal: 15,
     paddingVertical: 10,
   },
