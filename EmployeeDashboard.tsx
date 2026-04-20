@@ -452,7 +452,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
               )}
             </View>
           )}
-          )}
         </View>
       )}
     </ScrollView>
