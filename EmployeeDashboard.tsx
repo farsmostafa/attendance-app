@@ -101,7 +101,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
           geofenceRadiusMeters: data.geofenceRadiusMeters || DEFAULT_GEOFENCE_RADIUS_METERS,
         };
         setCompanySettings(settings);
-        console.log("🔵 [DB] Company Settings Fetched:", settings);
       } else {
         // Set defaults if document doesn't exist
         const defaultSettings = {
@@ -113,7 +112,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
           geofenceRadiusMeters: DEFAULT_GEOFENCE_RADIUS_METERS,
         };
         setCompanySettings(defaultSettings);
-        console.log("🔵 [DB] Company Settings NOT FOUND. Using Defaults:", defaultSettings);
       }
     } catch (error) {
       console.error("Error fetching company settings:", error);
@@ -127,7 +125,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
         geofenceRadiusMeters: DEFAULT_GEOFENCE_RADIUS_METERS,
       };
       setCompanySettings(defaultSettings);
-      console.log("🔵 [DB] Error fetching settings. Using Defaults:", defaultSettings);
     } finally {
       setSettingsLoading(false);
     }
@@ -145,26 +142,17 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        console.log("🟣 [GPS] Permission DENIED");
         setLocationError("تم رفض صلاحية الوصول للموقع. لا يمكنك تسجيل الحضور.");
         return;
       }
 
       const currentLocation = await Location.getCurrentPositionAsync({});
-      console.log(
-        "🟣 [GPS] Raw Location Received. Accuracy:",
-        currentLocation.coords.accuracy,
-        "Lat/Lng:",
-        currentLocation.coords.latitude,
-        currentLocation.coords.longitude,
-      );
       setUserLocation(currentLocation);
       setLocationError(null);
       // Distance calculation now happens in the synchronized useEffect
       // which waits for BOTH userLocation AND companySettings from DB to be available
     } catch (error) {
       console.error("Location error:", error);
-      console.log("🟣 [GPS] Error:", error);
       setLocationError("حدث خطأ أثناء جلب موقعك الحالي.");
     }
   };
@@ -191,13 +179,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
 
   // Initialize on mount - RESET all stale data
   useEffect(() => {
-    console.log("🟡 [INIT] Component Mounted. Initial States:", {
-      distance,
-      userLocation: userLocation
-        ? { lat: userLocation.coords.latitude, lng: userLocation.coords.longitude, accuracy: userLocation.coords.accuracy }
-        : null,
-      companySettings,
-    });
     // Explicit reset on mount to clear any stale data from previous sessions
     setUserLocation(null);
     setDistance(null);
@@ -223,7 +204,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
   useEffect(() => {
     if (userLocation && companySettings) {
       const accuracy = userLocation.coords.accuracy;
-      console.log("🟢 [CALC] Distance Sync Triggered. Accuracy:", accuracy, "Threshold: 100m");
       // Only calculate and show distance if GPS accuracy is high (< 100m)
       if (accuracy < 100) {
         const dist = calculateDistance(
@@ -233,10 +213,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
           },
           { latitude: companySettings.latitude, longitude: companySettings.longitude },
         );
-        console.log("🟢 [CALC] Distance UPDATED (Accuracy OK):", dist, "meters");
         setDistance(dist);
-      } else {
-        console.log("🟡 [CALC] Distance NOT updated (Accuracy > 100m). Waiting for better signal...");
       }
     }
   }, [userLocation, companySettings]);
@@ -247,17 +224,9 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       try {
         setLocationError(null);
         const currentLocation = await Location.getCurrentPositionAsync({});
-        console.log(
-          "🟣 [GPS] Auto-Refresh Location. Accuracy:",
-          currentLocation.coords.accuracy,
-          "Lat/Lng:",
-          currentLocation.coords.latitude,
-          currentLocation.coords.longitude,
-        );
         setUserLocation(currentLocation);
       } catch (error) {
         console.error("Auto-refresh location error:", error);
-        console.log("🟣 [GPS] Auto-Refresh Error:", error);
         setLocationError("حدث خطأ أثناء تحديث الموقع.");
       }
     };
@@ -271,7 +240,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     }, 5000);
 
     return () => {
-      console.log("🔴 [CLEANUP] Clearing 5-second auto-refresh interval.");
       clearInterval(interval);
     };
   }, []);
