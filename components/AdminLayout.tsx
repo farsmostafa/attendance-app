@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, ScrollView, ActivityIndicator, Text } from "react-native";
+import { View, StyleSheet, ScrollView, ActivityIndicator, Text, TouchableOpacity, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import TopHeader from "./TopHeader";
 import AdminSidebar from "./AdminSidebar";
@@ -26,6 +26,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   onLogout,
 }) => {
   const [currentUserName, setCurrentUserName] = useState<string>(userName || "مسؤول");
+  const [sidebarVisible, setSidebarVisible] = useState(false);
+  const { width } = useWindowDimensions();
+
+  // Show sidebar by default on large screens (width >= 900), hidden on mobile
+  const isMobile = width < 900;
+  const shouldShowSidebar = !isMobile || sidebarVisible;
 
   useEffect(() => {
     if (!userName) {
@@ -62,13 +68,32 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
 
       {/* Main Layout: Content + Sidebar */}
       <View style={styles.layoutContainer}>
+        {/* Hamburger Menu Button - Mobile Only */}
+        {isMobile && (
+          <View style={styles.mobileMenuButton}>
+            <TouchableOpacity onPress={() => setSidebarVisible(!sidebarVisible)} activeOpacity={0.7}>
+              <Ionicons name={sidebarVisible ? "close" : "menu"} size={28} color="#007bff" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Main Content Area */}
         <ScrollView style={styles.mainContent} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
           {children}
         </ScrollView>
 
-        {/* Persistent Sidebar */}
-        <AdminSidebar currentScreen={currentScreen} onNavigate={onNavigate} onLogout={onLogout || (() => {})} />
+        {/* Persistent Sidebar - Hidden on Mobile by Default */}
+        {shouldShowSidebar && (
+          <AdminSidebar
+            currentScreen={currentScreen}
+            onNavigate={(screen) => {
+              onNavigate(screen);
+              // Close sidebar after navigation on mobile
+              if (isMobile) setSidebarVisible(false);
+            }}
+            onLogout={onLogout || (() => {})}
+          />
+        )}
       </View>
     </View>
   );
@@ -91,6 +116,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 20,
     minHeight: "100%",
+  },
+  mobileMenuButton: {
+    position: "absolute",
+    top: 60,
+    right: 16,
+    zIndex: 100,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
   },
   loadingContainer: {
     flex: 1,

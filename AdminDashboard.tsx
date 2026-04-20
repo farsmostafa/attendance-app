@@ -16,7 +16,6 @@ import DashboardContent from "./screens/DashboardContent";
 import AddEmployeeContent from "./screens/AddEmployeeContent";
 import EmployeeListContent from "./screens/EmployeeListContent";
 import TodayLogContent from "./screens/TodayLogContent";
-import PendingRequestsContent from "./screens/PendingRequestsContent";
 import AdminReportsContent from "./screens/AdminReportsContent";
 import AdminSettingsContent from "./screens/AdminSettingsContent";
 
@@ -146,8 +145,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
         return <EmployeeListContent navigation={navigation} companyId={companyId} />;
       case "TodayLog":
         return <TodayLogContent navigation={navigation} companyId={companyId} />;
-      case "PendingRequests":
-        return <PendingRequestsContent navigation={navigation} companyId={companyId} />;
       case "AdminReports":
         return <AdminReportsContent navigation={navigation} companyId={companyId} />;
       case "AdminSettings":

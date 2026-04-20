@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, ScrollView, ActivityIndicator, Text, Alert } from "react-native";
+import { View, StyleSheet, ScrollView, ActivityIndicator, Text, Alert, TouchableOpacity, useWindowDimensions } from "react-native";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { getCurrentUserData } from "../services/authService";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "../types";
 import TopHeader from "./TopHeader";
 import EmployeeSidebar from "./EmployeeSidebar";
 import EmployeeDashboard from "../EmployeeDashboard";
 import AttendanceHistory from "../AttendanceHistory";
-import Requests from "../Requests";
 
 type EmployeeLayoutProps = NativeStackScreenProps<RootStackParamList, "EmployeeDashboard"> & { route?: any };
 
@@ -17,6 +17,12 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, route }) =>
   const [currentUserName, setCurrentUserName] = useState("الموظف");
   const [loadingUser, setLoadingUser] = useState(true);
   const [currentScreen, setCurrentScreen] = useState("Dashboard");
+  const [sidebarVisible, setSidebarVisible] = useState(false);
+  const { width } = useWindowDimensions();
+
+  // Show sidebar by default on large screens (width >= 900), hidden on mobile
+  const isMobile = width < 900;
+  const shouldShowSidebar = !isMobile || sidebarVisible;
 
   useEffect(() => {
     const loadUser = async () => {
@@ -61,6 +67,15 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, route }) =>
     <View style={styles.container}>
       <TopHeader userName={currentUserName} />
       <View style={styles.layoutContainer}>
+        {/* Hamburger Menu Button - Mobile Only */}
+        {isMobile && (
+          <View style={styles.mobileMenuButton}>
+            <TouchableOpacity onPress={() => setSidebarVisible(!sidebarVisible)} activeOpacity={0.7}>
+              <Ionicons name={sidebarVisible ? "close" : "menu"} size={28} color="#007bff" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         <ScrollView style={styles.mainContent} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
           {currentScreen === "Dashboard" && (
             <EmployeeDashboard {...({ navigation, route } as any)} isFocused={currentScreen === "Dashboard"} />
@@ -71,14 +86,20 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, route }) =>
               isFocused={currentScreen === "AttendanceHistory"}
             />
           )}
-          {currentScreen === "Requests" && (
-            <Requests
-              {...({ navigation, route: { ...route, name: "Requests", key: "Requests" } } as any)}
-              isFocused={currentScreen === "Requests"}
-            />
-          )}
         </ScrollView>
-        <EmployeeSidebar currentScreen={currentScreen} onNavigate={(screen) => setCurrentScreen(screen)} onLogout={handleLogout} />
+
+        {/* Sidebar - Hidden on Mobile by Default */}
+        {shouldShowSidebar && (
+          <EmployeeSidebar
+            currentScreen={currentScreen}
+            onNavigate={(screen) => {
+              setCurrentScreen(screen);
+              // Close sidebar after navigation on mobile
+              if (isMobile) setSidebarVisible(false);
+            }}
+            onLogout={handleLogout}
+          />
+        )}
       </View>
     </View>
   );
@@ -96,11 +117,20 @@ const styles = StyleSheet.create({
   mainContent: {
     flex: 1,
     backgroundColor: "#f3f4f6",
+    paddingHorizontal: 16,
   },
   contentContainer: {
-    paddingHorizontal: 16,
     paddingVertical: 20,
+    paddingHorizontal: 16,
     minHeight: "100%",
+  },
+  mobileMenuButton: {
+    position: "absolute",
+    top: 60,
+    right: 16,
+    zIndex: 100,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
   },
   loadingContainer: {
     flex: 1,

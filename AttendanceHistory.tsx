@@ -27,6 +27,11 @@ interface MonthlyGroup {
   bonus: number;
 }
 
+/**
+ * Employee Personal Attendance Records - سجلي الشخصي
+ * CRITICAL: Only shows records where userId == currentUser.uid
+ * Employees NEVER see other employees' records
+ */
 const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation, isFocused = true }) => {
   const [monthlyData, setMonthlyData] = useState<MonthlyGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -210,7 +215,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation, isFoc
 
 const styles = StyleSheet.create({
   container: {
-      backgroundColor: "#f5f5f5",
+    backgroundColor: "#f5f5f5",
     paddingHorizontal: 15,
     paddingVertical: 10,
   },

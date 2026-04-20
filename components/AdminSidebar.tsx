@@ -41,12 +41,6 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
     screen: "TodayLog",
   },
   {
-    id: "pending-requests",
-    label: "الطلبات المعلقة",
-    icon: "document-text",
-    screen: "PendingRequests",
-  },
-  {
     id: "reports",
     label: "التقارير",
     icon: "bar-chart",

@@ -17,8 +17,7 @@ interface EmployeeSidebarProps {
 
 const SIDEBAR_ITEMS: SidebarItem[] = [
   { id: "home", label: "الرئيسية", icon: "home", screen: "Dashboard" },
-  { id: "history", label: "سجل الحضور", icon: "time", screen: "AttendanceHistory" },
-  { id: "requests", label: "طلباتي", icon: "document-text", screen: "Requests" },
+  { id: "history", label: "سجلي الشخصي", icon: "document-text", screen: "AttendanceHistory" },
 ];
 
 const EmployeeSidebar: React.FC<EmployeeSidebarProps> = ({ currentScreen, onNavigate, onLogout }) => {
