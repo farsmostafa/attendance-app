@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { fetchAllAttendanceRecords } from "../services/attendanceService";
+import { fetchTodaysAttendanceRecords } from "../services/attendanceService";
 
 interface Employee {
   id: string;
@@ -38,7 +38,8 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ employees, presentT
     const fetchAttendanceData = async () => {
       try {
         setAttendanceLoading(true);
-        const records = await fetchAllAttendanceRecords();
+        const today = new Date().toISOString().split("T")[0];
+        const records = await fetchTodaysAttendanceRecords(today);
         setAttendanceRecords(records);
       } catch (error) {
         console.error("Error fetching attendance records:", error);
