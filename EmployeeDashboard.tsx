@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "./firebaseConfig";
@@ -404,7 +405,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
           {!location && !locationError ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#0000ff" />
-              <Text style={styles.statusText}>جاري تحديد موقعك...</Text>
+              <Text style={styles.statusText}>جاري تحديد موقعك بدقة...</Text>
             </View>
           ) : locationError ? (
             <Text style={styles.errorText}>{locationError}</Text>
@@ -412,17 +413,18 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
             <View style={styles.locationInfo}>
               {distance !== null ? (
                 <>
-                  <Text style={styles.infoText}>
-                    المسافة بينك وبين الشركة: {distance.toFixed(2)} متر
-                  </Text>
+                  <View style={styles.distanceRow}>
+                    <Text style={styles.infoText}>
+                      المسافة بينك وبين الشركة: {distance.toFixed(2)} متر
+                    </Text>
+                    <TouchableOpacity style={styles.refreshIconButton} onPress={refreshLocation}>
+                      <Ionicons name="refresh" size={18} color="#007bff" />
+                    </TouchableOpacity>
+                  </View>
 
                   <Text style={styles.radiusInfo}>
                     النطاق المسموح: {geofenceRadius} متر
                   </Text>
-
-                  <TouchableOpacity style={styles.secondaryButton} onPress={refreshLocation}>
-                    <Text style={styles.secondaryButtonText}>🔄 تحديث الموقع</Text>
-                  </TouchableOpacity>
 
                   <Text style={[styles.statusBadge, withinGeofence ? styles.statusGood : styles.statusBad]}>
                     {withinGeofence ? "✓ أنت داخل نطاق العمل" : "✗ أنت خارج نطاق الشركة"}
@@ -526,6 +528,16 @@ const styles = StyleSheet.create({
   },
   statusGood: { backgroundColor: "#28a745" },
   statusBad: { backgroundColor: "#dc3545" },
+  distanceRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  refreshIconButton: {
+    padding: 8,
+    marginLeft: 10,
+  },
   button: {
     paddingVertical: 15,
     paddingHorizontal: 30,
@@ -590,22 +602,6 @@ const styles = StyleSheet.create({
     color: "#666",
     marginBottom: 10,
     fontStyle: "italic",
-  },
-  secondaryButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#007bff",
-    marginBottom: 15,
-    marginTop: 10,
-  },
-  secondaryButtonText: {
-    color: "#007bff",
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
   },
 });
 
