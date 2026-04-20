@@ -173,27 +173,14 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
 
   /**
    * Refresh location and recalculate distance
-   * Called when user presses the refresh button
+   * Updates location state which triggers synchronized distance calculation
    */
   const refreshLocation = async () => {
     try {
       setLocationError(null);
       const currentLocation = await Location.getCurrentPositionAsync({});
       setUserLocation(currentLocation);
-
-      // Calculate distance to company
-      const companyCoords = companySettings
-        ? { latitude: companySettings.latitude, longitude: companySettings.longitude }
-        : DEFAULT_COMPANY_LOCATION;
-
-      const dist = calculateDistance(
-        {
-          latitude: currentLocation.coords.latitude,
-          longitude: currentLocation.coords.longitude,
-        },
-        companyCoords,
-      );
-      setDistance(dist);
+      // Distance calculation is now handled by the synchronized useEffect
     } catch (error) {
       console.error("Refresh location error:", error);
       setLocationError("حدث خطأ أثناء تحديث الموقع.");
@@ -204,8 +191,14 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
   // Lifecycle Hooks
   // ============================================================================
 
-  // Initialize on mount
+  // Initialize on mount - RESET all stale data
   useEffect(() => {
+    // Explicit reset on mount to clear any stale data from previous sessions
+    setUserLocation(null);
+    setDistance(null);
+    setCompanySettings(null);
+    setLocationError(null);
+
     const initialize = async () => {
       await fetchCompanySettings();
       await fetchAttendanceStatus();
@@ -221,32 +214,47 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     }
   }, [isFocused]);
 
-  // Recalculate distance when company settings load
+  // Synchronized distance calculation: only when BOTH location and settings are available and accurate
   useEffect(() => {
-    if (companySettings && userLocation) {
-      const dist = calculateDistance(
-        {
-          latitude: userLocation.coords.latitude,
-          longitude: userLocation.coords.longitude,
-        },
-        { latitude: companySettings.latitude, longitude: companySettings.longitude },
-      );
-      setDistance(dist);
+    if (userLocation && companySettings) {
+      const accuracy = userLocation.coords.accuracy;
+      // Only calculate and show distance if GPS accuracy is high (< 100m)
+      if (accuracy < 100) {
+        const dist = calculateDistance(
+          {
+            latitude: userLocation.coords.latitude,
+            longitude: userLocation.coords.longitude,
+          },
+          { latitude: companySettings.latitude, longitude: companySettings.longitude },
+        );
+        setDistance(dist);
+      }
     }
-  }, [companySettings]);
+  }, [userLocation, companySettings]);
 
-  // Auto-refresh location every 5 seconds (starts immediately)
+  // Auto-refresh location every 5 seconds
   useEffect(() => {
+    const refresh = async () => {
+      try {
+        setLocationError(null);
+        const currentLocation = await Location.getCurrentPositionAsync({});
+        setUserLocation(currentLocation);
+      } catch (error) {
+        console.error("Auto-refresh location error:", error);
+        setLocationError("حدث خطأ أثناء تحديث الموقع.");
+      }
+    };
+
     // Start tracking immediately
-    refreshLocation();
+    refresh();
 
     // Then continue every 5 seconds
     const interval = setInterval(() => {
-      refreshLocation();
+      refresh();
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [companySettings]);
+  }, []);
 
   // ============================================================================
   // Check-In / Check-Out Handler
