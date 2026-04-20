@@ -284,18 +284,30 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
         return;
       }
 
-      // 3. Validate location
-      if (!userLocation) {
+      // 3. GPS RE-VERIFICATION (Security): Get fresh location before Firestore
+      let currentLocation = userLocation;
+      try {
+        const freshLocation = await Location.getCurrentPositionAsync({});
+        currentLocation = freshLocation;
+      } catch (gpsError) {
+        console.warn("Failed to refresh location, using cached:", gpsError);
+        if (!userLocation) {
+          showAlert("خطأ: لم نتمكن من الحصول على موقعك الحالي.");
+          return;
+        }
+      }
+
+      if (!currentLocation) {
         showAlert("خطأ: لم نتمكن من الحصول على موقعك الحالي.");
         return;
       }
 
-      // 4. Validate geofence
+      // 4. RE-VALIDATE geofence with fresh location
       const geofenceRadius = companySettings?.geofenceRadiusMeters || DEFAULT_GEOFENCE_RADIUS_METERS;
       const isInGeofence = isWithinGeofence(
         {
-          latitude: userLocation.coords.latitude,
-          longitude: userLocation.coords.longitude,
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude,
         },
         {
           latitude: companySettings?.latitude || 26.343165,
@@ -305,7 +317,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       );
 
       if (!isInGeofence) {
-        showAlert("خطأ: أنت خارج نطاق العمل. لا يمكنك تسجيل الحضور.");
+        showAlert("فشل الإجراء: أنت الآن خارج نطاق العمل");
         return;
       }
 
@@ -331,8 +343,8 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
         isLate,
         status,
         location: {
-          latitude: userLocation.coords.latitude,
-          longitude: userLocation.coords.longitude,
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude,
         },
       };
 
@@ -351,8 +363,8 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
             isLate,
             status,
             location: {
-              latitude: userLocation.coords.latitude,
-              longitude: userLocation.coords.longitude,
+              latitude: currentLocation.coords.latitude,
+              longitude: currentLocation.coords.longitude,
             },
           },
         });
@@ -381,6 +393,37 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     setIsCheckingOut(true);
 
     try {
+      // GPS RE-VERIFICATION (Security): Get fresh location before Firestore
+      try {
+        const freshLocation = await Location.getCurrentPositionAsync({});
+        setUserLocation(freshLocation);
+      } catch (gpsError) {
+        console.warn("Failed to refresh location for check-out:", gpsError);
+        if (!userLocation) {
+          showAlert("خطأ: لم نتمكن من الحصول على موقعك الحالي.");
+          return;
+        }
+      }
+
+      // RE-VALIDATE geofence with fresh location
+      const geofenceRadius = companySettings?.geofenceRadiusMeters || DEFAULT_GEOFENCE_RADIUS_METERS;
+      const isInGeofence = isWithinGeofence(
+        {
+          latitude: userLocation?.coords.latitude || 0,
+          longitude: userLocation?.coords.longitude || 0,
+        },
+        {
+          latitude: companySettings?.latitude || 26.343165,
+          longitude: companySettings?.longitude || 31.892424,
+        },
+        geofenceRadius,
+      );
+
+      if (!isInGeofence) {
+        showAlert("فشل الإجراء: أنت الآن خارج نطاق العمل");
+        return;
+      }
+
       const docId = attendanceDocIdRef.current || attendanceStatus?.checkInRecord?.id;
       if (!docId) {
         showAlert("خطأ: لم نتمكن من العثور على سجل الحضور.");

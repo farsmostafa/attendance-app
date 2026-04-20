@@ -4,6 +4,7 @@ import { db } from "../firebaseConfig";
 export interface LeaveRequest {
   id?: string;
   userId: string;
+  userName?: string;
   type: "leave" | "late";
   date: string;
   reason: string;
@@ -18,13 +19,15 @@ export interface LeaveRequest {
  */
 export const submitLeaveRequest = async (
   userId: string,
-  request: Omit<LeaveRequest, "id" | "status" | "created_at" | "userId">,
+  userName: string,
+  request: Omit<LeaveRequest, "id" | "status" | "created_at" | "userId" | "userName">,
 ): Promise<string> => {
   try {
     const docRef = await addDoc(collection(db, "requests"), {
       ...request,
       userId,
-      status: "Pending",
+      userName,
+      status: "pending",
       created_at: new Date().toISOString(),
     });
 
