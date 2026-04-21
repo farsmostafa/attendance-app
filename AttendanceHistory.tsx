@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, Alert, ScrollView } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { collection, query, where, orderBy, getDocs, Timestamp } from "firebase/firestore";
-import { db } from "./firebaseConfig";
-import { getCurrentUserData } from "./services/authService";
+import { Ionicons } from "@expo/vector-icons";
+import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
+import { auth, db } from "./firebaseConfig";
 import { RootStackParamList } from "./types";
 
 type AttendanceHistoryProps = NativeStackScreenProps<RootStackParamList, "AttendanceHistory"> & { isFocused?: boolean };
@@ -11,356 +11,404 @@ type AttendanceHistoryProps = NativeStackScreenProps<RootStackParamList, "Attend
 interface AttendanceRecord {
   id: string;
   date: string;
-  time: string;
-  type: string;
-  timestamp: Date;
+  checkIn?: any;
+  checkOut?: any;
+  workDuration?: number;
+  isLate?: boolean;
+  status?: "on-time" | "late";
 }
 
-interface MonthlyGroup {
-  monthYear: string;
-  month: number;
-  year: number;
-  records: AttendanceRecord[];
-  totalDaysPresent: number;
-  absences: number;
-  permissions: number;
-  bonus: number;
-}
+const MONTH_OPTIONS = [
+  { value: "01", label: "يناير" },
+  { value: "02", label: "فبراير" },
+  { value: "03", label: "مارس" },
+  { value: "04", label: "أبريل" },
+  { value: "05", label: "مايو" },
+  { value: "06", label: "يونيو" },
+  { value: "07", label: "يوليو" },
+  { value: "08", label: "أغسطس" },
+  { value: "09", label: "سبتمبر" },
+  { value: "10", label: "أكتوبر" },
+  { value: "11", label: "نوفمبر" },
+  { value: "12", label: "ديسمبر" },
+];
 
-/**
- * Employee Personal Attendance Records - سجلي الشخصي
- * CRITICAL: Only shows records where userId == currentUser.uid
- * Employees NEVER see other employees' records
- */
-const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ navigation, isFocused = true }) => {
-  const [monthlyData, setMonthlyData] = useState<MonthlyGroup[]>([]);
+const buildYearOptions = () => {
+  const currentYear = new Date().getFullYear();
+  return Array.from({ length: 6 }, (_, index) => String(currentYear - index));
+};
+
+const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true }) => {
+  const today = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(String(today.getMonth() + 1).padStart(2, "0"));
+  const [selectedYear, setSelectedYear] = useState(String(today.getFullYear()));
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const yearOptions = buildYearOptions();
+
+  const formatTimeValue = (value?: any) => {
+    try {
+      if (!value) return "--";
+      const dateValue = typeof value.toDate === "function" ? value.toDate() : value instanceof Date ? value : null;
+      if (!dateValue) return "--";
+      return dateValue.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch {
+      return "--";
+    }
+  };
+
+  const formatDateValue = (value: string) => {
+    const parsed = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+    return parsed.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  };
+
+  const formatDuration = (minutes?: number) => {
+    if (typeof minutes !== "number" || Number.isNaN(minutes)) return "--";
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours.toLocaleString("en-US")}h ${remainingMinutes.toLocaleString("en-US")}m`;
+  };
+
   useEffect(() => {
-    const fetchAttendanceHistory = async () => {
+    const fetchAttendance = async () => {
+      setLoading(true);
       try {
-        const userData = await getCurrentUserData();
-        if (!userData || !userData.uid) {
-          setLoading(false);
+        const currentUserId = auth.currentUser?.uid;
+        if (!currentUserId) {
+          setRecords([]);
           return;
         }
 
-        // Query all attendance records for current user, ordered by timestamp (descending)
-        const q = query(collection(db, "attendance"), where("userId", "==", userData.uid), orderBy("timestamp", "desc"));
+        const monthStart = `${selectedYear}-${selectedMonth}-01`;
+        const monthEnd = `${selectedYear}-${selectedMonth}-31`;
 
-        const querySnapshot = await getDocs(q);
+        const attendanceQuery = query(
+          collection(db, "attendance"),
+          where("userId", "==", currentUserId),
+          where("date", ">=", monthStart),
+          where("date", "<=", monthEnd),
+          orderBy("date", "desc"),
+        );
 
-        // Transform documents into display format
-        const records: AttendanceRecord[] = querySnapshot.docs.map((doc) => {
-          const data = doc.data();
-          const timestamp = data.timestamp instanceof Timestamp ? data.timestamp.toDate() : new Date(data.timestamp);
-
-          // Format date as DD/MM/YYYY
-          const date = timestamp.toLocaleDateString("ar-EG", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-          });
-
-          // Format time as HH:MM
-          const time = timestamp.toLocaleTimeString("ar-EG", {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: undefined,
-          });
-
+        const snapshot = await getDocs(attendanceQuery);
+        const nextRecords: AttendanceRecord[] = snapshot.docs.map((docItem) => {
+          const data = docItem.data();
           return {
-            id: doc.id,
-            date,
-            time,
-            type: data.type,
-            timestamp,
+            id: docItem.id,
+            date: data.date,
+            checkIn: data.check_in,
+            checkOut: data.check_out,
+            workDuration: data.workDuration,
+            isLate: data.isLate,
+            status: data.status,
           };
         });
 
-        // Group records by month and year
-        const groupedByMonth = new Map<string, AttendanceRecord[]>();
-
-        records.forEach((record) => {
-          const monthYear = record.timestamp.toLocaleDateString("ar-EG", {
-            year: "numeric",
-            month: "long",
-          });
-
-          if (!groupedByMonth.has(monthYear)) {
-            groupedByMonth.set(monthYear, []);
-          }
-          groupedByMonth.get(monthYear)!.push(record);
-        });
-
-        // Convert map to array with stats
-        const monthlyGroups: MonthlyGroup[] = Array.from(groupedByMonth.entries()).map(([monthYear, groupRecords]) => {
-          // Calculate unique days with check-in
-          const uniqueDaysWithCheckIn = new Set(groupRecords.filter((r) => r.type === "check-in").map((r) => r.date)).size;
-
-          const timestamp = groupRecords[0].timestamp;
-
-          return {
-            monthYear,
-            month: timestamp.getMonth(),
-            year: timestamp.getFullYear(),
-            records: groupRecords,
-            totalDaysPresent: uniqueDaysWithCheckIn,
-            absences: 0, // Placeholder
-            permissions: 0, // Placeholder
-            bonus: 0, // Placeholder (0 EGP)
-          };
-        });
-
-        setMonthlyData(monthlyGroups);
-      } catch (err) {
-        console.error("Error fetching attendance history:", err);
-        Alert.alert("خطأ", "فشل في جلب السجل. يرجى المحاولة لاحقاً.");
+        setRecords(nextRecords);
+      } catch (error) {
+        console.error("Failed to fetch attendance history:", error);
+        setRecords([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAttendanceHistory();
-  }, []);
-
-  const renderMonthlyStats = (monthData: MonthlyGroup) => (
-    <View key={`${monthData.month}-${monthData.year}`} style={styles.monthContainer}>
-      {/* Month Header */}
-      <Text style={styles.monthHeader}>{monthData.monthYear}</Text>
-
-      {/* Stats Card */}
-      <View style={styles.statsCard}>
-        <View style={styles.statRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{monthData.totalDaysPresent}</Text>
-            <Text style={styles.statLabel}>أيام الحضور</Text>
-          </View>
-
-          <View style={[styles.statItem, styles.statDivider]}>
-            <Text style={styles.statValue}>{monthData.absences}</Text>
-            <Text style={styles.statLabel}>الغيابات</Text>
-          </View>
-
-          <View style={[styles.statItem, styles.statDivider]}>
-            <Text style={styles.statValue}>{monthData.permissions}</Text>
-            <Text style={styles.statLabel}>الإجازات</Text>
-          </View>
-
-          <View style={[styles.statItem, styles.statDivider]}>
-            <Text style={styles.statValue}>{monthData.bonus}</Text>
-            <Text style={styles.statLabel}>الحوافز</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Daily Logs */}
-      <View style={styles.dailyLogsContainer}>
-        {monthData.records.map((record) => (
-          <View key={record.id} style={styles.dailyLogRow}>
-            <View style={styles.logDateColumn}>
-              <Text style={styles.logDate}>{record.date}</Text>
-            </View>
-
-            <View style={styles.logTypeColumn}>
-              <View style={[styles.typeBadge, record.type === "check-in" ? styles.typeBadgeCheckIn : styles.typeBadgeCheckOut]}>
-                <Text style={[styles.typeLabel, record.type === "check-in" ? styles.typeLabelCheckIn : styles.typeLabelCheckOut]}>
-                  {record.type === "check-in" ? "حضور" : "انصراف"}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.logTimeColumn}>
-              <Text style={styles.logTime}>{record.time}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
-
-      {/* Month Divider */}
-      <View style={styles.monthDivider} />
-    </View>
-  );
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text style={styles.loadingText}>جاري تحميل السجل...</Text>
-      </View>
-    );
-  }
-
-  if (monthlyData.length === 0) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.emptyText}>لا توجد سجلات حضور بعد.</Text>
-      </View>
-    );
-  }
+    if (isFocused) {
+      fetchAttendance();
+    }
+  }, [isFocused, selectedMonth, selectedYear]);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.title}>سجل الحضور والانصراف</Text>
-        <Text style={styles.subtitle}>تقرير شامل للحضور والانصراف</Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.card}>
+        <View style={styles.headerWrap}>
+          <Text style={styles.brandName}>دوّمت</Text>
+          <Text style={styles.title}>سجلي الشخصي</Text>
+          <Text style={styles.subtitle}>سجل حضورك وانصرافك بحسب الشهر والسنة</Text>
+        </View>
+
+        <View style={styles.filterCard}>
+          <Text style={styles.filterTitle}>تصفية السجلات</Text>
+          <View style={styles.filterRow}>
+            <View style={styles.filterField}>
+              <Text style={styles.filterLabel}>الشهر</Text>
+              {Platform.OS === "web" ? (
+                <select value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} style={webSelectStyle}>
+                  {MONTH_OPTIONS.map((month) => (
+                    <option key={month.value} value={month.value}>
+                      {month.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <Text style={styles.filterFallback}>{MONTH_OPTIONS.find((month) => month.value === selectedMonth)?.label}</Text>
+              )}
+            </View>
+
+            <View style={styles.filterField}>
+              <Text style={styles.filterLabel}>السنة</Text>
+              {Platform.OS === "web" ? (
+                <select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} style={webSelectStyle}>
+                  {yearOptions.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <Text style={styles.filterFallback}>{selectedYear}</Text>
+              )}
+            </View>
+          </View>
+        </View>
+
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="large" color="#ffeba7" />
+            <Text style={styles.loadingText}>جاري تحميل السجلات...</Text>
+          </View>
+        ) : records.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="calendar-clear-outline" size={48} color="#7b8194" />
+            <Text style={styles.emptyTitle}>لا توجد سجلات حضور في هذا الشهر</Text>
+          </View>
+        ) : (
+          <View style={styles.recordsWrap}>
+            {records.map((record) => (
+              <View key={record.id} style={styles.recordCard}>
+                <View style={styles.recordHeader}>
+                  <Text style={styles.recordDate}>{formatDateValue(record.date)}</Text>
+                  <View style={[styles.statusPill, record.isLate ? styles.statusPillLate : styles.statusPillOnTime]}>
+                    <Text style={styles.statusPillText}>{record.isLate ? "متأخر" : "في الموعد"}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.recordRow}>
+                  <Text style={styles.recordValue}>{formatTimeValue(record.checkIn)}</Text>
+                  <Text style={styles.recordLabel}>الحضور</Text>
+                </View>
+
+                <View style={styles.recordRow}>
+                  <Text style={styles.recordValue}>{formatTimeValue(record.checkOut)}</Text>
+                  <Text style={styles.recordLabel}>الانصراف</Text>
+                </View>
+
+                <View style={styles.recordRow}>
+                  <Text style={styles.recordValue}>{formatDuration(record.workDuration)}</Text>
+                  <Text style={styles.recordLabel}>ساعات العمل</Text>
+                </View>
+
+                <View style={styles.recordRowLast}>
+                  <Text style={styles.recordValue}>{record.status === "late" ? "Late" : "On Time"}</Text>
+                  <Text style={styles.recordLabel}>الحالة</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
-
-      {monthlyData.map((monthData) => renderMonthlyStats(monthData))}
-
-      <View style={styles.footerSpacer} />
     </ScrollView>
   );
 };
 
+const webSelectStyle = {
+  width: "100%",
+  height: 44,
+  borderRadius: 10,
+  border: "1px solid #e8d87a",
+  backgroundColor: "#fff9dc",
+  color: "#102770",
+  padding: "0 12px",
+  fontSize: 14,
+  fontWeight: 700,
+  textAlign: "right" as const,
+  outline: "none",
+};
+
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#f5f5f5",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+    flex: 1,
+    backgroundColor: "#2a2b38",
   },
-  headerContainer: {
-    paddingVertical: 15,
-    marginBottom: 10,
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 28,
+    paddingHorizontal: 16,
+  },
+  card: {
+    width: "100%",
+    maxWidth: 760,
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 8,
+  },
+  headerWrap: {
+    alignItems: "flex-end",
+    marginBottom: 16,
+  },
+  brandName: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: "#2a2b38",
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
-    textAlign: "center",
-    marginBottom: 5,
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#2a2b38",
+    marginTop: 2,
+    textAlign: "right",
   },
   subtitle: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
+    fontSize: 13,
+    color: "#6f7384",
+    marginTop: 4,
+    textAlign: "right",
   },
-  monthContainer: {
-    marginBottom: 15,
+  filterCard: {
+    backgroundColor: "#ffeba7",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
   },
-  monthHeader: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#007bff",
-    marginBottom: 10,
-    paddingHorizontal: 5,
-  },
-  statsCard: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
+  filterTitle: {
+    textAlign: "right",
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#102770",
     marginBottom: 12,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
   },
-  statRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
+  filterRow: {
+    flexDirection: "row-reverse",
+    gap: 12,
   },
-  statItem: {
-    alignItems: "center",
+  filterField: {
     flex: 1,
   },
-  statDivider: {
-    borderLeftWidth: 1,
-    borderLeftColor: "#e0e0e0",
+  filterLabel: {
+    textAlign: "right",
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#102770",
+    marginBottom: 8,
   },
-  statValue: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#007bff",
-    marginBottom: 5,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#666",
-    fontWeight: "500",
-  },
-  dailyLogsContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    overflow: "hidden",
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  dailyLogRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
+  filterFallback: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: "#fff9dc",
+    color: "#102770",
+    textAlign: "right",
+    textAlignVertical: "center",
     paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  logDateColumn: {
-    flex: 1,
-  },
-  logDate: {
+    paddingTop: 12,
     fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: "700",
   },
-  logTypeColumn: {
-    flex: 1,
-    alignItems: "center",
-  },
-  typeBadge: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+  loadingWrap: {
+    minHeight: 260,
     alignItems: "center",
     justifyContent: "center",
   },
-  typeBadgeCheckIn: {
-    backgroundColor: "#d4edda",
-  },
-  typeBadgeCheckOut: {
-    backgroundColor: "#fff3cd",
-  },
-  typeLabel: {
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  typeLabelCheckIn: {
-    color: "#155724",
-  },
-  typeLabelCheckOut: {
-    color: "#856404",
-  },
-  logTimeColumn: {
-    flex: 1,
-    alignItems: "flex-end",
-  },
-  logTime: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: "#666",
-  },
-  monthDivider: {
-    height: 1,
-    backgroundColor: "#e0e0e0",
-    marginVertical: 15,
-  },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#666",
+    marginTop: 12,
+    fontSize: 15,
+    color: "#49516c",
     textAlign: "center",
   },
-  emptyText: {
-    fontSize: 16,
-    color: "#999",
-    textAlign: "center",
-    marginTop: 50,
+  emptyState: {
+    minHeight: 260,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
   },
-  footerSpacer: {
-    height: 30,
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#7b8194",
+    textAlign: "center",
+  },
+  recordsWrap: {
+    gap: 12,
+  },
+  recordCard: {
+    backgroundColor: "#f8f9ff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#eceffd",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  recordHeader: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  recordDate: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#2a2b38",
+    textAlign: "right",
+  },
+  statusPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  statusPillLate: {
+    backgroundColor: "#dc2626",
+  },
+  statusPillOnTime: {
+    backgroundColor: "#16a34a",
+  },
+  statusPillText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  recordRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e3e7f5",
+  },
+  recordRowLast: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 10,
+  },
+  recordLabel: {
+    color: "#7f8598",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  recordValue: {
+    color: "#2a2b38",
+    fontSize: 16,
+    fontWeight: "800",
+    textAlign: "right",
   },
 });
 
