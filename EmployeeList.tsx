@@ -8,7 +8,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import ScreenWrapper from "./components/ScreenWrapper";
-import TopHeader from "./components/TopHeader";
 import DashboardMenu from "./components/DashboardMenu";
 
 type EmployeeListProps = NativeStackScreenProps<RootStackParamList, "EmployeeList">;
@@ -29,7 +28,6 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
 
   const fetchEmployees = async () => {
     try {
@@ -44,7 +42,6 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
         throw new Error("فشل في جلب بيانات المستخدم الحالي");
       }
 
-      setCurrentUser(userData);
 
       if (!userData?.company_id) {
         throw new Error("لم نتمكن من العثور على شركتك");
@@ -236,7 +233,6 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
   if (loading && !refreshing) {
     return (
       <ScreenWrapper>
-        <TopHeader userName={currentUser?.name || "الموظف"} />
         <DashboardMenu navigation={navigation} currentScreen="EmployeeList" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007bff" />
@@ -250,7 +246,6 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
   if (error && employees.length === 0) {
     return (
       <ScreenWrapper>
-        <TopHeader userName={currentUser?.name || "الموظف"} />
         <DashboardMenu navigation={navigation} currentScreen="EmployeeList" />
         {renderErrorState()}
       </ScreenWrapper>
@@ -260,7 +255,6 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
   // Success state
   return (
     <ScreenWrapper>
-      <TopHeader userName={currentUser?.name || "الموظف"} />
       <DashboardMenu navigation={navigation} currentScreen="EmployeeList" />
 
       {/* Header with Add Button */}

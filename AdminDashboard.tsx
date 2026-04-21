@@ -1,23 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { Text, View, StyleSheet } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Ionicons } from "@expo/vector-icons";
-import { signOut } from "firebase/auth";
-import { auth } from "./firebaseConfig";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "./firebaseConfig";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { RootStackParamList } from "./types";
 import { getCurrentUserData } from "./services/authService";
 import { countPresentToday } from "./services/attendanceService";
-import { User, RootStackParamList } from "./types";
 import AdminLayout from "./components/AdminLayout";
-
-// Content components
 import DashboardContent from "./screens/DashboardContent";
-import AddEmployeeContent from "./screens/AddEmployeeContent";
-import EmployeeListContent from "./screens/EmployeeListContent";
-import TodayLogContent from "./screens/TodayLogContent";
-import AdminReportsContent from "./screens/AdminReportsContent";
-import AdminSettingsContent from "./screens/AdminSettingsContent";
 
 type AdminDashboardProps = NativeStackScreenProps<RootStackParamList, "AdminDashboard">;
 
@@ -34,165 +24,70 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
   const [presentToday, setPresentToday] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeScreen, setActiveScreen] = useState<string>("Dashboard");
-  const [companyId, setCompanyId] = useState<string>("MainCompany");
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
+
       try {
         const userData = await getCurrentUserData();
-        setCurrentUser(userData);
+        const companyId = userData?.companyId || userData?.company_id || "MainCompany";
 
-        if (!userData) {
-          setError("فشل في تحميل بيانات المستخدم");
-          setLoading(false);
-          return;
-        }
+        const employeesQuery = query(collection(db, "users"), where("companyId", "==", companyId), where("role", "==", "employee"));
+        const employeesSnapshot = await getDocs(employeesQuery);
 
-        // Use user's companyId or default
-        const company = userData.companyId || "MainCompany";
-        setCompanyId(company);
-
-        // Fetch employees for the company
-        const q = query(collection(db, "users"), where("companyId", "==", company), where("role", "==", "employee"));
-        const querySnapshot = await getDocs(q);
-        const empList: Employee[] = [];
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          empList.push({
-            id: doc.id,
+        const employeeRows: Employee[] = [];
+        employeesSnapshot.forEach((docSnapshot) => {
+          const data = docSnapshot.data();
+          employeeRows.push({
+            id: docSnapshot.id,
             name: data.name || "",
             email: data.email || "",
             role: data.role || "employee",
-            company_id: data.company_id || data.companyId || "",
+            company_id: data.companyId || companyId,
           });
         });
-        setEmployees(empList);
 
-        // Fetch today's present count
         const today = new Date().toISOString().split("T")[0];
         const presentCount = await countPresentToday(today);
+
+        setEmployees(employeeRows);
         setPresentToday(presentCount);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        setError(err instanceof Error ? err.message : "حدث خطأ أثناء جلب البيانات");
+      } catch (loadError) {
+        console.error("Error loading admin dashboard:", loadError);
+        setError(loadError instanceof Error ? loadError.message : "Failed to load admin dashboard data.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    loadData();
   }, []);
 
-  const handleScreenChange = (screen: string) => {
-    setActiveScreen(screen);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "Login" }],
-      });
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
-
-  if (loading) {
-    return (
-      <AdminLayout
-        currentScreen={activeScreen}
-        onNavigate={handleScreenChange}
-        showLoading={true}
-        userName={currentUser?.name}
-        navigation={navigation}
-        onLogout={handleLogout}
-      >
-        <View />
-      </AdminLayout>
-    );
-  }
-
-  if (error) {
-    return (
-      <AdminLayout
-        currentScreen={activeScreen}
-        onNavigate={handleScreenChange}
-        showLoading={false}
-        userName={currentUser?.name}
-        navigation={navigation}
-        onLogout={handleLogout}
-      >
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color="#dc3545" />
+  return (
+    <AdminLayout navigation={navigation} activeRoute="AdminDashboard" showLoading={loading}>
+      {error ? (
+        <View style={styles.errorBox}>
           <Text style={styles.errorText}>{error}</Text>
         </View>
-      </AdminLayout>
-    );
-  }
-
-  // Render content based on active screen
-  const renderContent = () => {
-    switch (activeScreen) {
-      case "Dashboard":
-        return <DashboardContent employees={employees} presentToday={presentToday} />;
-      case "AddEmployee":
-        return <AddEmployeeContent navigation={navigation} companyId={companyId} />;
-      case "EmployeeList":
-        return <EmployeeListContent navigation={navigation} companyId={companyId} />;
-      case "TodayLog":
-        return <TodayLogContent navigation={navigation} companyId={companyId} />;
-      case "AdminReports":
-        return <AdminReportsContent navigation={navigation} companyId={companyId} />;
-      case "AdminSettings":
-        return <AdminSettingsContent navigation={navigation} companyId={companyId} />;
-      default:
-        return <DashboardContent employees={employees} presentToday={presentToday} />;
-    }
-  };
-
-  return (
-    <AdminLayout
-      currentScreen={activeScreen}
-      onNavigate={handleScreenChange}
-      showLoading={false}
-      userName={currentUser?.name}
-      navigation={navigation}
-      onLogout={handleLogout}
-    >
-      {renderContent()}
+      ) : (
+        <DashboardContent employees={employees} presentToday={presentToday} />
+      )}
     </AdminLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  errorContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 40,
+  errorBox: {
+    backgroundColor: "#ffecec",
+    borderRadius: 12,
+    padding: 16,
   },
   errorText: {
-    fontSize: 16,
-    color: "#dc3545",
-    marginTop: 12,
-    textAlign: "center",
+    color: "#9f1d1d",
+    fontSize: 14,
     fontWeight: "600",
-  },
-  placeholderContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 60,
-  },
-  placeholderText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#666",
-    marginTop: 12,
   },
 });
 

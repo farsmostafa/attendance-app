@@ -1,136 +1,104 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-  Text,
-  Alert,
-  TouchableOpacity,
-  useWindowDimensions,
-  Platform,
-} from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { getCurrentUserData } from "../services/authService";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Ionicons } from "@expo/vector-icons";
-import { RootStackParamList } from "../types";
-import TopHeader from "./TopHeader";
-import EmployeeSidebar from "./EmployeeSidebar";
 import Sidebar, { SidebarItem } from "./Sidebar";
-import EmployeeDashboard from "../EmployeeDashboard";
-import AttendanceHistory from "../AttendanceHistory";
 
-type EmployeeLayoutProps = NativeStackScreenProps<RootStackParamList, "EmployeeDashboard"> & { route?: any; useModernSidebar?: boolean };
+interface EmployeeLayoutProps {
+  activeRoute: "EmployeeDashboard" | "AttendanceHistory" | "EmployeeProfile";
+  navigation: any;
+  children: React.ReactNode;
+  showLoading?: boolean;
+  userName?: string;
+}
 
-const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, route, useModernSidebar = false }) => {
-  const [currentUserName, setCurrentUserName] = useState("الموظف");
-  const [loadingUser, setLoadingUser] = useState(true);
-  const [currentScreen, setCurrentScreen] = useState("Dashboard");
+const EMPLOYEE_ITEMS: SidebarItem[] = [
+  { id: "employee-dashboard", routeName: "EmployeeDashboard", label: "Dashboard", icon: "home-outline" },
+  { id: "employee-history", routeName: "AttendanceHistory", label: "Attendance History", icon: "time-outline" },
+  { id: "employee-profile", routeName: "EmployeeProfile", label: "Personal Profile", icon: "person-outline" },
+];
+
+const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation, children, showLoading = false, userName }) => {
+  const [currentUserName, setCurrentUserName] = useState<string>(userName || "Employee");
   const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const { width } = useWindowDimensions();
-
-  // Show sidebar by default on large screens (width >= 900), hidden on mobile
   const isMobile = width < 900;
-  const shouldShowSidebar = !isMobile || sidebarVisible;
-
-  // Modern sidebar items for employee
-  const modernSidebarItems: SidebarItem[] = [
-    { id: "dashboard", icon: "home-outline", label: "Dashboard", onPress: () => setCurrentScreen("Dashboard") },
-    { id: "history", icon: "file-document-outline", label: "My Records", onPress: () => setCurrentScreen("AttendanceHistory") },
-  ];
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const userData = await getCurrentUserData();
-        if (userData?.name) {
-          setCurrentUserName(userData.name);
+    if (!userName) {
+      const loadName = async () => {
+        try {
+          const currentUser = await getCurrentUserData();
+          if (currentUser?.name) {
+            setCurrentUserName(currentUser.name);
+          }
+        } catch (error) {
+          console.error("Failed to load current user for header:", error);
         }
-      } catch (error) {
-        console.error("Error loading employee name:", error);
-      } finally {
-        setLoadingUser(false);
-      }
-    };
+      };
+      loadName();
+    }
+  }, [userName]);
 
-    loadUser();
-  }, []);
+  const handleNavigate = (routeName: string) => {
+    if (routeName !== activeRoute) {
+      navigation.navigate(routeName as never);
+    }
+    if (isMobile) {
+      setSidebarVisible(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      navigation.replace("Login");
+      navigation.reset({ index: 0, routes: [{ name: "Login" }] });
     } catch (error: any) {
       console.error("Logout failed:", error);
-      Alert.alert("خطأ", error?.message || "فشل في تسجيل الخروج");
+      Alert.alert("Logout failed", error?.message || "Could not log out right now.");
     }
   };
 
-  if (loadingUser) {
-    return (
-      <View style={styles.container}>
-        <TopHeader userName={currentUserName} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007bff" />
-          <Text style={styles.loadingText}>جاري التحميل...</Text>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      <TopHeader userName={currentUserName} />
-      {/* Main Layout: Content + Sidebar */}
-      <View style={styles.layoutContainer}>
-        {/* Hamburger Menu Button - Mobile Only */}
+      <View style={styles.body}>
         {isMobile && (
-          <View style={styles.mobileMenuButton}>
-            <TouchableOpacity onPress={() => setSidebarVisible(!sidebarVisible)} activeOpacity={0.7}>
-              <Ionicons name={sidebarVisible ? "close" : "menu"} size={28} color="#007bff" />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.mobileToggle} onPress={() => setSidebarVisible((prev) => !prev)} activeOpacity={0.8}>
+            <Ionicons name={sidebarVisible ? "close" : "menu"} size={24} color="#ffeba7" />
+          </TouchableOpacity>
         )}
 
-        {/* Main Content Area */}
+        {(!isMobile || sidebarVisible) && (
+          <Sidebar
+            items={EMPLOYEE_ITEMS}
+            activeRoute={activeRoute}
+            onNavigate={handleNavigate}
+            onLogout={handleLogout}
+            userName={currentUserName}
+            logoutLabel="تسجيل الخروج"
+            mobile={isMobile}
+            onExpandedChange={setSidebarExpanded}
+            onMobileClose={() => setSidebarVisible(false)}
+          />
+        )}
+
         <ScrollView
-          style={[styles.mainContent, Platform.OS === "web" && useModernSidebar && styles.mainContentWithModernSidebar]}
-          contentContainerStyle={styles.contentContainer}
+          style={[styles.content, { marginRight: isMobile ? 0 : sidebarExpanded ? 250 : 80 }]}
+          contentContainerStyle={[styles.contentContainer, isMobile && styles.mobileContentContainer]}
           showsVerticalScrollIndicator={false}
         >
-          {currentScreen === "Dashboard" && (
-            <EmployeeDashboard {...({ navigation, route } as any)} isFocused={currentScreen === "Dashboard"} />
-          )}
-          {currentScreen === "AttendanceHistory" && (
-            <AttendanceHistory
-              {...({ navigation, route: { ...route, name: "AttendanceHistory", key: "AttendanceHistory" } } as any)}
-              isFocused={currentScreen === "AttendanceHistory"}
-            />
+          {showLoading ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator size="large" color="#2a2b38" />
+              <Text style={styles.loadingText}>Loading...</Text>
+            </View>
+          ) : (
+            children
           )}
         </ScrollView>
-
-        {/* Modern Sidebar (if enabled) */}
-        {useModernSidebar && !isMobile && (
-          <Sidebar
-            items={modernSidebarItems}
-            activeItemId={currentScreen === "Dashboard" ? "dashboard" : currentScreen === "AttendanceHistory" ? "history" : undefined}
-          />
-        )}
-
-        {/* Classic Sidebar (if not using modern sidebar) */}
-        {!useModernSidebar && shouldShowSidebar && (
-          <EmployeeSidebar
-            currentScreen={currentScreen}
-            onNavigate={(screen) => {
-              setCurrentScreen(screen);
-              // Close sidebar after navigation on mobile
-              if (isMobile) setSidebarVisible(false);
-            }}
-            onLogout={handleLogout}
-          />
-        )}
       </View>
     </View>
   );
@@ -139,43 +107,53 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, route, useM
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#2a2b38",
+    margin: 0,
+    padding: 0,
+    borderWidth: 0,
   },
-  layoutContainer: {
+  body: {
     flex: 1,
-    flexDirection: "row-reverse",
+    flexDirection: "row",
+    backgroundColor: "#2a2b38",
+    margin: 0,
+    padding: 0,
+    borderWidth: 0,
   },
-  mainContent: {
+  content: {
     flex: 1,
-    backgroundColor: "#f3f4f6",
-  },
-  mainContentWithModernSidebar: {
-    ...(Platform.OS === "web" && {
-      marginLeft: 120,
-    }),
+    backgroundColor: "#2a2b38",
+    margin: 0,
+    borderWidth: 0,
   },
   contentContainer: {
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+    padding: 16,
     minHeight: "100%",
   },
-  mobileMenuButton: {
-    position: "absolute",
-    top: 60,
-    right: 16,
-    zIndex: 100,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
+  mobileContentContainer: {
+    padding: 20,
+    paddingTop: 80,
   },
-  loadingContainer: {
+  loadingWrap: {
     flex: 1,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 48,
   },
   loadingText: {
-    marginTop: 12,
-    color: "#666",
-    fontSize: 16,
+    marginTop: 10,
+    color: "#555",
+    fontSize: 15,
+  },
+  mobileToggle: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    zIndex: 9999,
+    backgroundColor: "#2a2b38",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
 });
 

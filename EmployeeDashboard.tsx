@@ -1,23 +1,20 @@
-import React, { useState, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from "react-native";
+﻿import React, { useState, useEffect, useRef } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView, Animated } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Location from "expo-location";
 import { getDoc, doc } from "firebase/firestore";
+import { Ionicons } from "@expo/vector-icons";
 import { db } from "./firebaseConfig";
 import { getCurrentUserData } from "./services/authService";
 import { checkTodayAttendance, recordCheckIn, recordCheckOut, AttendanceCheckResult } from "./services/attendanceService";
-import { calculateDistance, isWithinGeofence, Coordinates } from "./utils/geo";
+import { calculateDistance, isWithinGeofence } from "./utils/geo";
 import { RootStackParamList } from "./types";
 
 type EmployeeDashboardProps = NativeStackScreenProps<RootStackParamList, "EmployeeDashboard"> & { isFocused?: boolean };
 
-// Constants - Defaults for fallback scenarios
-// REMOVED: DEFAULT_COMPANY_LOCATION had hardcoded coordinates that caused ghost distance calculations
-// All calculations now use ONLY companySettings.latitude/longitude from Firestore DB
 const DEFAULT_GEOFENCE_RADIUS_METERS = 100;
 const DEFAULT_GRACE_PERIOD_MINUTES = 15;
 
-// Company Settings Type
 interface CompanySettings {
   latitude: number;
   longitude: number;
@@ -27,36 +24,34 @@ interface CompanySettings {
   geofenceRadiusMeters: number;
 }
 
+interface LiveGeolocationPosition {
+  coords: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
 const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFocused = true }) => {
-  // Location & Geofence State
   const [userLocation, setUserLocation] = useState<any>(null);
   const [distance, setDistance] = useState<number | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
 
-  // Company Settings State
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(true);
 
-  // Attendance State
   const [attendanceStatus, setAttendanceStatus] = useState<AttendanceCheckResult | null>(null);
   const [attendanceLoading, setAttendanceLoading] = useState(true);
+  const [employeeName, setEmployeeName] = useState<string>("--");
 
-  // UI State
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
 
-  // Refs for preventing race conditions
   const isProcessingRef = useRef(false);
   const attendanceDocIdRef = useRef<string | null>(null);
+  const pulseScale = useRef(new Animated.Value(1)).current;
+  const pulseOpacity = useRef(new Animated.Value(0.42)).current;
 
-  // ============================================================================
-  // Attendance Status Management
-  // ============================================================================
-
-  /**
-   * Fetch today's attendance status for current user
-   * Queries Firestore to determine if user has checked in/out today
-   */
   const fetchAttendanceStatus = async () => {
     setAttendanceLoading(true);
     try {
@@ -66,12 +61,12 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
         setAttendanceStatus(null);
         return;
       }
+      setEmployeeName(userData.name || userData.email || "--");
 
       const today = new Date().toISOString().split("T")[0];
       const status = await checkTodayAttendance(userData.uid, today);
       setAttendanceStatus(status);
 
-      // Store attendance doc ID for checkout if available
       if (status.checkInRecord?.id) {
         attendanceDocIdRef.current = status.checkInRecord.id;
       }
@@ -83,10 +78,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     }
   };
 
-  /**
-   * Fetch company settings from Firestore
-   * Retrieves geofence coordinates, work times, grace period, and radius
-   */
   const fetchCompanySettings = async () => {
     setSettingsLoading(true);
     try {
@@ -103,42 +94,30 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
         };
         setCompanySettings(settings);
       } else {
-        // Set defaults if document doesn't exist
-        const defaultSettings = {
+        setCompanySettings({
           latitude: 26.343165,
           longitude: 31.892424,
           workStartTime: "09:00",
           workEndTime: "17:00",
           gracePeriodMinutes: DEFAULT_GRACE_PERIOD_MINUTES,
           geofenceRadiusMeters: DEFAULT_GEOFENCE_RADIUS_METERS,
-        };
-        setCompanySettings(defaultSettings);
+        });
       }
     } catch (error) {
       console.error("Error fetching company settings:", error);
-      // Set defaults on error
-      const defaultSettings = {
+      setCompanySettings({
         latitude: 26.343165,
         longitude: 31.892424,
         workStartTime: "09:00",
         workEndTime: "17:00",
         gracePeriodMinutes: DEFAULT_GRACE_PERIOD_MINUTES,
         geofenceRadiusMeters: DEFAULT_GEOFENCE_RADIUS_METERS,
-      };
-      setCompanySettings(defaultSettings);
+      });
     } finally {
       setSettingsLoading(false);
     }
   };
 
-  // ============================================================================
-  // Location & Geofencing
-  // ============================================================================
-
-  /**
-   * Request and fetch user's current GPS location
-   * Calculates distance to company office with 3-second GPS stabilization delay
-   */
   const initializeLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -150,37 +129,24 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       const currentLocation = await Location.getCurrentPositionAsync({});
       setUserLocation(currentLocation);
       setLocationError(null);
-      // Distance calculation now happens in the synchronized useEffect
-      // which waits for BOTH userLocation AND companySettings from DB to be available
     } catch (error) {
       console.error("Location error:", error);
       setLocationError("حدث خطأ أثناء جلب موقعك الحالي.");
     }
   };
 
-  /**
-   * Refresh location and recalculate distance
-   * Updates location state which triggers synchronized distance calculation
-   */
   const refreshLocation = async () => {
     try {
       setLocationError(null);
       const currentLocation = await Location.getCurrentPositionAsync({});
       setUserLocation(currentLocation);
-      // Distance calculation is now handled by the synchronized useEffect
     } catch (error) {
       console.error("Refresh location error:", error);
       setLocationError("حدث خطأ أثناء تحديث الموقع.");
     }
   };
 
-  // ============================================================================
-  // Lifecycle Hooks
-  // ============================================================================
-
-  // Initialize on mount - RESET all stale data
   useEffect(() => {
-    // Explicit reset on mount to clear any stale data from previous sessions
     setUserLocation(null);
     setDistance(null);
     setCompanySettings(null);
@@ -194,18 +160,15 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     initialize();
   }, []);
 
-  // Refresh attendance when screen comes into focus
   useEffect(() => {
     if (isFocused) {
       fetchAttendanceStatus();
     }
   }, [isFocused]);
 
-  // Synchronized distance calculation: only when BOTH location and settings are available and accurate
   useEffect(() => {
     if (userLocation && companySettings) {
       const accuracy = userLocation.coords.accuracy;
-      // Only calculate and show distance if GPS accuracy is high (< 100m)
       if (accuracy < 100) {
         const dist = calculateDistance(
           {
@@ -219,7 +182,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     }
   }, [userLocation, companySettings]);
 
-  // Auto-refresh location every 5 seconds
   useEffect(() => {
     const refresh = async () => {
       try {
@@ -232,10 +194,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       }
     };
 
-    // Start tracking immediately
     refresh();
-
-    // Then continue every 5 seconds
     const interval = setInterval(() => {
       refresh();
     }, 5000);
@@ -245,17 +204,14 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     };
   }, []);
 
-  // ============================================================================
-  // Check-In / Check-Out Handler
-  // ============================================================================
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 1000);
 
-  /**
-   * Handle check-in or check-out action
-   * Validates permissions, geofence, and time, then records to Firestore
-   */
-  /**
-   * Helper: Web-compatible alert using window.alert
-   */
+    return () => clearInterval(timer);
+  }, []);
+
   const showAlert = (message: string) => {
     if (typeof window !== "undefined" && typeof window.alert === "function") {
       window.alert(message);
@@ -264,27 +220,44 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     }
   };
 
+  const getLiveNavigatorPosition = async (): Promise<LiveGeolocationPosition | null> => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      return null;
+    }
+
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) =>
+          resolve({
+            coords: {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            },
+          }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+      );
+    });
+  };
+
   const handleCheckIn = async () => {
     if (isProcessingRef.current) return;
     isProcessingRef.current = true;
     setIsCheckingIn(true);
 
     try {
-      // 1. Fetch user data
       const userData = await getCurrentUserData();
       if (!userData?.uid) {
         showAlert("خطأ: فشل في جلب بيانات المستخدم. يرجى المحاولة مرة أخرى.");
         return;
       }
 
-      // 2. Validate company association
       const companyId = userData.companyId || userData.company_id;
       if (!companyId) {
         showAlert("خطأ: حسابك غير مرتبط بشركة. يرجى التواصل مع الإدارة.");
         return;
       }
 
-      // 3. GPS RE-VERIFICATION (Security): Get fresh location before Firestore
       let currentLocation = userLocation;
       try {
         const freshLocation = await Location.getCurrentPositionAsync({});
@@ -302,7 +275,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
         return;
       }
 
-      // 4. RE-VALIDATE geofence with fresh location
       const geofenceRadius = companySettings?.geofenceRadiusMeters || DEFAULT_GEOFENCE_RADIUS_METERS;
       const isInGeofence = isWithinGeofence(
         {
@@ -321,7 +293,6 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
         return;
       }
 
-      // ===== CHECK-IN =====
       const now = new Date();
       const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
 
@@ -348,6 +319,25 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
         },
       };
 
+      const livePosition = await getLiveNavigatorPosition();
+      if (livePosition && companySettings) {
+        const liveDistance = calculateDistance(
+          {
+            latitude: livePosition.coords.latitude,
+            longitude: livePosition.coords.longitude,
+          },
+          {
+            latitude: companySettings.latitude,
+            longitude: companySettings.longitude,
+          },
+        );
+
+        if (liveDistance > 100) {
+          showAlert("عذراً، أنت خارج نطاق العمل الآن");
+          return;
+        }
+      }
+
       try {
         const docId = await recordCheckIn(checkInPayload);
         attendanceDocIdRef.current = docId;
@@ -372,6 +362,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
         const message = isLate ? "✓ تم تسجيل حضورك بنجاح!\n⚠️ تنبيه: لقد تجاوزت فترة السماح" : "✓ تم تسجيل حضورك بنجاح!";
         showAlert(message);
         console.log("Check-in successful:", docId);
+        await fetchAttendanceStatus();
       } catch (checkInError) {
         console.error("Check-in DB Error:", checkInError);
         showAlert(`خطأ في تسجيل الحضور: ${checkInError instanceof Error ? checkInError.message : "خطأ غير معروف"}`);
@@ -393,9 +384,10 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     setIsCheckingOut(true);
 
     try {
-      // GPS RE-VERIFICATION (Security): Get fresh location before Firestore
+      let clickLocation = userLocation;
       try {
         const freshLocation = await Location.getCurrentPositionAsync({});
+        clickLocation = freshLocation;
         setUserLocation(freshLocation);
       } catch (gpsError) {
         console.warn("Failed to refresh location for check-out:", gpsError);
@@ -405,12 +397,11 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
         }
       }
 
-      // RE-VALIDATE geofence with fresh location
       const geofenceRadius = companySettings?.geofenceRadiusMeters || DEFAULT_GEOFENCE_RADIUS_METERS;
       const isInGeofence = isWithinGeofence(
         {
-          latitude: userLocation?.coords.latitude || 0,
-          longitude: userLocation?.coords.longitude || 0,
+          latitude: clickLocation?.coords.latitude || 0,
+          longitude: clickLocation?.coords.longitude || 0,
         },
         {
           latitude: companySettings?.latitude || 26.343165,
@@ -422,6 +413,25 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       if (!isInGeofence) {
         showAlert("فشل الإجراء: أنت الآن خارج نطاق العمل");
         return;
+      }
+
+      const livePosition = await getLiveNavigatorPosition();
+      if (livePosition && companySettings) {
+        const liveDistance = calculateDistance(
+          {
+            latitude: livePosition.coords.latitude,
+            longitude: livePosition.coords.longitude,
+          },
+          {
+            latitude: companySettings.latitude,
+            longitude: companySettings.longitude,
+          },
+        );
+
+        if (liveDistance > 100) {
+          showAlert("عذراً، أنت خارج نطاق العمل الآن");
+          return;
+        }
       }
 
       const docId = attendanceDocIdRef.current || attendanceStatus?.checkInRecord?.id;
@@ -442,6 +452,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
 
         showAlert("✓ تم تسجيل انصرافك بنجاح!");
         console.log("Check-out successful:", docId);
+        await fetchAttendanceStatus();
       } catch (checkOutError) {
         console.error("Check-out Error:", checkOutError);
         showAlert(`خطأ في تسجيل الانصراف: ${checkOutError instanceof Error ? checkOutError.message : "خطأ غير معروف"}`);
@@ -457,105 +468,221 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     }
   };
 
-  // ============================================================================
-  // Computed UI Values
-  // ============================================================================
-
   const geofenceRadius = companySettings?.geofenceRadiusMeters || DEFAULT_GEOFENCE_RADIUS_METERS;
   const withinGeofence = distance !== null && distance <= geofenceRadius;
 
   const isLoading = settingsLoading || attendanceLoading;
   const hasCheckedIn = attendanceStatus?.hasCheckedIn ?? false;
-
   const hasCheckedOut = attendanceStatus?.hasCheckedOut ?? false;
   const shiftCompleted = hasCheckedIn && hasCheckedOut;
   const isProcessing = isCheckingIn || isCheckingOut;
   const buttonDisabled = isProcessing || shiftCompleted || !withinGeofence;
+  const showPulse = withinGeofence && !shiftCompleted && !isProcessing && !locationError;
 
-  // ============================================================================
-  // Render
-  // ============================================================================
+  useEffect(() => {
+    let pulseLoop: Animated.CompositeAnimation | null = null;
 
-  // Guard: Show loader until distance is determined
-  if (distance === null && !locationError) {
-    return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>لوحة الموظف</Text>
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>نظام الحضور والانصراف</Text>
-          <View style={styles.cardLoadingContainer}>
-            <ActivityIndicator size="large" color="#0000ff" />
-            <Text style={styles.statusText}>جاري فحص موقعك الجغرافي بدقة... برجاء الانتظار</Text>
-          </View>
-        </View>
-      </ScrollView>
-    );
-  }
+    if (showPulse) {
+      pulseScale.setValue(1);
+      pulseOpacity.setValue(0.42);
+      pulseLoop = Animated.loop(
+        Animated.parallel([
+          Animated.timing(pulseScale, {
+            toValue: 1.35,
+            duration: 1400,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseOpacity, {
+            toValue: 0,
+            duration: 1400,
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+      pulseLoop.start();
+    } else {
+      pulseScale.stopAnimation();
+      pulseOpacity.stopAnimation();
+      pulseScale.setValue(1);
+      pulseOpacity.setValue(0);
+    }
+
+    return () => {
+      if (pulseLoop) {
+        pulseLoop.stop();
+      }
+    };
+  }, [showPulse, pulseScale, pulseOpacity]);
+
+  const actionLabel = shiftCompleted ? "تم إنهاء الدوام" : hasCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور";
+  const actionSubtitle = shiftCompleted ? "اكتمل يوم العمل" : hasCheckedIn ? "إنهاء الدوام" : "بدء الدوام";
+
+  const todayRecord = attendanceStatus?.checkInRecord;
+  const formatTimeValue = (value: any): string => {
+    try {
+      if (!value) return "--";
+      if (typeof value.toDate === "function") {
+        return value.toDate().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+      }
+      if (value instanceof Date) {
+        return value.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+      }
+      return "--";
+    } catch {
+      return "--";
+    }
+  };
+  const formatDuration = (minutes?: number): string => {
+    if (typeof minutes !== "number" || Number.isNaN(minutes)) return "--";
+    const hrs = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hrs.toLocaleString("en-US")} س ${mins.toLocaleString("en-US")} د`;
+  };
+
+  const dateLabel = currentDateTime.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const timeLabel = currentDateTime.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-      <Text style={styles.title}>لوحة الموظف</Text>
-
-      {isLoading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007bff" />
-          <Text style={styles.loadingText}>جاري التحميل...</Text>
+      <View style={styles.card}>
+        <View style={styles.headerWrap}>
+          <Text style={styles.brandName}>دوّمت</Text>
+          <Text style={styles.headerTitle}>لوحة الموظف</Text>
+          <Text style={styles.headerSubtitle}>نظام حضور احترافي وآمن</Text>
         </View>
-      )}
 
-      {!isLoading && (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>نظام الحضور والانصراف</Text>
+        {isLoading || distance === null ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#ffeba7" />
+            <Text style={styles.loadingText}>جاري التحقق من البيانات والموقع...</Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.actionZone}>
+              {showPulse && <Animated.View style={[styles.pulseRing, { transform: [{ scale: pulseScale }], opacity: pulseOpacity }]} />}
+              <View
+                style={[
+                  styles.progressRing,
+                  shiftCompleted ? styles.progressRingCompleted : hasCheckedIn ? styles.progressRingCheckOut : styles.progressRingCheckIn,
+                ]}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.circleButton,
+                    shiftCompleted ? styles.circleButtonCompleted : hasCheckedIn ? styles.circleButtonCheckOut : styles.circleButtonCheckIn,
+                    buttonDisabled && styles.buttonDisabled,
+                  ]}
+                  onPress={hasCheckedIn ? handleCheckOut : handleCheckIn}
+                  disabled={buttonDisabled}
+                  activeOpacity={0.9}
+                >
+                  {isProcessing ? (
+                    <ActivityIndicator color={hasCheckedIn ? "#fff" : "#102770"} />
+                  ) : (
+                    <>
+                      <Text
+                        style={[
+                          styles.circleButtonText,
+                          shiftCompleted ? styles.buttonTextCompleted : hasCheckedIn ? styles.buttonTextCheckOut : styles.buttonTextCheckIn,
+                        ]}
+                      >
+                        {actionLabel}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.circleButtonSubText,
+                          shiftCompleted ? styles.buttonTextCompleted : hasCheckedIn ? styles.buttonTextCheckOut : styles.buttonTextCheckIn,
+                        ]}
+                      >
+                        {actionSubtitle}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
 
-          {locationError ? (
-            <Text style={styles.errorText}>{locationError}</Text>
-          ) : (
-            <View style={styles.locationInfo}>
-              <Text style={styles.infoText}>المسافة بينك وبين الشركة: {distance.toFixed(2)} متر</Text>
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>الوقت والتاريخ</Text>
+              <Text style={styles.clockText}>{timeLabel}</Text>
+              <Text style={styles.dateText}>{dateLabel}</Text>
+            </View>
 
-              <Text style={styles.radiusInfo}>النطاق المسموح: {geofenceRadius} متر</Text>
-
-              <Text style={[styles.statusBadge, withinGeofence ? styles.statusGood : styles.statusBad]}>
-                {withinGeofence ? "✓ أنت داخل نطاق العمل" : "✗ أنت خارج نطاق الشركة"}
-              </Text>
-
-              {!withinGeofence ? (
-                <View style={styles.warningContainer}>
-                  <Text style={styles.warningIcon}>📍</Text>
-                  <Text style={styles.warningTitle}>خارج النطاق الجغرافي</Text>
-                  <Text style={styles.warningText}>
-                    أنت على بعد {distance.toFixed(0)} متر من نطاق الشركة. لا يمكنك تسجيل الحضور في الوقت الحالي.
-                  </Text>
-                </View>
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>حالة الموقع</Text>
+              {locationError ? (
+                <Text style={styles.errorText}>{locationError}</Text>
               ) : (
                 <>
-                  {shiftCompleted ? (
-                    <View style={styles.completionMessageContainer}>
-                      <Text style={styles.completionMessage}>تم تسجيل الحضور والانصراف بنجاح. نراك غداً!</Text>
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      style={[
-                        styles.button,
-                        hasCheckedIn ? styles.buttonCheckOut : styles.buttonCheckIn,
-                        buttonDisabled && styles.buttonDisabled,
-                      ]}
-                      onPress={hasCheckedIn ? handleCheckOut : handleCheckIn}
-                      disabled={buttonDisabled}
-                    >
-                      {isProcessing ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <Text style={styles.buttonText}>{hasCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور"}</Text>
-                      )}
-                    </TouchableOpacity>
-                  )}
+                  <Text style={styles.infoText}>
+                    المسافة الحالية: {Number(distance).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} متر
+                  </Text>
+                  <Text style={styles.infoSubText}>النطاق المسموح: {Number(geofenceRadius).toLocaleString("en-US")} متر</Text>
+                  <Text style={[styles.statusBadge, withinGeofence ? styles.statusGood : styles.statusBad]}>
+                    {withinGeofence ? "أنت داخل نطاق العمل" : "أنت خارج نطاق العمل"}
+                  </Text>
                 </>
               )}
             </View>
-          )}
-        </View>
-      )}
+
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>ملخص حضور اليوم</Text>
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryLabelWrap}>
+                  <Ionicons name="person-outline" size={18} color="#3b82f6" />
+                  <Text style={styles.summaryLabel}>اسم الموظف</Text>
+                </View>
+                <Text style={styles.summaryValue}>{employeeName}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryLabelWrap}>
+                  <Ionicons name="log-in-outline" size={18} color="#22c55e" />
+                  <Text style={styles.summaryLabel}>وقت الحضور</Text>
+                </View>
+                <Text style={styles.summaryValue}>{formatTimeValue(todayRecord?.check_in)}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryLabelWrap}>
+                  <Ionicons name="log-out-outline" size={18} color="#ef4444" />
+                  <Text style={styles.summaryLabel}>وقت الانصراف</Text>
+                </View>
+                <Text style={styles.summaryValue}>{formatTimeValue(todayRecord?.check_out)}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryLabelWrap}>
+                  <Ionicons name="time-outline" size={18} color="#f59e0b" />
+                  <Text style={styles.summaryLabel}>إجمالي الساعات</Text>
+                </View>
+                <Text style={styles.summaryValue}>{formatDuration(todayRecord?.workDuration)}</Text>
+              </View>
+              <View style={styles.summaryRowLast}>
+                <View style={styles.summaryLabelWrap}>
+                  <Ionicons name="alert-circle-outline" size={18} color={todayRecord?.isLate ? "#ef4444" : "#22c55e"} />
+                  <Text style={styles.summaryLabel}>حالة الالتزام</Text>
+                </View>
+                <View
+                  style={[
+                    styles.statusPill,
+                    !hasCheckedIn ? styles.statusPillNeutral : todayRecord?.isLate ? styles.statusPillLate : styles.statusPillOnTime,
+                  ]}
+                >
+                  <Text style={styles.statusPillText}>{!hasCheckedIn ? "--" : todayRecord?.isLate ? "متأخر" : "في الموعد"}</Text>
+                </View>
+              </View>
+            </View>
+          </>
+        )}
+      </View>
     </ScrollView>
   );
 };
@@ -563,131 +690,235 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#2a2b38",
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 100,
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 28,
+    paddingHorizontal: 16,
   },
-  title: { fontSize: 26, fontWeight: "bold", marginBottom: 20, textAlign: "center", color: "#333" },
+  card: {
+    width: "100%",
+    maxWidth: 560,
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 8,
+  },
+  headerWrap: {
+    alignItems: "flex-end",
+    marginBottom: 16,
+  },
+  brandName: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: "#2a2b38",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#2a2b38",
+    marginTop: 2,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: "#6f7384",
+    marginTop: 4,
+  },
   loadingContainer: {
-    paddingVertical: 60,
+    minHeight: 260,
     alignItems: "center",
     justifyContent: "center",
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 16,
-    color: "#666",
+    fontSize: 15,
+    color: "#49516c",
+    textAlign: "center",
   },
-  card: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 10,
-    minHeight: 320,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  cardTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 15, textAlign: "right", color: "#444" },
-  statusText: { marginTop: 10, fontSize: 16, color: "#666" },
-  errorText: { color: "#cc0000", fontSize: 16, textAlign: "center", marginVertical: 10 },
-  locationInfo: { alignItems: "center" },
-  infoText: { fontSize: 16, marginBottom: 15, color: "#333" },
-  statusBadge: {
-    paddingVertical: 5,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    color: "#fff",
-    fontWeight: "bold",
-    overflow: "hidden",
+  actionZone: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
     marginBottom: 20,
   },
-  statusGood: { backgroundColor: "#28a745" },
-  statusBad: { backgroundColor: "#dc3545" },
-  distanceRow: {
-    marginBottom: 10,
+  pulseRing: {
+    position: "absolute",
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: "#ffeba7",
   },
-  button: {
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 8,
-    width: "100%",
+  progressRing: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 55,
+    backgroundColor: "#ffffff",
   },
-  buttonCheckIn: { backgroundColor: "#007bff" },
-  buttonCheckOut: { backgroundColor: "#dc3545" },
-  buttonCompleted: { backgroundColor: "#6c757d" },
-  buttonDisabled: { opacity: 0.5 },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+  progressRingCheckIn: {
+    borderColor: "#ffeba7",
+  },
+  progressRingCheckOut: {
+    borderColor: "#dc3545",
+  },
+  progressRingCompleted: {
+    borderColor: "#4b5563",
+  },
+  circleButton: {
+    width: 178,
+    height: 178,
+    borderRadius: 89,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14,
+  },
+  circleButtonCheckIn: {
+    backgroundColor: "#ffeba7",
+  },
+  circleButtonCheckOut: {
+    backgroundColor: "#dc3545",
+  },
+  circleButtonCompleted: {
+    backgroundColor: "#4b5563",
+  },
+  circleButtonText: {
+    fontSize: 21,
+    fontWeight: "900",
     textAlign: "center",
   },
-  centeredLoadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    padding: 20,
+  circleButtonSubText: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "center",
   },
-  completionMessageContainer: {
-    marginTop: 20,
-    padding: 12,
-    backgroundColor: "#d4edda",
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: "#28a745",
+  sectionCard: {
+    width: "92%",
+    alignSelf: "center",
+    backgroundColor: "#f8f9ff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#eceffd",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
   },
-  completionMessage: {
-    color: "#155724",
+  sectionTitle: {
+    textAlign: "right",
     fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  warningContainer: {
-    marginTop: 20,
-    padding: 20,
-    backgroundColor: "#ffe6e6",
-    borderRadius: 10,
-    borderLeftWidth: 5,
-    borderLeftColor: "#dc3545",
-    alignItems: "center",
-  },
-  warningIcon: {
-    fontSize: 48,
-    marginBottom: 10,
-  },
-  warningTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#dc3545",
+    fontWeight: "800",
+    color: "#2a2b38",
     marginBottom: 8,
-    textAlign: "center",
   },
-  warningText: {
+  clockText: {
+    textAlign: "right",
+    fontSize: 24,
+    fontWeight: "900",
+    color: "#2a2b38",
+  },
+  dateText: {
+    textAlign: "right",
+    marginTop: 4,
+    color: "#676d83",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  errorText: {
+    color: "#cc0000",
     fontSize: 14,
-    color: "#c82333",
-    textAlign: "center",
-    lineHeight: 20,
+    textAlign: "right",
+    marginVertical: 2,
+    fontWeight: "600",
   },
-  cardLoadingContainer: {
-    minHeight: 180,
-    justifyContent: "center",
+  infoText: {
+    fontSize: 14,
+    marginBottom: 6,
+    color: "#2a2b38",
+    textAlign: "right",
+    fontWeight: "700",
+  },
+  infoSubText: {
+    fontSize: 13,
+    marginBottom: 8,
+    color: "#6d7285",
+    textAlign: "right",
+  },
+  statusBadge: {
+    alignSelf: "flex-end",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    color: "#fff",
+    fontWeight: "800",
+    textAlign: "right",
+    fontSize: 12,
+  },
+  statusGood: { backgroundColor: "#2a2b38" },
+  statusBad: { backgroundColor: "#dc3545" },
+  summaryRow: {
+    flexDirection: "row-reverse",
     alignItems: "center",
-    paddingVertical: 20,
+    justifyContent: "space-between",
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: "#374151",
   },
-  radiusInfo: {
+  summaryRowLast: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 6,
+  },
+  summaryLabelWrap: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 6,
+  },
+  summaryLabel: {
+    color: "#7f8598",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  summaryValue: {
+    color: "#2a2b38",
+    fontSize: 18,
+    fontWeight: "800",
+    textAlign: "right",
+    maxWidth: "72%",
+  },
+  statusPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  statusPillLate: {
+    backgroundColor: "#dc2626",
+  },
+  statusPillOnTime: {
+    backgroundColor: "#16a34a",
+  },
+  statusPillNeutral: {
+    backgroundColor: "#6b7280",
+  },
+  statusPillText: {
+    color: "#fff",
     fontSize: 14,
-    color: "#666",
-    marginBottom: 10,
-    fontStyle: "italic",
+    fontWeight: "800",
   },
+  buttonDisabled: { opacity: 0.5 },
+  buttonTextCheckIn: { color: "#102770" },
+  buttonTextCheckOut: { color: "#fff" },
+  buttonTextCompleted: { color: "#fff" },
 });
 
 export default EmployeeDashboard;

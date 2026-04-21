@@ -16,7 +16,6 @@ import { RootStackParamList } from "./types";
 import { createNewEmployee } from "./services/adminService";
 import { getCurrentUserData } from "./services/authService";
 import ScreenWrapper from "./components/ScreenWrapper";
-import TopHeader from "./components/TopHeader";
 import DashboardMenu from "./components/DashboardMenu";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -38,17 +37,7 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
   });
 
   const [loading, setLoading] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
-
-  // Fetch current user on mount
-  React.useEffect(() => {
-    const fetchUser = async () => {
-      const userData = await getCurrentUserData();
-      setCurrentUser(userData);
-    };
-    fetchUser();
-  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -166,7 +155,6 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
 
   return (
     <ScreenWrapper>
-      <TopHeader userName={currentUser?.name || "المسؤول"} />
       <DashboardMenu navigation={navigation} currentScreen="AddEmployee" />
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardAvoidView}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>

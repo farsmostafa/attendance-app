@@ -1,196 +1,341 @@
-import React, { useState, useRef, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated } from "react-native";
+import React, { useMemo, useRef, useState } from "react";
+import { Animated, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 export interface SidebarItem {
   id: string;
-  icon: string;
+  routeName: string;
   label: string;
-  onPress: () => void;
+  icon: keyof typeof Ionicons.glyphMap;
 }
 
 interface SidebarProps {
   items: SidebarItem[];
-  activeItemId?: string;
+  activeRoute: string;
+  onNavigate: (routeName: string) => void;
+  userName?: string;
+  onLogout?: () => void;
+  logoutLabel?: string;
+  mobile?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
+  onMobileClose?: () => void;
 }
 
-const ITEM_HEIGHT = 60; // Height per item
+const LOGOUT_ID = "__logout__";
 
-const Sidebar: React.FC<SidebarProps> = ({ items, activeItemId }) => {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const bubbleAnim = useRef(new Animated.Value(0)).current;
-  const tooltipAnims = useRef(
-    items.map(() => ({
-      opacity: new Animated.Value(0),
-      translateX: new Animated.Value(-20),
-    })),
-  ).current;
+const Sidebar: React.FC<SidebarProps> = ({
+  items,
+  activeRoute,
+  onNavigate,
+  userName,
+  onLogout,
+  logoutLabel = "تسجيل الخروج",
+  mobile = false,
+  onExpandedChange,
+}) => {
+  const animationsRef = useRef<Record<string, Animated.Value>>({});
+  const sidebarWidth = useRef(new Animated.Value(mobile ? 250 : 80)).current;
+  const [hoveredRoute, setHoveredRoute] = useState<string | null>(null);
 
-  const activeIndex = items.findIndex((item) => item.id === activeItemId);
-  const currentIndex = hoveredIndex !== null ? hoveredIndex : activeIndex >= 0 ? activeIndex : 0;
+  const animatedValues = useMemo(() => {
+    const values = animationsRef.current;
+    items.forEach((item) => {
+      if (!values[item.id]) {
+        values[item.id] = new Animated.Value(0);
+      }
+    });
+    return values;
+  }, [items]);
 
-  useEffect(() => {
-    animateBubble(currentIndex);
-  }, [currentIndex]);
+  const animateIn = (itemId: string) => {
+    Animated.spring(animatedValues[itemId], {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 6,
+      tension: 150,
+    }).start();
+  };
 
-  const animateBubble = (index: number) => {
-    Animated.spring(bubbleAnim, {
-      toValue: index * ITEM_HEIGHT,
+  const animateOut = (itemId: string) => {
+    Animated.timing(animatedValues[itemId], {
+      toValue: 0,
+      duration: 180,
       useNativeDriver: true,
     }).start();
   };
 
-  const animateTooltipIn = (index: number) => {
-    Animated.parallel([
-      Animated.timing(tooltipAnims[index].opacity, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(tooltipAnims[index].translateX, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+  const expandSidebar = () => {
+    if (mobile) return;
+    onExpandedChange?.(true);
+    Animated.timing(sidebarWidth, {
+      toValue: 250,
+      duration: 220,
+      useNativeDriver: false,
+    }).start();
   };
 
-  const animateTooltipOut = (index: number) => {
-    Animated.parallel([
-      Animated.timing(tooltipAnims[index].opacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(tooltipAnims[index].translateX, {
-        toValue: -20,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+  const collapseSidebar = () => {
+    if (mobile) return;
+    onExpandedChange?.(false);
+    Animated.timing(sidebarWidth, {
+      toValue: 80,
+      duration: 220,
+      useNativeDriver: false,
+    }).start();
   };
 
-  const handleMouseEnter = (index: number) => {
-    setHoveredIndex(index);
-    animateBubble(index);
-    animateTooltipIn(index);
-  };
-
-  const handleMouseLeave = (index: number) => {
-    setHoveredIndex(null);
-    animateTooltipOut(index);
-  };
+  const labelOpacity = sidebarWidth.interpolate({
+    inputRange: [80, 250],
+    outputRange: [0, 1],
+  });
+  const labelTranslate = sidebarWidth.interpolate({
+    inputRange: [80, 250],
+    outputRange: [-10, 0],
+  });
+  const labelWidth = sidebarWidth.interpolate({
+    inputRange: [80, 250],
+    outputRange: [0, 150],
+  });
+  const labelSpacing = sidebarWidth.interpolate({
+    inputRange: [80, 250],
+    outputRange: [0, 10],
+  });
+  const headerOpacity = sidebarWidth.interpolate({
+    inputRange: [80, 250],
+    outputRange: [0, 1],
+  });
+  const headerWidth = sidebarWidth.interpolate({
+    inputRange: [80, 250],
+    outputRange: [0, 150],
+  });
+  const headerSpacing = sidebarWidth.interpolate({
+    inputRange: [80, 250],
+    outputRange: [0, 12],
+  });
 
   return (
-    <View style={styles.container}>
-      {/* Sliding Bubble */}
-      <Animated.View
-        style={[
-          styles.bubble,
-          {
-            transform: [{ translateY: bubbleAnim }],
-          },
-        ]}
-      />
+    <Animated.View
+      style={[styles.container, { width: sidebarWidth, paddingTop: mobile ? 60 : 20 }, mobile && styles.mobileContainer]}
+      {...(Platform.OS === "web"
+        ? ({
+            onMouseEnter: expandSidebar,
+            onMouseLeave: collapseSidebar,
+          } as any)
+        : {})}
+    >
+      <View style={styles.headerSection}>
+        <Ionicons name="person-circle-outline" size={34} color="#c4c3ca" />
+        <Animated.View
+          style={[
+            styles.headerTextWrap,
+            {
+              opacity: headerOpacity,
+              width: headerWidth,
+              marginRight: headerSpacing,
+              overflow: "hidden",
+              transform: [{ translateX: labelTranslate }],
+            },
+          ]}
+        >
+          <Text style={styles.appName} numberOfLines={1}>
+            دوّمت
+          </Text>
+          <Text style={styles.userName} numberOfLines={1}>
+            {userName || "المستخدم"}
+          </Text>
+        </Animated.View>
+      </View>
 
-      {/* Menu Items */}
-      {items.map((item, index) => {
-        const isActive = item.id === activeItemId;
-        const isHovered = hoveredIndex === index;
-        return (
-          <View key={item.id} style={styles.itemContainer}>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={item.onPress}
-              onMouseEnter={() => handleMouseEnter(index)}
-              onMouseLeave={() => handleMouseLeave(index)}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name={item.icon as keyof typeof Ionicons.glyphMap}
-                size={24}
-                color={isActive || isHovered ? "#102770" : "#c4c3ca"}
-              />
-            </TouchableOpacity>
+      <View style={styles.itemsWrap}>
+        {items.map((item) => {
+          const isActive = activeRoute === item.routeName;
+          const isHovered = hoveredRoute === item.routeName;
+          const hoverProgress = animatedValues[item.id];
+          const highlighted = isActive || isHovered;
 
-            {/* Tooltip */}
-            <Animated.Text
+          return (
+            <Animated.View
+              key={item.id}
               style={[
-                styles.tooltip,
+                styles.itemOuter,
                 {
-                  opacity: tooltipAnims[index].opacity,
-                  transform: [{ translateX: tooltipAnims[index].translateX }],
+                  transform: [
+                    {
+                      translateX: hoverProgress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, -6],
+                      }),
+                    },
+                    {
+                      scale: hoverProgress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, 1.03],
+                      }),
+                    },
+                  ],
                 },
               ]}
             >
-              {item.label}
-            </Animated.Text>
-          </View>
-        );
-      })}
-    </View>
+              <Pressable
+                style={[styles.itemButton, highlighted && styles.activeItemButton]}
+                onPress={() => onNavigate(item.routeName)}
+                onHoverIn={() => {
+                  setHoveredRoute(item.routeName);
+                  animateIn(item.id);
+                }}
+                onHoverOut={() => {
+                  setHoveredRoute(null);
+                  animateOut(item.id);
+                }}
+                onPressIn={() => animateIn(item.id)}
+                onPressOut={() => animateOut(item.id)}
+              >
+                <Ionicons name={item.icon} size={20} color={highlighted ? "#102770" : "#c4c3ca"} />
+                <Animated.View
+                  style={[
+                    styles.labelWrap,
+                    {
+                      opacity: labelOpacity,
+                      width: labelWidth,
+                      marginRight: labelSpacing,
+                      overflow: "hidden",
+                      transform: [{ translateX: labelTranslate }],
+                    },
+                  ]}
+                >
+                  <Text style={[styles.itemText, highlighted && styles.activeItemText]} numberOfLines={1}>
+                    {item.label}
+                  </Text>
+                </Animated.View>
+              </Pressable>
+            </Animated.View>
+          );
+        })}
+      </View>
+
+      {onLogout && (
+        <View style={styles.itemOuter}>
+          <Pressable
+            style={[
+              styles.logoutButton,
+              { marginHorizontal: mobile ? 0 : 15 },
+              hoveredRoute === LOGOUT_ID && styles.activeItemButton,
+            ]}
+            onPress={onLogout}
+            onHoverIn={() => setHoveredRoute(LOGOUT_ID)}
+            onHoverOut={() => setHoveredRoute(null)}
+          >
+            <Ionicons name="log-out-outline" size={19} color={hoveredRoute === LOGOUT_ID ? "#102770" : "#c4c3ca"} />
+            <Animated.View
+              style={[
+                styles.labelWrap,
+                {
+                  opacity: mobile ? 1 : labelOpacity,
+                  width: mobile ? 150 : labelWidth,
+                  marginLeft: mobile ? 10 : labelSpacing,
+                  overflow: "hidden",
+                  transform: [{ translateX: labelTranslate }],
+                },
+              ]}
+            >
+              <Text style={[styles.logoutText, hoveredRoute === LOGOUT_ID && styles.activeItemText]}>{logoutLabel}</Text>
+            </Animated.View>
+          </Pressable>
+        </View>
+      )}
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    position: Platform.OS === "web" ? "fixed" : "absolute",
-    top: 20,
-    left: 20,
-    bottom: 20,
     width: 80,
     backgroundColor: "#2a2b38",
-    borderRadius: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10,
-    zIndex: 1000,
-    justifyContent: "flex-start",
-    alignItems: "center",
-    paddingTop: 20,
-  },
-  bubble: {
-    position: "absolute",
-    left: 10,
-    right: 10,
-    height: 40,
-    backgroundColor: "#ffeba7",
-    borderRadius: 15,
-    top: 20,
-  },
-  itemContainer: {
-    width: "100%",
-    height: ITEM_HEIGHT,
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-  },
-  menuItem: {
-    width: 60,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 10,
-    zIndex: 10,
-  },
-  tooltip: {
-    position: "absolute",
-    right: -120,
-    top: 10,
-    backgroundColor: "#2a2b38",
-    color: "#ffeba7",
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    fontSize: 14,
-    fontWeight: "500",
+    paddingBottom: 18,
+    justifyContent: "space-between",
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    overflow: "hidden",
+    zIndex: 1100,
+  },
+  mobileContainer: {
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: -2, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  headerSection: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  headerTextWrap: {
+    justifyContent: "center",
+    alignItems: "flex-start",
+  },
+  appName: {
+    color: "#c4c3ca",
+    fontSize: 17,
+    fontWeight: "800",
+  },
+  userName: {
+    color: "#9fa0a8",
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  itemsWrap: {
+    flex: 1,
+    gap: 10,
+  },
+  itemOuter: {
+    borderRadius: 12,
+  },
+  itemButton: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  activeItemButton: {
+    backgroundColor: "#ffeba7",
+  },
+  labelWrap: {
+    overflow: "hidden",
+  },
+  itemText: {
+    color: "#c4c3ca",
+    fontSize: 14,
+    fontWeight: "600",
+    flexShrink: 1,
+    textAlign: "left",
+  },
+  activeItemText: {
+    color: "#102770",
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 50,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#c4c3ca33",
+    overflow: "hidden",
+    marginTop: 10,
+  },
+  logoutText: {
+    color: "#c4c3ca",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
 
