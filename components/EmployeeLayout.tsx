@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, ScrollView, ActivityIndicator, Text, Alert, TouchableOpacity, useWindowDimensions } from "react-native";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  Text,
+  Alert,
+  TouchableOpacity,
+  useWindowDimensions,
+  Platform,
+} from "react-native";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { getCurrentUserData } from "../services/authService";
@@ -8,12 +18,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "../types";
 import TopHeader from "./TopHeader";
 import EmployeeSidebar from "./EmployeeSidebar";
+import Sidebar, { SidebarItem } from "./Sidebar";
 import EmployeeDashboard from "../EmployeeDashboard";
 import AttendanceHistory from "../AttendanceHistory";
 
-type EmployeeLayoutProps = NativeStackScreenProps<RootStackParamList, "EmployeeDashboard"> & { route?: any };
+type EmployeeLayoutProps = NativeStackScreenProps<RootStackParamList, "EmployeeDashboard"> & { route?: any; useModernSidebar?: boolean };
 
-const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, route }) => {
+const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, route, useModernSidebar = false }) => {
   const [currentUserName, setCurrentUserName] = useState("الموظف");
   const [loadingUser, setLoadingUser] = useState(true);
   const [currentScreen, setCurrentScreen] = useState("Dashboard");
@@ -23,6 +34,12 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, route }) =>
   // Show sidebar by default on large screens (width >= 900), hidden on mobile
   const isMobile = width < 900;
   const shouldShowSidebar = !isMobile || sidebarVisible;
+
+  // Modern sidebar items for employee
+  const modernSidebarItems: SidebarItem[] = [
+    { id: "dashboard", icon: "home-outline", label: "Dashboard", onPress: () => setCurrentScreen("Dashboard") },
+    { id: "history", icon: "file-document-outline", label: "My Records", onPress: () => setCurrentScreen("AttendanceHistory") },
+  ];
 
   useEffect(() => {
     const loadUser = async () => {
@@ -66,6 +83,7 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, route }) =>
   return (
     <View style={styles.container}>
       <TopHeader userName={currentUserName} />
+      {/* Main Layout: Content + Sidebar */}
       <View style={styles.layoutContainer}>
         {/* Hamburger Menu Button - Mobile Only */}
         {isMobile && (
@@ -76,7 +94,12 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, route }) =>
           </View>
         )}
 
-        <ScrollView style={styles.mainContent} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        {/* Main Content Area */}
+        <ScrollView
+          style={[styles.mainContent, Platform.OS === "web" && useModernSidebar && styles.mainContentWithModernSidebar]}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        >
           {currentScreen === "Dashboard" && (
             <EmployeeDashboard {...({ navigation, route } as any)} isFocused={currentScreen === "Dashboard"} />
           )}
@@ -88,8 +111,16 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ navigation, route }) =>
           )}
         </ScrollView>
 
-        {/* Sidebar - Hidden on Mobile by Default */}
-        {shouldShowSidebar && (
+        {/* Modern Sidebar (if enabled) */}
+        {useModernSidebar && !isMobile && (
+          <Sidebar
+            items={modernSidebarItems}
+            activeItemId={currentScreen === "Dashboard" ? "dashboard" : currentScreen === "AttendanceHistory" ? "history" : undefined}
+          />
+        )}
+
+        {/* Classic Sidebar (if not using modern sidebar) */}
+        {!useModernSidebar && shouldShowSidebar && (
           <EmployeeSidebar
             currentScreen={currentScreen}
             onNavigate={(screen) => {
@@ -117,7 +148,11 @@ const styles = StyleSheet.create({
   mainContent: {
     flex: 1,
     backgroundColor: "#f3f4f6",
-    paddingHorizontal: 16,
+  },
+  mainContentWithModernSidebar: {
+    ...(Platform.OS === "web" && {
+      marginLeft: 120,
+    }),
   },
   contentContainer: {
     paddingVertical: 20,

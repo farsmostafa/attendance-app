@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, ScrollView, ActivityIndicator, Text, TouchableOpacity, useWindowDimensions } from "react-native";
+import { View, StyleSheet, ScrollView, ActivityIndicator, Text, TouchableOpacity, useWindowDimensions, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import TopHeader from "./TopHeader";
 import AdminSidebar from "./AdminSidebar";
+import Sidebar, { SidebarItem } from "./Sidebar";
 import { getCurrentUserData } from "../services/authService";
 import { User, RootStackNavigationProp } from "../types";
 
@@ -14,6 +15,7 @@ export interface AdminLayoutProps {
   userName?: string;
   navigation?: RootStackNavigationProp;
   onLogout?: () => void;
+  useModernSidebar?: boolean;
 }
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({
@@ -24,6 +26,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   userName,
   navigation,
   onLogout,
+  useModernSidebar = false,
 }) => {
   const [currentUserName, setCurrentUserName] = useState<string>(userName || "مسؤول");
   const [sidebarVisible, setSidebarVisible] = useState(false);
@@ -32,6 +35,16 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   // Show sidebar by default on large screens (width >= 900), hidden on mobile
   const isMobile = width < 900;
   const shouldShowSidebar = !isMobile || sidebarVisible;
+
+  // Modern sidebar items
+  const modernSidebarItems: SidebarItem[] = [
+    { id: "dashboard", icon: "grid-outline", label: "Dashboard", onPress: () => onNavigate("Dashboard") },
+    { id: "employee-list", icon: "people-outline", label: "Employees", onPress: () => onNavigate("EmployeeList") },
+    { id: "add-employee", icon: "person-plus-outline", label: "Add Employee", onPress: () => onNavigate("AddEmployee") },
+    { id: "today-log", icon: "calendar-outline", label: "Today Log", onPress: () => onNavigate("TodayLog") },
+    { id: "reports", icon: "chart-box-outline", label: "Reports", onPress: () => onNavigate("AdminReports") },
+    { id: "settings", icon: "cog-outline", label: "Settings", onPress: () => onNavigate("AdminSettings") },
+  ];
 
   useEffect(() => {
     if (!userName) {
@@ -78,12 +91,38 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
         )}
 
         {/* Main Content Area */}
-        <ScrollView style={styles.mainContent} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={[styles.mainContent, Platform.OS === "web" && useModernSidebar && styles.mainContentWithModernSidebar]}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        >
           {children}
         </ScrollView>
 
-        {/* Persistent Sidebar - Hidden on Mobile by Default */}
-        {shouldShowSidebar && (
+        {/* Modern Sidebar (if enabled) */}
+        {useModernSidebar && !isMobile && (
+          <Sidebar
+            items={modernSidebarItems}
+            activeItemId={
+              currentScreen === "Dashboard"
+                ? "dashboard"
+                : currentScreen === "EmployeeList"
+                  ? "employee-list"
+                  : currentScreen === "AddEmployee"
+                    ? "add-employee"
+                    : currentScreen === "TodayLog"
+                      ? "today-log"
+                      : currentScreen === "AdminReports"
+                        ? "reports"
+                        : currentScreen === "AdminSettings"
+                          ? "settings"
+                          : undefined
+            }
+          />
+        )}
+
+        {/* Classic Sidebar (if not using modern sidebar) */}
+        {!useModernSidebar && shouldShowSidebar && (
           <AdminSidebar
             currentScreen={currentScreen}
             onNavigate={(screen) => {
@@ -111,6 +150,11 @@ const styles = StyleSheet.create({
   mainContent: {
     flex: 1,
     backgroundColor: "#f3f4f6",
+  },
+  mainContentWithModernSidebar: {
+    ...(Platform.OS === "web" && {
+      marginLeft: 120,
+    }),
   },
   contentContainer: {
     paddingHorizontal: 16,
