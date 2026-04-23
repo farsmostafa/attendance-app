@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, Animated, Dimensions, useWindowDimensions } from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, Animated, Dimensions, useWindowDimensions, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { signInAndBindDevice } from "./services/authService";
@@ -18,6 +18,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [passwordFocused, setPasswordFocused] = useState(false);
 
   const windowDimensions = useWindowDimensions();
+  const isMobile = windowDimensions.width < 768;
 
   // Animation values for floating orbs
   const orb1TranslateX = useRef(new Animated.Value(0)).current;
@@ -167,9 +168,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   });
 
   return (
-    <View style={styles.screen}>
-      {/* Animated Background */}
-      <View style={styles.bgAnimation} />
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, backgroundColor: "#1f2029" }}>
+      <View style={styles.screen}>
+        {/* Animated Background */}
+        <View style={styles.bgAnimation} />
 
       {/* Floating Orbs */}
       <Animated.View
@@ -208,8 +210,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         ]}
       />
 
-      {/* Content Container */}
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: isMobile ? 16 : 24 }} style={{ width: '100%', zIndex: 10 }} showsVerticalScrollIndicator={false}>
+        {/* Content Container */}
+        <View style={styles.container}>
         {/* Brand Header */}
         <View style={styles.headerContainer}>
           <Text style={styles.brandName}>دوّمت</Text>
@@ -327,10 +330,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           <View style={styles.statusDot} />
           <Text style={styles.statusText}>System Status: Operational</Text>
         </View>
-      </View>
+        
+        </View>
+      </ScrollView>
 
       {/* Security Card - Desktop Only */}
-      {windowDimensions.width > 768 && (
+      {!isMobile && (
         <View style={styles.securityCard}>
           <View style={styles.securityCardHeader}>
             <Ionicons name="shield-checkmark" size={24} color="#ffeba7" />
@@ -342,22 +347,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           </Text>
         </View>
       )}
-    </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#1f2029",
-    justifyContent: "center",
-    alignItems: "center",
     width: "100%",
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    paddingBottom: 80,
-    direction: "rtl",
-    writingDirection: "rtl",
     position: "relative",
     overflow: "hidden",
   },
