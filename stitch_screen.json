@@ -1,0 +1,28 @@
+﻿{
+    "id":  3,
+    "jsonrpc":  "2.0",
+    "result":  {
+                   "content":  [
+                                   {
+                                       "text":  "{\"name\":\"projects/5025667161509861793/screens/1c9100aa7f5b4bbf91f9159af3a4e21b\",\"title\":\"Refined Employee Dashboard (Square \u0026 Minimal)\",\"screenshot\":{\"name\":\"projects/5025667161509861793/files/88b1d360253f42738339e7775e8c885d\",\"downloadUrl\":\"https://lh3.googleusercontent.com/aida/ADBb0uiPZjJndYcavareFO-GIbjJHA88rIy9uENZq5zwl1X-KFH8BmGlVYInm2kSS8RG-sLeW8LEKmKil8iPu0Adzu6QPRAg8WvzXhdKRh02UecLA-biSCLZUHyKHfOUV41uFIbSBalEFmiIbQHnx1ep2ko4ssB8d5mkcsNasuZPfcnM4w2wT5IHnjBO-dzjO9Sc-wYGA7yAETZOeDVjLUkDpi92pYuVAJUGsHd76OM8BHj0RVYeGFhdQosI8Uk\"},\"htmlCode\":{\"name\":\"projects/5025667161509861793/files/390e075e5fcd491e8f80a4173b6aba54\",\"downloadUrl\":\"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzBjYWQ3ODI1YzEzZDQyZjJhODQ0ZjJjMGM3NjljY2IzEgsSBxDK2tWhhwgYAZIBIwoKcHJvamVjdF9pZBIVQhM1MDI1NjY3MTYxNTA5ODYxNzkz\u0026filename=\u0026opi=89354086\",\"mimeType\":\"text/html\"},\"width\":\"2560\",\"height\":\"2132\",\"deviceType\":\"DESKTOP\"}",
+                                       "type":  "text"
+                                   }
+                               ],
+                   "structuredContent":  {
+                                             "deviceType":  "DESKTOP",
+                                             "height":  "2132",
+                                             "htmlCode":  {
+                                                              "downloadUrl":  "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzBjYWQ3ODI1YzEzZDQyZjJhODQ0ZjJjMGM3NjljY2IzEgsSBxDK2tWhhwgYAZIBIwoKcHJvamVjdF9pZBIVQhM1MDI1NjY3MTYxNTA5ODYxNzkz\u0026filename=\u0026opi=89354086",
+                                                              "mimeType":  "text/html",
+                                                              "name":  "projects/5025667161509861793/files/390e075e5fcd491e8f80a4173b6aba54"
+                                                          },
+                                             "name":  "projects/5025667161509861793/screens/1c9100aa7f5b4bbf91f9159af3a4e21b",
+                                             "screenshot":  {
+                                                                "downloadUrl":  "https://lh3.googleusercontent.com/aida/ADBb0uiPZjJndYcavareFO-GIbjJHA88rIy9uENZq5zwl1X-KFH8BmGlVYInm2kSS8RG-sLeW8LEKmKil8iPu0Adzu6QPRAg8WvzXhdKRh02UecLA-biSCLZUHyKHfOUV41uFIbSBalEFmiIbQHnx1ep2ko4ssB8d5mkcsNasuZPfcnM4w2wT5IHnjBO-dzjO9Sc-wYGA7yAETZOeDVjLUkDpi92pYuVAJUGsHd76OM8BHj0RVYeGFhdQosI8Uk",
+                                                                "name":  "projects/5025667161509861793/files/88b1d360253f42738339e7775e8c885d"
+                                                            },
+                                             "title":  "Refined Employee Dashboard (Square \u0026 Minimal)",
+                                             "width":  "2560"
+                                         }
+               }
+}

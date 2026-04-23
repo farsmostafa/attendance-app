@@ -8,6 +8,7 @@ export interface User {
   joinDate?: string; // ISO date string (YYYY-MM-DD)
   status?: "active" | "inactive";
   workStartTime?: string; // Format: HH:mm (e.g., "09:00")
+  workEndTime?: string; // Format: HH:mm (e.g., "17:00")
   basicSalary?: number;
   role: "admin" | "employee";
   company_id?: string;

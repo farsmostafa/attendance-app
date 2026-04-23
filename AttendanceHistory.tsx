@@ -1,10 +1,33 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 import { RootStackParamList } from "./types";
+
+// ── Design System Tokens (Section 3) ──
+const Colors = {
+  background: "#1f2029",
+  surface: "#2a2b38",
+  surfaceElevated: "#32333f",
+  border: "rgba(62, 63, 75, 0.5)",
+  accent: "#ffeba7",
+  accentText: "#101116",
+  textPrimary: "#e7e2da",
+  textSecondary: "#969081",
+  success: "#abcfb2",
+  error: "#ffb4ab",
+  warning: "#ffd27a",
+};
+const Spacing = { xs: 4, sm: 8, md: 12, base: 16, lg: 20, xl: 24, xxl: 32, xxxl: 48 };
+const Radius = { sm: 6, md: 12, lg: 16, xl: 24, full: 9999 };
+const Typography = {
+  xs: 11, sm: 13, base: 15, md: 17, lg: 20, xl: 24, xxl: 28,
+  fontArabic: "Cairo" as const,
+  fontLatin: "Manrope" as const,
+  fontMono: "SpaceMono" as const,
+};
 
 type AttendanceHistoryProps = NativeStackScreenProps<RootStackParamList, "AttendanceHistory"> & { isFocused?: boolean };
 
@@ -39,6 +62,9 @@ const buildYearOptions = () => {
 };
 
 const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true }) => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(String(today.getMonth() + 1).padStart(2, "0"));
   const [selectedYear, setSelectedYear] = useState(String(today.getFullYear()));
@@ -49,36 +75,27 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
 
   const formatTimeValue = (value?: any) => {
     try {
-      if (!value) return "--";
+      if (!value) return "--:--";
       const dateValue = typeof value.toDate === "function" ? value.toDate() : value instanceof Date ? value : null;
-      if (!dateValue) return "--";
+      if (!dateValue) return "--:--";
       return dateValue.toLocaleTimeString("en-US", {
         hour: "2-digit",
         minute: "2-digit",
         hour12: true,
-      });
+      }).replace("AM", "ص").replace("PM", "م");
     } catch {
-      return "--";
+      return "--:--";
     }
   };
 
-  const formatDateValue = (value: string) => {
+  const getDayAndMonth = (value: string) => {
     const parsed = new Date(`${value}T00:00:00`);
-    if (Number.isNaN(parsed.getTime())) {
-      return value;
-    }
-    return parsed.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-  };
-
-  const formatDuration = (minutes?: number) => {
-    if (typeof minutes !== "number" || Number.isNaN(minutes)) return "--";
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return `${hours.toLocaleString("en-US")}h ${remainingMinutes.toLocaleString("en-US")}m`;
+    if (Number.isNaN(parsed.getTime())) return { day: "--", month: "--", weekday: "--" };
+    return {
+      day: parsed.toLocaleDateString("en-US", { day: "2-digit" }),
+      month: parsed.toLocaleDateString("ar-EG", { month: "long" }),
+      weekday: parsed.toLocaleDateString("ar-EG", { weekday: "long" }),
+    };
   };
 
   useEffect(() => {
@@ -130,92 +147,145 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
     }
   }, [isFocused, selectedMonth, selectedYear]);
 
+  // Derived calculations for Summary Cards
+  const totalMinutes = records.reduce((sum, r) => sum + (r.workDuration || 0), 0);
+  const totalHours = (totalMinutes / 60).toFixed(1);
+  const daysPresent = records.length;
+  // Simple absent calculation based on weekdays up to today (if current month) or total weekdays
+  const daysAbsent = 0; // Using 0 as a placeholder per logic lock
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-      <View style={styles.card}>
-        <View style={styles.headerWrap}>
-          <Text style={styles.brandName}>دوّمت</Text>
-          <Text style={styles.title}>سجلي الشخصي</Text>
-          <Text style={styles.subtitle}>سجل حضورك وانصرافك بحسب الشهر والسنة</Text>
-        </View>
-
-        <View style={styles.filterCard}>
-          <Text style={styles.filterTitle}>تصفية السجلات</Text>
-          <View style={styles.filterRow}>
+      <View style={styles.mainContent}>
+        
+        {/* ── Header Row ── */}
+        <View style={styles.headerRow}>
+          <Text style={styles.pageTitle}>سجل الحضور</Text>
+          <View style={styles.filtersWrap}>
+            {/* Year Dropdown */}
             <View style={styles.filterField}>
-              <Text style={styles.filterLabel}>الشهر</Text>
-              {Platform.OS === "web" ? (
-                <select value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} style={webSelectStyle}>
-                  {MONTH_OPTIONS.map((month) => (
-                    <option key={month.value} value={month.value}>
-                      {month.label}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <Text style={styles.filterFallback}>{MONTH_OPTIONS.find((month) => month.value === selectedMonth)?.label}</Text>
-              )}
-            </View>
-
-            <View style={styles.filterField}>
-              <Text style={styles.filterLabel}>السنة</Text>
               {Platform.OS === "web" ? (
                 <select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} style={webSelectStyle}>
                   {yearOptions.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
+                    <option key={year} value={year}>{year}</option>
                   ))}
                 </select>
               ) : (
                 <Text style={styles.filterFallback}>{selectedYear}</Text>
               )}
             </View>
+            {/* Month Dropdown */}
+            <View style={styles.filterField}>
+              {Platform.OS === "web" ? (
+                <select value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} style={webSelectStyle}>
+                  {MONTH_OPTIONS.map((month) => (
+                    <option key={month.value} value={month.value}>{month.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <Text style={styles.filterFallback}>{MONTH_OPTIONS.find((m) => m.value === selectedMonth)?.label}</Text>
+              )}
+            </View>
           </View>
         </View>
 
+        {/* ── Summary Cards (Responsive) ── */}
+        <View style={styles.summaryWrap}>
+          {/* Total Hours */}
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryLabel}>إجمالي الساعات</Text>
+            <View style={styles.summaryValueWrap}>
+              <Text style={styles.summaryValue}>{totalHours}</Text>
+              <Text style={styles.summaryUnit}>ساعة</Text>
+            </View>
+          </View>
+          {/* Days Absent */}
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryLabel}>عدد أيام الغياب</Text>
+            <View style={styles.summaryValueWrap}>
+              <Text style={styles.summaryValue}>{daysAbsent}</Text>
+              <Text style={styles.summaryUnit}>أيام</Text>
+            </View>
+          </View>
+          {/* Days Present */}
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryLabel}>عدد أيام الحضور</Text>
+            <View style={styles.summaryValueWrap}>
+              <Text style={styles.summaryValue}>{daysPresent}</Text>
+              <Text style={styles.summaryUnit}>يوم</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ── Content Area ── */}
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color="#ffeba7" />
+            <ActivityIndicator size="large" color={Colors.accent} />
             <Text style={styles.loadingText}>جاري تحميل السجلات...</Text>
           </View>
         ) : records.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="calendar-clear-outline" size={48} color="#7b8194" />
-            <Text style={styles.emptyTitle}>لا توجد سجلات حضور في هذا الشهر</Text>
+          // ── Empty State ──
+          <View style={styles.emptyStateCard}>
+            <Ionicons name="calendar-outline" size={64} color={Colors.textSecondary} />
+            <Text style={styles.emptyTitle}>لا توجد سجلات حضور لهذا الشهر</Text>
+            <Text style={styles.emptySubtitle}>
+              سيظهر جدول حضورك وانصرافك هنا بمجرد توفر البيانات لهذا التاريخ المختار.
+            </Text>
           </View>
         ) : (
-          <View style={styles.recordsWrap}>
-            {records.map((record) => (
-              <View key={record.id} style={styles.recordCard}>
-                <View style={styles.recordHeader}>
-                  <Text style={styles.recordDate}>{formatDateValue(record.date)}</Text>
-                  <View style={[styles.statusPill, record.isLate ? styles.statusPillLate : styles.statusPillOnTime]}>
-                    <Text style={styles.statusPillText}>{record.isLate ? "متأخر" : "في الموعد"}</Text>
+          // ── Populated State ──
+          <View style={styles.recordsList}>
+            {records.map((record) => {
+              const { day, month, weekday } = getDayAndMonth(record.date);
+              let durationFormatted = "--:--";
+              if (record.workDuration !== undefined && record.workDuration !== null) {
+                const hours = Math.floor(record.workDuration / 60);
+                const minutes = Math.floor(record.workDuration % 60);
+                durationFormatted = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+              }
+
+              return (
+                <View key={record.id} style={styles.recordRow}>
+                  {/* 1. Date Box (Rightmost) */}
+                  <View style={styles.recordDateBox}>
+                    <Text style={styles.dateBoxDay}>{day}</Text>
+                    <Text style={styles.dateBoxMonth}>{month}</Text>
+                  </View>
+
+                  {/* 2. Day Name */}
+                  <View style={styles.dayNameBox}>
+                    <Text style={styles.dayNameText}>{weekday}</Text>
+                  </View>
+
+                  {/* 3. Check In Column */}
+                  <View style={styles.recordCellCenter}>
+                    <Text style={styles.cellLabel}>الدخول</Text>
+                    <Text style={styles.cellValue}>{formatTimeValue(record.checkIn)}</Text>
+                  </View>
+
+                  {/* 4. Check Out Column */}
+                  <View style={styles.recordCellCenter}>
+                    <Text style={styles.cellLabel}>الخروج</Text>
+                    <Text style={styles.cellValue}>{formatTimeValue(record.checkOut)}</Text>
+                  </View>
+
+                  {/* 5. Total Hours Column */}
+                  <View style={styles.recordCellCenter}>
+                    <Text style={styles.cellLabel}>إجمالي الساعات</Text>
+                    <Text style={styles.cellValue}>{durationFormatted}</Text>
+                  </View>
+
+                  {/* 6. Status Pill (Leftmost) */}
+                  <View style={styles.recordCellLeft}>
+                    <View style={[styles.statusPill, record.isLate && styles.statusPillLate]}>
+                      <Text style={[styles.statusPillText, record.isLate && styles.statusPillTextLate]}>
+                        {record.isLate ? "متأخر" : "مكتمل"}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-
-                <View style={styles.recordRow}>
-                  <Text style={styles.recordValue}>{formatTimeValue(record.checkIn)}</Text>
-                  <Text style={styles.recordLabel}>الحضور</Text>
-                </View>
-
-                <View style={styles.recordRow}>
-                  <Text style={styles.recordValue}>{formatTimeValue(record.checkOut)}</Text>
-                  <Text style={styles.recordLabel}>الانصراف</Text>
-                </View>
-
-                <View style={styles.recordRow}>
-                  <Text style={styles.recordValue}>{formatDuration(record.workDuration)}</Text>
-                  <Text style={styles.recordLabel}>ساعات العمل</Text>
-                </View>
-
-                <View style={styles.recordRowLast}>
-                  <Text style={styles.recordValue}>{record.status === "late" ? "Late" : "On Time"}</Text>
-                  <Text style={styles.recordLabel}>الحالة</Text>
-                </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
       </View>
@@ -225,190 +295,253 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
 
 const webSelectStyle = {
   width: "100%",
-  height: 44,
-  borderRadius: 10,
-  border: "1px solid #e8d87a",
-  backgroundColor: "#fff9dc",
-  color: "#102770",
+  height: 40,
+  borderRadius: Radius.md,
+  border: `1px solid ${Colors.border}`,
+  backgroundColor: Colors.surface,
+  color: Colors.textPrimary,
   padding: "0 12px",
-  fontSize: 14,
-  fontWeight: 700,
+  fontSize: Typography.sm,
+  fontWeight: 600,
+  fontFamily: "Cairo",
   textAlign: "right" as const,
   outline: "none",
+  appearance: "none" as const,
+  cursor: "pointer",
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#2a2b38",
+    backgroundColor: Colors.background,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.xxxl,
+    paddingHorizontal: Spacing.base,
     alignItems: "center",
-    paddingVertical: 28,
-    paddingHorizontal: 16,
   },
-  card: {
+  mainContent: {
     width: "100%",
-    maxWidth: 760,
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    paddingVertical: 20,
-    paddingHorizontal: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    elevation: 8,
+    maxWidth: 1000, // Constrain width on large desktops
+    gap: Spacing.xl,
   },
-  headerWrap: {
-    alignItems: "flex-end",
-    marginBottom: 16,
+  
+  // ── Header Row ──
+  headerRow: {
+    flexDirection: "row-reverse", // RTL
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: Spacing.base,
+    width: "100%",
   },
-  brandName: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: "#2a2b38",
+  pageTitle: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.xl,
+    fontWeight: "800",
+    color: Colors.accent,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: "#2a2b38",
-    marginTop: 2,
-    textAlign: "right",
-  },
-  subtitle: {
-    fontSize: 13,
-    color: "#6f7384",
-    marginTop: 4,
-    textAlign: "right",
-  },
-  filterCard: {
-    backgroundColor: "#ffeba7",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-  },
-  filterTitle: {
-    textAlign: "right",
-    fontSize: 15,
-    fontWeight: "900",
-    color: "#102770",
-    marginBottom: 12,
-  },
-  filterRow: {
-    flexDirection: "row-reverse",
-    gap: 12,
+  filtersWrap: {
+    flexDirection: "row-reverse", // RTL
+    gap: Spacing.sm,
   },
   filterField: {
-    flex: 1,
-  },
-  filterLabel: {
-    textAlign: "right",
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#102770",
-    marginBottom: 8,
+    width: 100,
   },
   filterFallback: {
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: "#fff9dc",
-    color: "#102770",
+    fontFamily: Typography.fontArabic,
+    height: 40,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    color: Colors.textPrimary,
     textAlign: "right",
     textAlignVertical: "center",
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    fontSize: 14,
-    fontWeight: "700",
+    paddingHorizontal: Spacing.sm,
+    fontSize: Typography.sm,
+    fontWeight: "600",
   },
+
+  // ── Summary Cards ──
+  summaryWrap: {
+    flexDirection: "row-reverse", // RTL
+    flexWrap: "wrap",
+    gap: Spacing.base,
+  },
+  summaryCard: {
+    flex: 1,
+    minWidth: 200,
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: Radius.lg,
+    padding: Spacing.xl,
+    alignItems: "flex-end", // RTL text alignment
+    justifyContent: "space-between",
+  },
+  summaryLabel: {
+    fontFamily: Typography.fontArabic,
+    color: Colors.textSecondary,
+    fontSize: Typography.sm,
+    fontWeight: "600",
+  },
+  summaryValueWrap: {
+    flexDirection: "row-reverse", // RTL
+    alignItems: "baseline",
+    justifyContent: "flex-end", // Align right
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  summaryValue: {
+    fontFamily: Typography.fontArabic,
+    color: Colors.accent,
+    fontSize: 48,
+    fontWeight: "800",
+    letterSpacing: -1,
+  },
+  summaryUnit: {
+    fontFamily: Typography.fontArabic,
+    color: Colors.textSecondary,
+    fontSize: Typography.sm,
+    fontWeight: "500",
+  },
+
+  // ── Empty State ──
+  emptyStateCard: {
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: Radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 100,
+    paddingHorizontal: Spacing.lg,
+  },
+  emptyTitle: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.lg,
+    fontWeight: "800",
+    color: Colors.textPrimary,
+    marginTop: Spacing.xl,
+    textAlign: "center",
+  },
+  emptySubtitle: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    marginTop: Spacing.sm,
+    textAlign: "center",
+    maxWidth: 400,
+    lineHeight: 22,
+  },
+
+  // ── Loading State ──
   loadingWrap: {
-    minHeight: 260,
+    minHeight: 300,
     alignItems: "center",
     justifyContent: "center",
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 15,
-    color: "#49516c",
-    textAlign: "center",
+    fontFamily: Typography.fontArabic,
+    color: Colors.textSecondary,
+    marginTop: Spacing.base,
+    fontSize: Typography.base,
   },
-  emptyState: {
-    minHeight: 260,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#7b8194",
-    textAlign: "center",
-  },
-  recordsWrap: {
-    gap: 12,
-  },
-  recordCard: {
-    backgroundColor: "#f8f9ff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#eceffd",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  recordHeader: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-  recordDate: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: "#2a2b38",
-    textAlign: "right",
-  },
-  statusPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
-  },
-  statusPillLate: {
-    backgroundColor: "#dc2626",
-  },
-  statusPillOnTime: {
-    backgroundColor: "#16a34a",
-  },
-  statusPillText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "800",
+
+  // ── Populated Records List ──
+  recordsList: {
+    gap: Spacing.sm,
   },
   recordRow: {
-    flexDirection: "row-reverse",
+    flexDirection: "row-reverse", // RTL
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e3e7f5",
+    padding: 16,
+    marginBottom: 12,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
   },
-  recordRowLast: {
-    flexDirection: "row-reverse",
+  recordDateBox: {
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: 8,
+    width: 75,
+    height: 75,
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingTop: 10,
+    justifyContent: "center",
   },
-  recordLabel: {
-    color: "#7f8598",
-    fontSize: 14,
+  dayNameBox: {
+    minWidth: 50,
+    alignItems: "center",
+    marginHorizontal: Spacing.sm,
+  },
+  dayNameText: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.base,
+    color: Colors.textPrimary,
     fontWeight: "700",
   },
-  recordValue: {
-    color: "#2a2b38",
-    fontSize: 16,
+  dateBoxDay: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.xl,
     fontWeight: "800",
-    textAlign: "right",
+    color: Colors.accent,
+    lineHeight: 28,
+  },
+  dateBoxMonth: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.xs,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+  },
+  recordCellCenter: {
+    flex: 1,
+    alignItems: "center",
+  },
+  cellLabel: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.xs,
+    color: Colors.textSecondary,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  cellValueWrap: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  cellValue: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.base,
+    color: Colors.textPrimary,
+    fontWeight: "700",
+  },
+  cellWeekday: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.sm,
+    color: Colors.textPrimary,
+    fontWeight: "700",
+  },
+  recordCellLeft: {
+    alignItems: "flex-start",
+  },
+  statusPill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  statusPillLate: {
+    borderColor: Colors.error,
+  },
+  statusPillText: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.xs,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
+  statusPillTextLate: {
+    color: Colors.error,
   },
 });
 

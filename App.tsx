@@ -12,6 +12,7 @@ import { countPresentToday } from "./services/attendanceService";
 import LoginScreen from "./LoginScreen";
 import EmployeeDashboard from "./EmployeeDashboard";
 import AttendanceHistory from "./AttendanceHistory";
+import EmployeeProfile from "./EmployeeProfile";
 import AddEmployeeContent from "./screens/AddEmployeeContent";
 import DashboardContent from "./screens/DashboardContent";
 import EmployeeListContent from "./screens/EmployeeListContent";
@@ -194,34 +195,6 @@ const EmployeeHistoryScreen: React.FC<EmployeeScreenProps> = ({ navigation, rout
   );
 };
 
-const EmployeeProfileScreen: React.FC<EmployeeScreenProps> = ({ navigation }) => {
-  const [profile, setProfile] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const userData = await getCurrentUserData();
-        setProfile(userData);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadProfile();
-  }, []);
-
-  return (
-    <EmployeeLayout navigation={navigation} activeRoute="EmployeeProfile" showLoading={loading}>
-      <View style={styles.profileCard}>
-        <Text style={styles.profileTitle}>My Profile</Text>
-        <Text style={styles.profileRow}>Name: {profile?.name || "-"}</Text>
-        <Text style={styles.profileRow}>Email: {profile?.email || "-"}</Text>
-        <Text style={styles.profileRow}>Phone: {profile?.phone || "-"}</Text>
-        <Text style={styles.profileRow}>Department: {profile?.department || "-"}</Text>
-      </View>
-    </EmployeeLayout>
-  );
-};
 
 function EmployeeStack() {
   return (
@@ -234,7 +207,7 @@ function EmployeeStack() {
     >
       <Stack.Screen name="EmployeeDashboard" component={EmployeeDashboardScreen} />
       <Stack.Screen name="AttendanceHistory" component={EmployeeHistoryScreen} />
-      <Stack.Screen name="EmployeeProfile" component={EmployeeProfileScreen} />
+      <Stack.Screen name="EmployeeProfile" component={EmployeeProfile} />
     </Stack.Navigator>
   );
 }

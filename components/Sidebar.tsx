@@ -1,6 +1,26 @@
 import React, { useMemo, useRef, useState } from "react";
-import { Animated, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Platform, Pressable, StyleSheet, Text, View, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+
+// ── Design System Tokens (Section 3) ──
+const Colors = {
+  background: "#1f2029",
+  surface: "#2a2b38",
+  surfaceElevated: "#32333f",
+  border: "rgba(62, 63, 75, 0.5)",
+  accent: "#ffeba7",
+  accentText: "#101116",
+  textPrimary: "#e7e2da",
+  textSecondary: "#969081",
+  error: "#ffb4ab",
+};
+const Spacing = { xs: 4, sm: 8, md: 12, base: 16, lg: 20, xl: 24, xxl: 32 };
+const Radius = { sm: 6, md: 12, lg: 16, xl: 24, full: 9999 };
+const Typography = {
+  xs: 11, sm: 13, base: 15, md: 17, lg: 20, xl: 24,
+  fontArabic: "Cairo" as const,
+  fontLatin: "Manrope" as const,
+};
 
 export interface SidebarItem {
   id: string;
@@ -14,6 +34,7 @@ interface SidebarProps {
   activeRoute: string;
   onNavigate: (routeName: string) => void;
   userName?: string;
+  userDepartment?: string;
   onLogout?: () => void;
   logoutLabel?: string;
   mobile?: boolean;
@@ -21,6 +42,7 @@ interface SidebarProps {
   onMobileClose?: () => void;
 }
 
+const SIDEBAR_WIDTH = 280;
 const LOGOUT_ID = "__logout__";
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -28,13 +50,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   activeRoute,
   onNavigate,
   userName,
+  userDepartment,
   onLogout,
   logoutLabel = "تسجيل الخروج",
   mobile = false,
-  onExpandedChange,
 }) => {
   const animationsRef = useRef<Record<string, Animated.Value>>({});
-  const sidebarWidth = useRef(new Animated.Value(mobile ? 250 : 80)).current;
   const [hoveredRoute, setHoveredRoute] = useState<string | null>(null);
 
   const animatedValues = useMemo(() => {
@@ -64,277 +85,259 @@ const Sidebar: React.FC<SidebarProps> = ({
     }).start();
   };
 
-  const expandSidebar = () => {
-    if (mobile) return;
-    onExpandedChange?.(true);
-    Animated.timing(sidebarWidth, {
-      toValue: 250,
-      duration: 220,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const collapseSidebar = () => {
-    if (mobile) return;
-    onExpandedChange?.(false);
-    Animated.timing(sidebarWidth, {
-      toValue: 80,
-      duration: 220,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const labelOpacity = sidebarWidth.interpolate({
-    inputRange: [80, 250],
-    outputRange: [0, 1],
-  });
-  const labelTranslate = sidebarWidth.interpolate({
-    inputRange: [80, 250],
-    outputRange: [-10, 0],
-  });
-  const labelWidth = sidebarWidth.interpolate({
-    inputRange: [80, 250],
-    outputRange: [0, 150],
-  });
-  const labelSpacing = sidebarWidth.interpolate({
-    inputRange: [80, 250],
-    outputRange: [0, 10],
-  });
-  const headerOpacity = sidebarWidth.interpolate({
-    inputRange: [80, 250],
-    outputRange: [0, 1],
-  });
-  const headerWidth = sidebarWidth.interpolate({
-    inputRange: [80, 250],
-    outputRange: [0, 150],
-  });
-  const headerSpacing = sidebarWidth.interpolate({
-    inputRange: [80, 250],
-    outputRange: [0, 12],
-  });
-
   return (
-    <Animated.View
-      style={[styles.container, { width: sidebarWidth, paddingTop: mobile ? 60 : 20 }, mobile && styles.mobileContainer]}
-      {...(Platform.OS === "web"
-        ? ({
-            onMouseEnter: expandSidebar,
-            onMouseLeave: collapseSidebar,
-          } as any)
-        : {})}
+    <View
+      style={[
+        styles.container,
+        { paddingTop: mobile ? 60 : Spacing.xxl },
+        mobile && styles.mobileContainer,
+      ]}
     >
-      <View style={styles.headerSection}>
-        <Ionicons name="person-circle-outline" size={34} color="#c4c3ca" />
-        <Animated.View
-          style={[
-            styles.headerTextWrap,
-            {
-              opacity: headerOpacity,
-              width: headerWidth,
-              marginRight: headerSpacing,
-              overflow: "hidden",
-              transform: [{ translateX: labelTranslate }],
-            },
-          ]}
-        >
+      <View style={styles.topSection}>
+        {/* ── Top Branding ── */}
+        <View style={styles.brandingSection}>
           <Text style={styles.appName} numberOfLines={1}>
-            دوّمت
+            DAWEAMT
           </Text>
-          <Text style={styles.userName} numberOfLines={1}>
-            {userName || "المستخدم"}
+          <Text style={styles.appSubtitle} numberOfLines={1}>
+            Employee Portal
           </Text>
-        </Animated.View>
-      </View>
+        </View>
 
-      <View style={styles.itemsWrap}>
-        {items.map((item) => {
-          const isActive = activeRoute === item.routeName;
-          const isHovered = hoveredRoute === item.routeName;
-          const hoverProgress = animatedValues[item.id];
-          const highlighted = isActive || isHovered;
+        {/* ── Navigation Items ── */}
+        <View style={styles.itemsWrap}>
+          {items.map((item) => {
+            const isActive = activeRoute === item.routeName;
+            const isHovered = hoveredRoute === item.routeName;
+            const hoverProgress = animatedValues[item.id];
+            const highlighted = isActive || isHovered;
 
-          return (
-            <Animated.View
-              key={item.id}
-              style={[
-                styles.itemOuter,
-                {
-                  transform: [
-                    {
-                      translateX: hoverProgress.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0, -6],
-                      }),
-                    },
-                    {
-                      scale: hoverProgress.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [1, 1.03],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              <Pressable
-                style={[styles.itemButton, highlighted && styles.activeItemButton]}
-                onPress={() => onNavigate(item.routeName)}
-                onHoverIn={() => {
-                  setHoveredRoute(item.routeName);
-                  animateIn(item.id);
-                }}
-                onHoverOut={() => {
-                  setHoveredRoute(null);
-                  animateOut(item.id);
-                }}
-                onPressIn={() => animateIn(item.id)}
-                onPressOut={() => animateOut(item.id)}
+            return (
+              <Animated.View
+                key={item.id}
+                style={[
+                  styles.itemOuter,
+                  {
+                    transform: [
+                      {
+                        scale: hoverProgress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [1, 1.02],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
               >
-                <Ionicons name={item.icon} size={20} color={highlighted ? "#102770" : "#c4c3ca"} />
-                <Animated.View
-                  style={[
-                    styles.labelWrap,
-                    {
-                      opacity: labelOpacity,
-                      width: labelWidth,
-                      marginRight: labelSpacing,
-                      overflow: "hidden",
-                      transform: [{ translateX: labelTranslate }],
-                    },
-                  ]}
+                <Pressable
+                  style={[styles.itemButton, highlighted && styles.activeItemButton]}
+                  onPress={() => onNavigate(item.routeName)}
+                  onHoverIn={() => {
+                    setHoveredRoute(item.routeName);
+                    animateIn(item.id);
+                  }}
+                  onHoverOut={() => {
+                    setHoveredRoute(null);
+                    animateOut(item.id);
+                  }}
+                  onPressIn={() => animateIn(item.id)}
+                  onPressOut={() => animateOut(item.id)}
                 >
-                  <Text style={[styles.itemText, highlighted && styles.activeItemText]} numberOfLines={1}>
+                  <Ionicons
+                    name={item.icon}
+                    size={20}
+                    color={highlighted ? Colors.accentText : Colors.textSecondary}
+                  />
+                  <Text
+                    style={[styles.itemText, highlighted && styles.activeItemText]}
+                    numberOfLines={1}
+                  >
                     {item.label}
                   </Text>
-                </Animated.View>
-              </Pressable>
-            </Animated.View>
-          );
-        })}
+                </Pressable>
+              </Animated.View>
+            );
+          })}
+        </View>
       </View>
 
-      {onLogout && (
-        <View style={styles.itemOuter}>
+      <View style={styles.bottomSection}>
+        {/* ── Profile Card ── */}
+        <View style={styles.profileCard}>
+          <View style={styles.profileAvatarContainer}>
+            <Ionicons name="person" size={24} color={Colors.accent} />
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName} numberOfLines={1}>
+              {userName || "المستخدم"}
+            </Text>
+            <Text style={styles.profileRole} numberOfLines={1}>
+              {userDepartment || "القسم غير محدد"}
+            </Text>
+          </View>
+        </View>
+
+        {/* ── Logout ── */}
+        {onLogout && (
           <Pressable
             style={[
               styles.logoutButton,
-              { marginHorizontal: mobile ? 0 : 15 },
-              hoveredRoute === LOGOUT_ID && styles.activeItemButton,
+              hoveredRoute === LOGOUT_ID && styles.logoutButtonHovered,
             ]}
             onPress={onLogout}
             onHoverIn={() => setHoveredRoute(LOGOUT_ID)}
             onHoverOut={() => setHoveredRoute(null)}
           >
-            <Ionicons name="log-out-outline" size={19} color={hoveredRoute === LOGOUT_ID ? "#102770" : "#c4c3ca"} />
-            <Animated.View
+            <Ionicons
+              name="log-out-outline"
+              size={19}
+              color={hoveredRoute === LOGOUT_ID ? Colors.error : Colors.textSecondary}
+            />
+            <Text
               style={[
-                styles.labelWrap,
-                {
-                  opacity: mobile ? 1 : labelOpacity,
-                  width: mobile ? 150 : labelWidth,
-                  marginLeft: mobile ? 10 : labelSpacing,
-                  overflow: "hidden",
-                  transform: [{ translateX: labelTranslate }],
-                },
+                styles.logoutText,
+                hoveredRoute === LOGOUT_ID && { color: Colors.error },
               ]}
             >
-              <Text style={[styles.logoutText, hoveredRoute === LOGOUT_ID && styles.activeItemText]}>{logoutLabel}</Text>
-            </Animated.View>
+              {logoutLabel}
+            </Text>
           </Pressable>
-        </View>
-      )}
-    </Animated.View>
+        )}
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    width: 80,
-    backgroundColor: "#2a2b38",
-    paddingHorizontal: 10,
-    paddingBottom: 18,
+    width: SIDEBAR_WIDTH,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xl,
     justifyContent: "space-between",
     position: "absolute",
     top: 0,
-    right: 0,
+    right: 0, // RTL: sidebar on the right (physical)
     bottom: 0,
     overflow: "hidden",
     zIndex: 1100,
+    borderStartWidth: 1,
+    borderStartColor: Colors.border,
   },
   mobileContainer: {
     shadowColor: "#000",
     shadowOffset: { width: -2, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
   },
-  headerSection: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-    paddingHorizontal: 4,
+  topSection: {
+    flex: 1,
   },
-  headerTextWrap: {
-    justifyContent: "center",
-    alignItems: "flex-start",
+  brandingSection: {
+    alignItems: "flex-end", // RTL alignment
+    marginBottom: Spacing.xxl,
   },
   appName: {
-    color: "#c4c3ca",
-    fontSize: 17,
-    fontWeight: "800",
+    fontFamily: Typography.fontLatin,
+    color: Colors.accent,
+    fontSize: Typography.xl,
+    fontWeight: "900",
+    letterSpacing: -0.5,
+    textTransform: "uppercase",
   },
-  userName: {
-    color: "#9fa0a8",
-    fontSize: 12,
+  appSubtitle: {
+    fontFamily: Typography.fontLatin,
+    color: Colors.textSecondary,
+    fontSize: Typography.xs,
     fontWeight: "600",
-    marginTop: 2,
+    marginTop: Spacing.xs,
+    letterSpacing: 0.5,
   },
   itemsWrap: {
-    flex: 1,
-    gap: 10,
+    gap: Spacing.sm,
   },
   itemOuter: {
-    borderRadius: 12,
+    borderRadius: Radius.md,
   },
   itemButton: {
     flexDirection: "row-reverse",
     alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    gap: Spacing.md,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
   },
   activeItemButton: {
-    backgroundColor: "#ffeba7",
-  },
-  labelWrap: {
-    overflow: "hidden",
+    backgroundColor: Colors.accent,
   },
   itemText: {
-    color: "#c4c3ca",
-    fontSize: 14,
+    fontFamily: Typography.fontLatin,
+    color: Colors.textSecondary,
+    fontSize: Typography.sm,
     fontWeight: "600",
     flexShrink: 1,
-    textAlign: "left",
+    textAlign: "right",
   },
   activeItemText: {
-    color: "#102770",
+    color: Colors.accentText,
+    fontWeight: "700",
   },
-  logoutButton: {
-    flexDirection: "row",
+  bottomSection: {
+    gap: Spacing.base,
+  },
+  profileCard: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: Spacing.md,
+    padding: Spacing.md,
+    backgroundColor: Colors.background,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  profileAvatarContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
-    height: 50,
-    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#c4c3ca33",
-    overflow: "hidden",
-    marginTop: 10,
+    borderColor: Colors.accent,
+  },
+  profileInfo: {
+    flex: 1,
+    alignItems: "flex-end", // RTL alignment
+  },
+  profileName: {
+    fontFamily: Typography.fontArabic,
+    color: Colors.textPrimary,
+    fontSize: Typography.sm,
+    fontWeight: "700",
+  },
+  profileRole: {
+    fontFamily: Typography.fontLatin,
+    color: Colors.textSecondary,
+    fontSize: Typography.xs,
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  logoutButton: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: Spacing.md,
+    height: 48,
+    paddingHorizontal: Spacing.base,
+    borderRadius: Radius.md,
+  },
+  logoutButtonHovered: {
+    backgroundColor: "rgba(255, 180, 171, 0.05)",
   },
   logoutText: {
-    color: "#c4c3ca",
-    fontSize: 14,
+    fontFamily: Typography.fontLatin,
+    color: Colors.textSecondary,
+    fontSize: Typography.sm,
     fontWeight: "600",
   },
 });

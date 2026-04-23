@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, ScrollView, Animated } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert, ScrollView, Animated, useWindowDimensions } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Location from "expo-location";
 import { getDoc, doc } from "firebase/firestore";
@@ -9,6 +9,48 @@ import { getCurrentUserData } from "./services/authService";
 import { checkTodayAttendance, recordCheckIn, recordCheckOut, AttendanceCheckResult } from "./services/attendanceService";
 import { calculateDistance, isWithinGeofence } from "./utils/geo";
 import { RootStackParamList } from "./types";
+
+// ── Design System Tokens (Section 3) ──
+const Colors = {
+  background: "#1f2029",
+  surface: "#2a2b38",
+  surfaceElevated: "#32333f",
+  border: "rgba(62, 63, 75, 0.5)",
+  accent: "#ffeba7",
+  accentText: "#101116",
+  textPrimary: "#e7e2da",
+  textSecondary: "#969081",
+  success: "#abcfb2",
+  error: "#ffb4ab",
+  warning: "#ffd27a",
+  info: "#90caf9",
+  overlay: "rgba(0, 0, 0, 0.5)",
+  outOfRange: "#4a3728",  // Stitch State 2: Out-of-range button (dark brown)
+};
+const Spacing = { xs: 4, sm: 8, md: 12, base: 16, lg: 20, xl: 24, xxl: 32, xxxl: 48 };
+const Radius = { sm: 6, md: 12, lg: 16, xl: 24, full: 9999 };
+const Typography = {
+  xs: 11, sm: 13, base: 15, md: 17, lg: 20, xl: 24, xxl: 30,
+  fontArabic: "Cairo" as const,
+  fontLatin: "Manrope" as const,
+  fontMono: "SpaceMono" as const,
+};
+const Shadow = {
+  card: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  glow: {
+    shadowColor: Colors.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 30,
+    elevation: 8,
+  },
+};
 
 type EmployeeDashboardProps = NativeStackScreenProps<RootStackParamList, "EmployeeDashboard"> & { isFocused?: boolean };
 
@@ -31,7 +73,8 @@ interface LiveGeolocationPosition {
   };
 }
 
-const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFocused = true }) => {
+export default function EmployeeDashboard({ navigation, isFocused = true }: EmployeeDashboardProps) {
+  const { width } = useWindowDimensions();
   const [userLocation, setUserLocation] = useState<any>(null);
   const [distance, setDistance] = useState<number | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -302,7 +345,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
 
       const gracePeriodMinutes = companySettings?.gracePeriodMinutes || DEFAULT_GRACE_PERIOD_MINUTES;
       const isLate = currentTimeInMinutes > workStartTimeInMinutes + gracePeriodMinutes;
-      const status = isLate ? "late" : "on-time";
+      const status = (isLate ? "late" : "on-time") as "on-time" | "late";
 
       const todayDate = now.toISOString().split("T")[0];
 
@@ -514,8 +557,23 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     };
   }, [showPulse, pulseScale, pulseOpacity]);
 
-  const actionLabel = shiftCompleted ? "تم إنهاء الدوام" : hasCheckedIn ? "تسجيل الانصراف" : "تسجيل الحضور";
-  const actionSubtitle = shiftCompleted ? "اكتمل يوم العمل" : hasCheckedIn ? "إنهاء الدوام" : "بدء الدوام";
+  // ── 4-State Dashboard (Stitch MCP screens) ──
+  type DashboardState = "checkin" | "outOfRange" | "checkout" | "completed";
+  const dashboardState: DashboardState = shiftCompleted
+    ? "completed"
+    : hasCheckedIn && withinGeofence
+      ? "checkout"
+      : !withinGeofence
+        ? "outOfRange"
+        : "checkin";
+
+  const stateConfig = {
+    checkin:    { label: "تسجيل الحضور",    subtitle: "بدء الدوام",                    icon: "finger-print" as const },
+    outOfRange: { label: "خارج نطاق العمل",  subtitle: "LOCATION ACCESS RESTRICTED", icon: "location-outline" as const },
+    checkout:   { label: "تسجيل الانصراف",   subtitle: "إنهاء الدوام",                  icon: "finger-print" as const },
+    completed:  { label: "دوامك انتهى لليوم", subtitle: "شكراً لالتزامك في الدوام",     icon: "checkmark-done" as const },
+  };
+  const { label: actionLabel, subtitle: actionSubtitle, icon: actionIcon } = stateConfig[dashboardState];
 
   const todayRecord = attendanceStatus?.checkInRecord;
   const formatTimeValue = (value: any): string => {
@@ -539,136 +597,190 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
     return `${hrs.toLocaleString("en-US")} س ${mins.toLocaleString("en-US")} د`;
   };
 
-  const dateLabel = currentDateTime.toLocaleDateString("en-US", {
+  const dateLabel = currentDateTime.toLocaleDateString("ar-EG", {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
   });
-  const timeLabel = currentDateTime.toLocaleTimeString("en-US", {
+  const fullTime = currentDateTime.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     hour12: true,
   });
+  const timeParts = fullTime.split(" ");
+  const timeDigits = timeParts[0] || fullTime;
+  const timePeriod = timeParts[1] || "";
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-      <View style={styles.card}>
-        <View style={styles.headerWrap}>
-          <Text style={styles.brandName}>دوّمت</Text>
-          <Text style={styles.headerTitle}>لوحة الموظف</Text>
-          <Text style={styles.headerSubtitle}>نظام حضور احترافي وآمن</Text>
+      <View style={[styles.mainContent,{ paddingVertical: 25}, { maxWidth: width > 1024 ? 720 : "100%" }]}>
+        {/* ── Clock Section (Stitch: Clock Section) ── */}
+        <View style={styles.clockSection}>
+          <Text style={styles.dateLabel}>{dateLabel}</Text>
+          <View style={styles.clockRow}>
+            {/* RTL: period appears on the leading (right) side */}
+            <Text style={styles.clockPeriod}>{timePeriod}</Text>
+            <Text style={styles.clockText}>{timeDigits}</Text>
+          </View>
         </View>
 
         {isLoading || distance === null ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#ffeba7" />
+            <ActivityIndicator size="large" color={Colors.accent} />
             <Text style={styles.loadingText}>جاري التحقق من البيانات والموقع...</Text>
           </View>
         ) : (
           <>
+            {/* ── Square Check-in Button (Stitch: 4-State Central Action) ── */}
             <View style={styles.actionZone}>
-              {showPulse && <Animated.View style={[styles.pulseRing, { transform: [{ scale: pulseScale }], opacity: pulseOpacity }]} />}
-              <View
-                style={[
-                  styles.progressRing,
-                  shiftCompleted ? styles.progressRingCompleted : hasCheckedIn ? styles.progressRingCheckOut : styles.progressRingCheckIn,
-                ]}
-              >
-                <TouchableOpacity
+              {showPulse && (
+                <Animated.View
                   style={[
-                    styles.circleButton,
-                    shiftCompleted ? styles.circleButtonCompleted : hasCheckedIn ? styles.circleButtonCheckOut : styles.circleButtonCheckIn,
-                    buttonDisabled && styles.buttonDisabled,
+                    styles.pulseSquare,
+                    dashboardState === "checkout" ? styles.pulseCheckOut : styles.pulseCheckIn,
+                    { transform: [{ scale: pulseScale }], opacity: pulseOpacity },
                   ]}
-                  onPress={hasCheckedIn ? handleCheckOut : handleCheckIn}
-                  disabled={buttonDisabled}
-                  activeOpacity={0.9}
-                >
-                  {isProcessing ? (
-                    <ActivityIndicator color={hasCheckedIn ? "#fff" : "#102770"} />
-                  ) : (
-                    <>
-                      <Text
-                        style={[
-                          styles.circleButtonText,
-                          shiftCompleted ? styles.buttonTextCompleted : hasCheckedIn ? styles.buttonTextCheckOut : styles.buttonTextCheckIn,
-                        ]}
-                      >
-                        {actionLabel}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.circleButtonSubText,
-                          shiftCompleted ? styles.buttonTextCompleted : hasCheckedIn ? styles.buttonTextCheckOut : styles.buttonTextCheckIn,
-                        ]}
-                      >
-                        {actionSubtitle}
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>الوقت والتاريخ</Text>
-              <Text style={styles.clockText}>{timeLabel}</Text>
-              <Text style={styles.dateText}>{dateLabel}</Text>
-            </View>
-
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>حالة الموقع</Text>
-              {locationError ? (
-                <Text style={styles.errorText}>{locationError}</Text>
-              ) : (
-                <>
-                  <Text style={styles.infoText}>
-                    المسافة الحالية: {Number(distance).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} متر
-                  </Text>
-                  <Text style={styles.infoSubText}>النطاق المسموح: {Number(geofenceRadius).toLocaleString("en-US")} متر</Text>
-                  <Text style={[styles.statusBadge, withinGeofence ? styles.statusGood : styles.statusBad]}>
-                    {withinGeofence ? "أنت داخل نطاق العمل" : "أنت خارج نطاق العمل"}
-                  </Text>
-                </>
+                />
               )}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.squareButton,
+                  styles[`squareButton_${dashboardState}`],
+                  dashboardState === "checkin" && styles.squareButtonGlow,
+                  buttonDisabled && styles.buttonDisabled,
+                  pressed && !buttonDisabled && { transform: [{ scale: 0.98 }] },
+                ]}
+                onPress={hasCheckedIn ? handleCheckOut : handleCheckIn}
+                disabled={buttonDisabled}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator
+                    size="large"
+                    color={dashboardState === "checkin" ? Colors.accentText : Colors.textPrimary}
+                  />
+                ) : (
+                  <>
+                    <Ionicons
+                      name={actionIcon}
+                      size={56}
+                      color={
+                        dashboardState === "checkin" || dashboardState === "checkout"
+                          ? Colors.accentText
+                          : dashboardState === "completed"
+                            ? Colors.accent
+                            : dashboardState === "outOfRange"
+                              ? Colors.textSecondary
+                              : Colors.textPrimary
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.squareButtonLabel,
+                        dashboardState === "checkin" || dashboardState === "checkout"
+                          ? { color: Colors.accentText }
+                          : dashboardState === "outOfRange"
+                            ? { color: Colors.textSecondary }
+                            : { color: Colors.textPrimary },
+                      ]}
+                    >
+                      {actionLabel}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.squareButtonSub,
+                        dashboardState === "checkin" || dashboardState === "checkout"
+                          ? { color: Colors.accentText, opacity: 0.7 }
+                          : dashboardState === "outOfRange"
+                            ? { color: Colors.textSecondary, opacity: 0.7 }
+                            : { color: Colors.textSecondary },
+                      ]}
+                    >
+                      {actionSubtitle}
+                    </Text>
+                  </>
+                )}
+              </Pressable>
             </View>
 
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>ملخص حضور اليوم</Text>
-              <View style={styles.summaryRow}>
-                <View style={styles.summaryLabelWrap}>
-                  <Ionicons name="person-outline" size={18} color="#3b82f6" />
-                  <Text style={styles.summaryLabel}>اسم الموظف</Text>
+            {/* ── GPS Location Card (Stitch: GPS Location Card) ── */}
+            <View style={[styles.card, Shadow.card]}>
+              <View style={styles.cardRow}>
+                <View style={styles.cardRowStart}>
+                  <View style={styles.iconBox}>
+                    <Ionicons name="location" size={22} color={Colors.accent} />
+                  </View>
+                  <View>
+                    <Text style={styles.cardLabel}>الموقع الحالي</Text>
+                    {locationError ? (
+                      <Text style={styles.errorText}>{locationError}</Text>
+                    ) : (
+                      <Text style={styles.cardValue}>
+                        {Number(distance).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} متر
+                      </Text>
+                    )}
+                  </View>
                 </View>
-                <Text style={styles.summaryValue}>{employeeName}</Text>
+                {!locationError && (
+                  <View style={[styles.statusChip, withinGeofence ? styles.statusChipGood : styles.statusChipBad]}>
+                    <View style={[styles.statusDot, withinGeofence ? styles.statusDotGood : styles.statusDotBad]} />
+                    <Text style={[styles.statusChipText, withinGeofence ? { color: Colors.accent } : { color: Colors.error }]}>
+                      {withinGeofence ? "داخل نطاق العمل" : "خارج نطاق العمل"}
+                    </Text>
+                  </View>
+                )}
               </View>
-              <View style={styles.summaryRow}>
-                <View style={styles.summaryLabelWrap}>
-                  <Ionicons name="log-in-outline" size={18} color="#22c55e" />
-                  <Text style={styles.summaryLabel}>وقت الحضور</Text>
+            </View>
+
+            {/* ── Summary Card (Stitch: Summary Card) ── */}
+            <View style={[styles.card, Shadow.card]}>
+              <View style={styles.summaryHeader}>
+                <Text style={styles.summaryTitle}>ملخص اليوم</Text>
+                <Ionicons name="analytics-outline" size={22} color={Colors.textSecondary} />
+              </View>
+
+              {/* Employee Name */}
+              <View style={styles.summaryItem}>
+                <View style={styles.summaryItemStart}>
+                  <Ionicons name="person-outline" size={18} color={Colors.accent} />
+                  <Text style={styles.summaryItemLabel}>اسم الموظف</Text>
                 </View>
-                <Text style={styles.summaryValue}>{formatTimeValue(todayRecord?.check_in)}</Text>
+                <Text style={styles.summaryItemValue}>{employeeName}</Text>
               </View>
-              <View style={styles.summaryRow}>
-                <View style={styles.summaryLabelWrap}>
-                  <Ionicons name="log-out-outline" size={18} color="#ef4444" />
-                  <Text style={styles.summaryLabel}>وقت الانصراف</Text>
+
+              {/* Check-in */}
+              <View style={styles.summaryItem}>
+                <View style={styles.summaryItemStart}>
+                  <Ionicons name="log-in-outline" size={18} color={Colors.accent} />
+                  <Text style={styles.summaryItemLabel}>وقت الحضور</Text>
                 </View>
-                <Text style={styles.summaryValue}>{formatTimeValue(todayRecord?.check_out)}</Text>
+                <Text style={styles.summaryItemValue}>{formatTimeValue(todayRecord?.check_in)}</Text>
               </View>
-              <View style={styles.summaryRow}>
-                <View style={styles.summaryLabelWrap}>
-                  <Ionicons name="time-outline" size={18} color="#f59e0b" />
-                  <Text style={styles.summaryLabel}>إجمالي الساعات</Text>
+
+              {/* Check-out */}
+              <View style={styles.summaryItem}>
+                <View style={styles.summaryItemStart}>
+                  <Ionicons name="log-out-outline" size={18} color={Colors.accent} />
+                  <Text style={styles.summaryItemLabel}>وقت الانصراف</Text>
                 </View>
-                <Text style={styles.summaryValue}>{formatDuration(todayRecord?.workDuration)}</Text>
+                <Text style={styles.summaryItemValue}>{formatTimeValue(todayRecord?.check_out)}</Text>
               </View>
-              <View style={styles.summaryRowLast}>
-                <View style={styles.summaryLabelWrap}>
-                  <Ionicons name="alert-circle-outline" size={18} color={todayRecord?.isLate ? "#ef4444" : "#22c55e"} />
-                  <Text style={styles.summaryLabel}>حالة الالتزام</Text>
+
+              {/* Duration */}
+              <View style={styles.summaryItem}>
+                <View style={styles.summaryItemStart}>
+                  <Ionicons name="timer-outline" size={18} color={Colors.accent} />
+                  <Text style={styles.summaryItemLabel}>إجمالي الساعات</Text>
+                </View>
+                <Text style={styles.summaryItemValue}>{formatDuration(todayRecord?.workDuration)}</Text>
+              </View>
+
+              {/* Status */}
+              <View style={[styles.summaryItem, styles.summaryItemLast]}>
+                <View style={styles.summaryItemStart}>
+                  <Ionicons name="information-circle-outline" size={18} color={Colors.accent} />
+                  <Text style={styles.summaryItemLabel}>الحالة</Text>
                 </View>
                 <View
                   style={[
@@ -676,7 +788,18 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
                     !hasCheckedIn ? styles.statusPillNeutral : todayRecord?.isLate ? styles.statusPillLate : styles.statusPillOnTime,
                   ]}
                 >
-                  <Text style={styles.statusPillText}>{!hasCheckedIn ? "--" : todayRecord?.isLate ? "متأخر" : "في الموعد"}</Text>
+                  <Text
+                    style={[
+                      styles.statusPillText,
+                      !hasCheckedIn
+                        ? { color: Colors.error }
+                        : todayRecord?.isLate
+                          ? { color: Colors.error }
+                          : { color: Colors.success },
+                    ]}
+                  >
+                    {!hasCheckedIn ? "لم يتم التسجيل" : todayRecord?.isLate ? "متأخر" : "في الموعد"}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -685,240 +808,276 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ navigation, isFoc
       </View>
     </ScrollView>
   );
-};
+}
 
+// ── STYLES — Design Tokens (Section 3) — RTL compliant ──
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#2a2b38",
+    backgroundColor: Colors.background,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 28,
-    paddingHorizontal: 16,
   },
-  card: {
+  mainContent: {
     width: "100%",
-    maxWidth: 560,
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    paddingVertical: 20,
-    paddingHorizontal: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    elevation: 8,
+    gap: Spacing.xl,
   },
-  headerWrap: {
-    alignItems: "flex-end",
-    marginBottom: 16,
+
+  // ── Clock (Stitch: Clock Section) ──
+  clockSection: {
+    alignItems: "center",
+    paddingTop: Spacing.sm,
   },
-  brandName: {
-    fontSize: 28,
+  dateLabel: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.md,
+    fontWeight: "500",
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginBottom: Spacing.sm,
+  },
+  clockRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "center",
+    gap: Spacing.sm,
+  },
+  clockText: {
+    fontFamily: Typography.fontMono,
+    fontSize: 56,
     fontWeight: "900",
-    color: "#2a2b38",
+    color: Colors.accent,
+    textAlign: "center",
+    letterSpacing: -2,
   },
-  headerTitle: {
-    fontSize: 18,
+  clockPeriod: {
+    fontFamily: Typography.fontLatin,
+    fontSize: Typography.xl,
     fontWeight: "800",
-    color: "#2a2b38",
-    marginTop: 2,
+    color: Colors.accent,
+    opacity: 0.6,
   },
-  headerSubtitle: {
-    fontSize: 13,
-    color: "#6f7384",
-    marginTop: 4,
-  },
+
+  // ── Loading ──
   loadingContainer: {
     minHeight: 260,
     alignItems: "center",
     justifyContent: "center",
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 15,
-    color: "#49516c",
+    fontFamily: Typography.fontArabic,
+    marginTop: Spacing.md,
+    fontSize: Typography.base,
+    color: Colors.textSecondary,
     textAlign: "center",
   },
+
+  // ── Square Action Button (Stitch: 4-State Central Action) ──
   actionZone: {
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 8,
-    marginBottom: 20,
+    paddingVertical: Spacing.lg,
   },
-  pulseRing: {
+  pulseSquare: {
     position: "absolute",
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: "#ffeba7",
+    width: 272,
+    height: 272,
+    borderRadius: Radius.xl,
   },
-  progressRing: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    borderWidth: 1.5,
+  pulseCheckIn: { backgroundColor: Colors.accent },
+  pulseCheckOut: { backgroundColor: Colors.error },
+  squareButton: {
+    width: 256,
+    height: 256,
+    borderRadius: Radius.xl,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ffffff",
+    paddingHorizontal: Spacing.base,
   },
-  progressRingCheckIn: {
-    borderColor: "#ffeba7",
+  // Stitch State 1: Check-in — Yellow accent
+  squareButton_checkin: { backgroundColor: Colors.accent },
+  // Stitch State 2: Out of Range — Dark surface, disabled
+  squareButton_outOfRange: { backgroundColor: Colors.surface, borderColor: Colors.border, borderWidth: 1 },
+  // Stitch State 3: Check-out — Coral/salmon
+  squareButton_checkout: { backgroundColor: Colors.error },
+  // Stitch State 4: Completed — Dark surface
+  squareButton_completed: { backgroundColor: Colors.surfaceElevated },
+  squareButtonGlow: {
+    ...Shadow.glow,
   },
-  progressRingCheckOut: {
-    borderColor: "#dc3545",
-  },
-  progressRingCompleted: {
-    borderColor: "#4b5563",
-  },
-  circleButton: {
-    width: 178,
-    height: 178,
-    borderRadius: 89,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 14,
-  },
-  circleButtonCheckIn: {
-    backgroundColor: "#ffeba7",
-  },
-  circleButtonCheckOut: {
-    backgroundColor: "#dc3545",
-  },
-  circleButtonCompleted: {
-    backgroundColor: "#4b5563",
-  },
-  circleButtonText: {
-    fontSize: 21,
+  squareButtonLabel: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.xl,
     fontWeight: "900",
     textAlign: "center",
+    marginTop: Spacing.md,
   },
-  circleButtonSubText: {
-    marginTop: 4,
-    fontSize: 12,
+  squareButtonSub: {
+    fontFamily: Typography.fontLatin,
+    fontSize: Typography.xs,
     fontWeight: "700",
     textAlign: "center",
-  },
-  sectionCard: {
-    width: "92%",
-    alignSelf: "center",
-    backgroundColor: "#f8f9ff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#eceffd",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    textAlign: "right",
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#2a2b38",
-    marginBottom: 8,
-  },
-  clockText: {
-    textAlign: "right",
-    fontSize: 24,
-    fontWeight: "900",
-    color: "#2a2b38",
-  },
-  dateText: {
-    textAlign: "right",
-    marginTop: 4,
-    color: "#676d83",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  errorText: {
-    color: "#cc0000",
-    fontSize: 14,
-    textAlign: "right",
-    marginVertical: 2,
-    fontWeight: "600",
-  },
-  infoText: {
-    fontSize: 14,
-    marginBottom: 6,
-    color: "#2a2b38",
-    textAlign: "right",
-    fontWeight: "700",
-  },
-  infoSubText: {
-    fontSize: 13,
-    marginBottom: 8,
-    color: "#6d7285",
-    textAlign: "right",
-  },
-  statusBadge: {
-    alignSelf: "flex-end",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    color: "#fff",
-    fontWeight: "800",
-    textAlign: "right",
-    fontSize: 12,
-  },
-  statusGood: { backgroundColor: "#2a2b38" },
-  statusBad: { backgroundColor: "#dc3545" },
-  summaryRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: "#374151",
-  },
-  summaryRowLast: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingTop: 6,
-  },
-  summaryLabelWrap: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 6,
-  },
-  summaryLabel: {
-    color: "#7f8598",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  summaryValue: {
-    color: "#2a2b38",
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "right",
-    maxWidth: "72%",
-  },
-  statusPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
-  },
-  statusPillLate: {
-    backgroundColor: "#dc2626",
-  },
-  statusPillOnTime: {
-    backgroundColor: "#16a34a",
-  },
-  statusPillNeutral: {
-    backgroundColor: "#6b7280",
-  },
-  statusPillText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "800",
+    marginTop: Spacing.xs,
+    textTransform: "uppercase",
+    letterSpacing: 2,
   },
   buttonDisabled: { opacity: 0.5 },
-  buttonTextCheckIn: { color: "#102770" },
-  buttonTextCheckOut: { color: "#fff" },
-  buttonTextCompleted: { color: "#fff" },
+
+  // ── Cards (Stitch: etched-border surface containers) ──
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.xl,
+  },
+
+  // ── GPS Card (Stitch: GPS Location Card) ──
+  cardRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  cardRowStart: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  iconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardLabel: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.sm,
+    fontWeight: "500",
+    color: Colors.textSecondary,
+    textAlign: "right",
+  },
+  cardValue: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.lg,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+    textAlign: "right",
+    marginTop: Spacing.xs,
+  },
+  errorText: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.sm,
+    color: Colors.error,
+    textAlign: "right",
+    marginTop: Spacing.xs,
+  },
+  statusChip: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.full,
+    gap: Spacing.sm,
+  },
+  statusChipGood: {
+    backgroundColor: "rgba(255, 235, 167, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 235, 167, 0.3)",
+  },
+  statusChipBad: {
+    backgroundColor: "rgba(255, 180, 171, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 180, 171, 0.3)",
+  },
+  statusDot: {
+    width: Spacing.sm,
+    height: Spacing.sm,
+    borderRadius: Radius.full,
+  },
+  statusDotGood: { backgroundColor: Colors.accent },
+  statusDotBad: { backgroundColor: Colors.error },
+  statusChipText: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.xs,
+    fontWeight: "700",
+  },
+
+  // ── Summary Card (Stitch: Summary Card) ──
+  summaryHeader: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: Spacing.xl,
+  },
+  summaryTitle: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.lg,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+    textAlign: "right",
+  },
+  summaryItem: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: Spacing.base,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: Spacing.md,
+  },
+  summaryItemLast: {
+    marginBottom: 0,
+  },
+  summaryItemStart: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  summaryItemLabel: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+  },
+  summaryItemValue: {
+    fontFamily: Typography.fontMono,
+    fontSize: Typography.base,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+    textAlign: "left",
+    maxWidth: "50%",
+  },
+
+  // ── Status Pills (Stitch: Status badge) ──
+  statusPill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radius.full,
+  },
+  statusPillLate: {
+    backgroundColor: "rgba(255, 180, 171, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 180, 171, 0.2)",
+  },
+  statusPillOnTime: {
+    backgroundColor: "rgba(171, 207, 178, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(171, 207, 178, 0.2)",
+  },
+  statusPillNeutral: {
+    backgroundColor: "rgba(255, 180, 171, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 180, 171, 0.2)",
+  },
+  statusPillText: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.xs,
+    fontWeight: "700",
+  },
 });
 
-export default EmployeeDashboard;

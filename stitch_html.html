@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+
+<html class="dark" dir="rtl" lang="ar"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#2a2b38",
+                        "background": "#1f2029",
+                        "primary": "#ffeba7",
+                        "on-surface": "#e7e2da",
+                        "outline": "#969081",
+                        "error": "#ffb4ab"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "12px",
+                        "lg": "12px",
+                        "xl": "12px",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "gutter": "24px",
+                        "container-max": "1440px",
+                        "stack-lg": "32px",
+                        "margin-page": "40px"
+                    },
+                    "fontFamily": {
+                        "label-caps": ["Manrope"],
+                        "title-sm": ["Manrope"],
+                        "display-lg": ["Manrope"],
+                        "headline-md": ["Manrope"],
+                        "body-base": ["Manrope"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; background-color: #1f2029; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .check-in-glow {
+            box-shadow: 0 0 30px 5px rgba(255, 235, 167, 0.25);
+        }
+        .etched-border {
+            border: 1px solid rgba(255, 235, 167, 0.1);
+        }
+        .square-button-animation {
+            animation: pulse-square 2s infinite;
+        }
+        @keyframes pulse-square {
+            0% { transform: scale(1); opacity: 0.2; }
+            50% { transform: scale(1.05); opacity: 0.1; }
+            100% { transform: scale(1); opacity: 0.2; }
+        }
+        #sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+        @media (max-width: 1024px) {
+            #sidebar.hidden-mobile {
+                transform: translateX(100%);
+            }
+        }
+    </style>
+</head>
+<body class="text-on-surface min-h-screen overflow-x-hidden">
+<!-- Mobile Menu Toggle -->
+<button class="lg:hidden fixed top-6 right-6 z-[60] bg-surface-container p-3 rounded-lg border border-[#3e3f4b] text-primary" onclick="toggleSidebar()">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<!-- SideNavBar -->
+<aside class="fixed right-0 top-0 h-full w-72 border-l border-[#3e3f4b] bg-surface-container flex flex-col justify-between p-6 rtl z-50 hidden-mobile lg:translate-x-0" id="sidebar">
+<div>
+<div class="mb-10 flex items-center justify-between">
+<div>
+<h1 class="text-2xl font-black tracking-tighter text-primary uppercase font-label-caps">Daweamt</h1>
+<p class="text-sm font-medium tracking-wide text-slate-400 mt-1">Employee Portal</p>
+</div>
+<button class="lg:hidden text-slate-400" onclick="toggleSidebar()">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<nav class="space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 bg-primary text-[#1f2029] rounded-lg font-bold font-manrope text-sm tracking-wide" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-primary hover:bg-[#3e3f4b] transition-all duration-200 rounded-lg font-manrope text-sm font-medium tracking-wide" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+<span>Attendance History</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-primary hover:bg-[#3e3f4b] transition-all duration-200 rounded-lg font-manrope text-sm font-medium tracking-wide" href="#">
+<span class="material-symbols-outlined">person</span>
+<span>Personal Profile</span>
+</a>
+</nav>
+</div>
+<div class="space-y-6">
+<div class="flex items-center gap-4 p-3 bg-background rounded-xl border border-[#3e3f4b]">
+<img alt="Employee Profile Avatar" class="w-10 h-10 rounded-full border-2 border-primary" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBS_wxIO1TnRhJeoCtZJa5nAm9FUueoTHKnHnvyFYWnDXWUHPrq2wABCNwAWqYyBHxMYVEBN_blOiXkEYjrrJylQPu_l5ZNv-b43NtZuR_0mMkXfA_WHmo-kZWM_bUCEl3ktJw2kjiBES8nfyBR7-AvQaIWvio6zpaCfDNSFKEDQPFQj7XgbrEOgvSBk3zRUn8Xdgh3E4gPNRf_UfNO4wVplVvv-eybg-hJdrg02GTddoLNVnBMaHgvteZlITZzE4VQZxKwgJYKeVU"/>
+<div class="overflow-hidden">
+<p class="text-sm font-bold text-on-surface truncate">أحمد الرويلي</p>
+<p class="text-xs text-slate-400">Senior Developer</p>
+</div>
+</div>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-error transition-colors font-manrope text-sm font-medium tracking-wide" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span>Log Out</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="lg:mr-72 min-h-screen p-6 md:p-margin-page">
+<div class="max-w-3xl mx-auto space-y-12">
+<!-- Clock Section -->
+<div class="text-center pt-8">
+<p class="font-title-sm text-lg text-outline mb-2">الثلاثاء، 24 أكتوبر 2023</p>
+<h2 class="text-5xl md:text-7xl font-black text-primary tracking-tighter leading-none">
+                08:42:15 <span class="text-2xl md:text-3xl opacity-60">PM</span>
+</h2>
+</div>
+<!-- Central Action Area: Square Button -->
+<div class="flex flex-col items-center justify-center">
+<div class="relative">
+<!-- Square Pulse Effect -->
+<div class="absolute -inset-4 bg-primary rounded-xl square-button-animation z-0"></div>
+<button class="relative w-64 h-64 rounded-xl bg-primary text-[#1f2029] flex flex-col items-center justify-center transition-transform active:scale-[0.98] check-in-glow z-10">
+<span class="material-symbols-outlined text-7xl mb-4" style="font-variation-settings: 'FILL' 1;">fingerprint</span>
+<span class="text-2xl font-black mb-1">تسجيل الحضور</span>
+<span class="text-xs font-bold opacity-70 uppercase tracking-widest">Tap to Scan</span>
+</button>
+</div>
+</div>
+<!-- Single Column Layout Components -->
+<div class="space-y-6">
+<!-- GPS Location Card -->
+<div class="bg-surface-container p-6 rounded-xl border border-[#3e3f4b] flex items-center justify-between etched-border">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-[#3e3f4b] flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">location_on</span>
+</div>
+<div>
+<p class="text-sm text-outline font-medium">الموقع الحالي</p>
+<p class="text-xl font-bold text-on-surface">8.26 متر</p>
+</div>
+</div>
+<div class="bg-primary/10 text-primary border border-primary/30 px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                    داخل نطاق العمل
+                </div>
+</div>
+<!-- Summary Card -->
+<div class="bg-surface-container rounded-xl border border-[#3e3f4b] p-6 etched-border">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-xl font-bold text-on-surface">ملخص اليوم</h3>
+<span class="material-symbols-outlined text-outline">analytics</span>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-4 rounded-lg bg-background border border-[#3e3f4b]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-sm">login</span>
+<span class="text-sm text-slate-400">وقت تسجيل الدخول</span>
+</div>
+<span class="font-bold text-on-surface">--:--</span>
+</div>
+<div class="flex items-center justify-between p-4 rounded-lg bg-background border border-[#3e3f4b]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-sm">logout</span>
+<span class="text-sm text-slate-400">وقت تسجيل الخروج</span>
+</div>
+<span class="font-bold text-on-surface">--:--</span>
+</div>
+<div class="flex items-center justify-between p-4 rounded-lg bg-background border border-[#3e3f4b]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-sm">timer</span>
+<span class="text-sm text-slate-400">إجمالي الساعات</span>
+</div>
+<span class="font-bold text-on-surface">0.00 ساعة</span>
+</div>
+<div class="flex items-center justify-between p-4 rounded-lg bg-background border border-[#3e3f4b]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-sm">info</span>
+<span class="text-sm text-slate-400">الحالة</span>
+</div>
+<span class="text-xs font-bold text-error bg-error/10 px-3 py-1 rounded-full border border-error/20">لم يتم تسجيل الحضور</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.toggle('hidden-mobile');
+    }
+</script>
+</body></html>

@@ -1,10 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Pressable } from "react-native";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { getCurrentUserData } from "../services/authService";
 import Sidebar, { SidebarItem } from "./Sidebar";
+
+// ── Design System Tokens (Section 3) ──
+const Colors = {
+  background: "#1f2029",
+  surface: "#2a2b38",
+  accent: "#ffeba7",
+  textSecondary: "#969081",
+};
+const Spacing = { base: 16, lg: 20, xl: 24 };
+const Radius = { md: 12 };
+
+const SIDEBAR_WIDTH = 280;
 
 interface EmployeeLayoutProps {
   activeRoute: "EmployeeDashboard" | "AttendanceHistory" | "EmployeeProfile";
@@ -12,6 +25,7 @@ interface EmployeeLayoutProps {
   children: React.ReactNode;
   showLoading?: boolean;
   userName?: string;
+  userDepartment?: string;
 }
 
 const EMPLOYEE_ITEMS: SidebarItem[] = [
@@ -20,28 +34,31 @@ const EMPLOYEE_ITEMS: SidebarItem[] = [
   { id: "employee-profile", routeName: "EmployeeProfile", label: "Personal Profile", icon: "person-outline" },
 ];
 
-const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation, children, showLoading = false, userName }) => {
+const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation, children, showLoading = false, userName, userDepartment }) => {
   const [currentUserName, setCurrentUserName] = useState<string>(userName || "Employee");
+  const [currentUserDept, setCurrentUserDept] = useState<string | null>(userDepartment || null);
   const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const { width } = useWindowDimensions();
-  const isMobile = width < 900;
+  const isMobile = width < 1024;
 
   useEffect(() => {
-    if (!userName) {
-      const loadName = async () => {
+    if (!userName || !userDepartment) {
+      const loadUserData = async () => {
         try {
           const currentUser = await getCurrentUserData();
-          if (currentUser?.name) {
+          if (currentUser?.name && !userName) {
             setCurrentUserName(currentUser.name);
+          }
+          if (currentUser?.department && !userDepartment) {
+            setCurrentUserDept(currentUser.department);
           }
         } catch (error) {
           console.error("Failed to load current user for header:", error);
         }
       };
-      loadName();
+      loadUserData();
     }
-  }, [userName]);
+  }, [userName, userDepartment]);
 
   const handleNavigate = (routeName: string) => {
     if (routeName !== activeRoute) {
@@ -63,97 +80,78 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.body}>
-        {isMobile && (
-          <TouchableOpacity style={styles.mobileToggle} onPress={() => setSidebarVisible((prev) => !prev)} activeOpacity={0.8}>
-            <Ionicons name={sidebarVisible ? "close" : "menu"} size={24} color="#ffeba7" />
-          </TouchableOpacity>
-        )}
-
-        {(!isMobile || sidebarVisible) && (
-          <Sidebar
-            items={EMPLOYEE_ITEMS}
-            activeRoute={activeRoute}
-            onNavigate={handleNavigate}
-            onLogout={handleLogout}
-            userName={currentUserName}
-            logoutLabel="تسجيل الخروج"
-            mobile={isMobile}
-            onExpandedChange={setSidebarExpanded}
-            onMobileClose={() => setSidebarVisible(false)}
-          />
-        )}
-
-        <ScrollView
-          style={[styles.content, { marginRight: isMobile ? 0 : sidebarExpanded ? 250 : 80 }]}
-          contentContainerStyle={[styles.contentContainer, isMobile && styles.mobileContentContainer]}
-          showsVerticalScrollIndicator={false}
+    <View style={styles.root}>
+      {/* ── Mobile Menu Toggle ── */}
+      {isMobile && (
+        <Pressable
+          style={styles.mobileToggle}
+          onPress={() => setSidebarVisible((prev) => !prev)}
         >
-          {showLoading ? (
-            <View style={styles.loadingWrap}>
-              <ActivityIndicator size="large" color="#2a2b38" />
-              <Text style={styles.loadingText}>Loading...</Text>
-            </View>
-          ) : (
-            children
-          )}
-        </ScrollView>
+          <Ionicons name={sidebarVisible ? "close" : "menu"} size={24} color={Colors.accent} />
+        </Pressable>
+      )}
+
+      {/* ── Sidebar: permanently open on desktop, toggleable on mobile ── */}
+      {(!isMobile || sidebarVisible) && (
+        <Sidebar
+          items={EMPLOYEE_ITEMS}
+          activeRoute={activeRoute}
+          onNavigate={handleNavigate}
+          onLogout={handleLogout}
+          userName={currentUserName}
+          userDepartment={currentUserDept || undefined}
+          logoutLabel="تسجيل الخروج"
+          mobile={isMobile}
+          onMobileClose={() => setSidebarVisible(false)}
+        />
+      )}
+
+      {/* ── Main Content: offset by sidebar width on desktop ── */}
+      <View style={[styles.content, !isMobile && { marginRight: SIDEBAR_WIDTH }]}>
+        {showLoading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="large" color={Colors.accent} />
+            <Text style={styles.loadingText}>Loading...</Text>
+          </View>
+        ) : (
+          children
+        )}
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: "#2a2b38",
-    margin: 0,
-    padding: 0,
-    borderWidth: 0,
-  },
-  body: {
-    flex: 1,
-    flexDirection: "row",
-    backgroundColor: "#2a2b38",
-    margin: 0,
-    padding: 0,
-    borderWidth: 0,
+    backgroundColor: Colors.background,
+    // NO border, NO extra padding — seamless background to edges
   },
   content: {
     flex: 1,
-    backgroundColor: "#2a2b38",
-    margin: 0,
-    borderWidth: 0,
-  },
-  contentContainer: {
-    padding: 16,
-    minHeight: "100%",
-  },
-  mobileContentContainer: {
-    padding: 20,
-    paddingTop: 80,
+    backgroundColor: Colors.background,
+    // NO border, NO padding here — children handle their own padding
   },
   loadingWrap: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 48,
+    paddingVertical: Spacing.xl,
   },
   loadingText: {
-    marginTop: 10,
-    color: "#555",
+    marginTop: Spacing.base,
+    color: Colors.textSecondary,
     fontSize: 15,
   },
   mobileToggle: {
     position: "absolute",
-    top: 20,
-    right: 20,
+    top: Spacing.lg,
+    right: Spacing.lg, // Physical right — always top-right regardless of RTL
     zIndex: 9999,
-    backgroundColor: "#2a2b38",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: 10,
   },
 });
 
