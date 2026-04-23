@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Platform, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"; // Fix 2A/2B
@@ -83,7 +83,11 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation
 
   return (
     // Fix 2B: SafeAreaView prevents content from bleeding under iOS notch, Dynamic Island, and home indicator
-    <SafeAreaView style={[styles.root, { backgroundColor: Colors.background }]}>
+    // On web, exclude 'bottom' edge — browser handles safe area natively, avoiding a dead gap
+    <SafeAreaView
+      style={[styles.root, { backgroundColor: Colors.background }]}
+      edges={Platform.OS === 'web' ? ['top', 'left', 'right'] : ['top', 'left', 'right', 'bottom']}
+    >
       {/* ── Mobile Menu Toggle ── */}
       {isMobile && (
         <Pressable
