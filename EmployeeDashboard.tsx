@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert, ScrollView
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Location from "expo-location";
 import { getDoc, doc } from "firebase/firestore";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { db } from "./firebaseConfig";
 import { getCurrentUserData } from "./services/authService";
 import { checkTodayAttendance, recordCheckIn, recordCheckOut, AttendanceCheckResult } from "./services/attendanceService";
@@ -94,6 +94,8 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
   const attendanceDocIdRef = useRef<string | null>(null);
   const pulseScale = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(0.42)).current;
+  // Out-of-range CSS-accurate pulse: animates an inset background layer
+  const pulseAnim = useRef(new Animated.Value(0)).current;
 
   const fetchAttendanceStatus = async () => {
     setAttendanceLoading(true);
@@ -570,6 +572,27 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
     };
   }, [showPulse, pulseScale, pulseOpacity]);
 
+  // Out-of-range pulse: replicates CSS `-inset-4` pseudo-element technique.
+  // Background layer scales 1→1.02 and fades 0.1→0.05 over a 3-second loop.
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulseAnim]);
+
   // ── 4-State Dashboard (Stitch MCP screens) ──
   type DashboardState = "checkin" | "outOfRange" | "checkout" | "completed";
   const dashboardState: DashboardState = shiftCompleted
@@ -582,7 +605,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
 
   const stateConfig = {
     checkin:    { label: "تسجيل الحضور",    subtitle: "بدء الدوام",                    icon: "finger-print" as const },
-    outOfRange: { label: "خارج نطاق العمل",  subtitle: "LOCATION ACCESS RESTRICTED", icon: "location-outline" as const },
+    outOfRange: { label: "خارج نطاق العمل",  subtitle: "LOCATION ACCESS RESTRICTED", icon: "alert-circle-outline" as const },
     checkout:   { label: "تسجيل الانصراف",   subtitle: "إنهاء الدوام",                  icon: "finger-print" as const },
     completed:  { label: "دوامك انتهى لليوم", subtitle: "شكراً لالتزامك في الدوام",     icon: "checkmark-done" as const },
   };
@@ -649,6 +672,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
           <>
             {/* ── Square Check-in Button (Stitch: 4-State Central Action) ── */}
             <View style={styles.actionZone}>
+              {/* Checkin/Checkout pulse ring */}
               {showPulse && (
                 <Animated.View
                   style={[
@@ -658,64 +682,109 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
                   ]}
                 />
               )}
-              <Pressable
-                style={({ pressed }) => [
-                  styles.squareButton,
-                  styles[`squareButton_${dashboardState}`],
-                  dashboardState === "checkin" && styles.squareButtonGlow,
-                  buttonDisabled && styles.buttonDisabled,
-                  pressed && !buttonDisabled && { transform: [{ scale: 0.98 }] },
-                ]}
-                onPress={hasCheckedIn ? handleCheckOut : handleCheckIn}
-                disabled={buttonDisabled}
-              >
-                {isProcessing ? (
-                  <ActivityIndicator
-                    size="large"
-                    color={dashboardState === "checkin" ? Colors.accentText : Colors.textPrimary}
+
+              {dashboardState === "completed" ? (
+                // ── State 4: Completed — Wider non-interactive celebration card ──
+                <View style={styles.completedCard}>
+                  <View style={styles.completedIconBox}>
+                    <Ionicons name="checkmark-circle-outline" size={48} color={Colors.accent} />
+                  </View>
+                  <Text style={styles.completedTitle}>دوامك انتهى لليوم</Text>
+                  <Text style={styles.completedSubtitle}>نتمنى لك وقتاً سعيداً، نراك غداً</Text>
+                </View>
+              ) : dashboardState === "outOfRange" ? (
+                // ── State 2: Out-of-range — static card + animated inset background layer ──
+                <View style={styles.outOfRangeWrapper}>
+                  {/* Animated inset background — replicates `-inset-4` pseudo-element */}
+                  <Animated.View
+                    style={[
+                      styles.outOfRangePulseLayer,
+                      {
+                        opacity: pulseAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.1, 0.05],
+                        }),
+                        transform: [{
+                          scale: pulseAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [1, 1.02],
+                          }),
+                        }],
+                      },
+                    ]}
                   />
-                ) : (
-                  <>
-                    <Ionicons
-                      name={actionIcon}
+                  {/* Static foreground card — never animates */}
+                  <View style={styles.squareButton_outOfRange_card}>
+                    <MaterialIcons
+                      name="location-off"
                       size={56}
-                      color={
-                        dashboardState === "checkin" || dashboardState === "checkout"
-                          ? Colors.accentText
-                          : dashboardState === "completed"
-                            ? Colors.accent
-                            : dashboardState === "outOfRange"
-                              ? Colors.textSecondary
-                              : Colors.textPrimary
-                      }
+                      color={Colors.error}
+                      style={{ opacity: 0.4 }}
                     />
-                    <Text
-                      style={[
-                        styles.squareButtonLabel,
-                        dashboardState === "checkin" || dashboardState === "checkout"
-                          ? { color: Colors.accentText }
-                          : dashboardState === "outOfRange"
-                            ? { color: Colors.textSecondary }
+                    <Text style={[styles.squareButtonLabel, { color: Colors.error }]}>
+                      خارج نطاق العمل
+                    </Text>
+                    <Text style={[
+                      styles.squareButtonSub,
+                      { color: Colors.error, opacity: 0.6, letterSpacing: 2 },
+                    ]}>
+                      LOCATION ACCESS RESTRICTED
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                // ── States 1 & 3: checkin / checkout — standard square Pressable ──
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.squareButton,
+                    styles[`squareButton_${dashboardState}`],
+                    dashboardState === "checkin" && styles.squareButtonGlow,
+                    buttonDisabled && styles.buttonDisabled,
+                    pressed && !buttonDisabled && { transform: [{ scale: 0.98 }] },
+                  ]}
+                  onPress={hasCheckedIn ? handleCheckOut : handleCheckIn}
+                  disabled={buttonDisabled}
+                >
+                  {isProcessing ? (
+                    <ActivityIndicator
+                      size="large"
+                      color={dashboardState === "checkin" ? Colors.accentText : Colors.textPrimary}
+                    />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name={actionIcon}
+                        size={56}
+                        color={
+                          dashboardState === "checkin" || dashboardState === "checkout"
+                            ? Colors.accentText
+                            : Colors.textPrimary
+                        }
+                      />
+                      <Text
+                        style={[
+                          styles.squareButtonLabel,
+                          dashboardState === "checkin" || dashboardState === "checkout"
+                            ? { color: Colors.accentText }
                             : { color: Colors.textPrimary },
-                      ]}
-                    >
-                      {actionLabel}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.squareButtonSub,
-                        dashboardState === "checkin" || dashboardState === "checkout"
-                          ? { color: Colors.accentText, opacity: 0.7 }
-                          : dashboardState === "outOfRange"
-                            ? { color: Colors.textSecondary, opacity: 0.7 }
+                        ]}
+                      >
+                        {actionLabel}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.squareButtonSub,
+                          dashboardState === "checkin" || dashboardState === "checkout"
+                            ? { color: Colors.accentText, opacity: 0.7 }
                             : { color: Colors.textSecondary },
-                      ]}
-                    >
-                      {actionSubtitle}
-                    </Text>
-                  </>
-                )}
-              </Pressable>
+                        ]}
+                      >
+                        {actionSubtitle}
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
+              )}
             </View>
 
             {/* ── GPS Location Card (Stitch: GPS Location Card) ── */}
@@ -902,6 +971,42 @@ const styles = StyleSheet.create({
   },
   pulseCheckIn: { backgroundColor: Colors.accent },
   pulseCheckOut: { backgroundColor: Colors.error },
+
+  // ── Out-of-Range Card (CSS inset pseudo-element technique) ──
+  outOfRangeWrapper: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 256,
+    height: 256,
+  },
+  outOfRangePulseLayer: {
+    // Replicates CSS `-inset-4`: 16px larger on all sides than the 256px card
+    position: "absolute",
+    top: -16,
+    bottom: -16,
+    left: -16,
+    right: -16,
+    backgroundColor: Colors.error,
+    borderRadius: Radius.xl,
+  },
+  squareButton_outOfRange_card: {
+    width: 256,
+    height: 256,
+    borderRadius: Radius.xl,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: Spacing.base,
+    // Exact spec: red tint bg, 2px error border, static red glow
+    backgroundColor: "rgba(255, 180, 171, 0.1)",
+    borderWidth: 2,
+    borderColor: "rgba(255, 180, 171, 0.2)",
+    shadowColor: "rgba(255, 180, 171, 0.15)",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 30,
+    elevation: 8,
+  },
   squareButton: {
     width: 256,
     height: 256,
@@ -912,12 +1017,56 @@ const styles = StyleSheet.create({
   },
   // Stitch State 1: Check-in — Yellow accent
   squareButton_checkin: { backgroundColor: Colors.accent },
-  // Stitch State 2: Out of Range — Dark surface, disabled
-  squareButton_outOfRange: { backgroundColor: Colors.surface, borderColor: Colors.border, borderWidth: 1 },
+  // Stitch State 2: Out of Range — Red-tinted error card with coral border & glow
+  squareButton_outOfRange: {
+    backgroundColor: "rgba(255, 180, 171, 0.08)",
+    borderColor: Colors.error,
+    borderWidth: 1.5,
+    shadowColor: Colors.error,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 6,
+  },
   // Stitch State 3: Check-out — Coral/salmon
   squareButton_checkout: { backgroundColor: Colors.error },
-  // Stitch State 4: Completed — Dark surface
+  // Stitch State 4: Completed — rendered as CompletedCard, this style is kept as fallback
   squareButton_completed: { backgroundColor: Colors.surfaceElevated },
+
+  // ── Completed Card (Stitch State 4 — wider celebration card) ──
+  completedCard: {
+    width: "100%",
+    maxWidth: 384,
+    backgroundColor: "rgba(42, 43, 56, 0.5)",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.xl,
+    padding: Spacing.xxxl,
+    alignItems: "center",
+  },
+  completedIconBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255, 235, 167, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Spacing.xl,
+  },
+  completedTitle: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.xl,
+    fontWeight: "bold",
+    color: Colors.textPrimary,
+    textAlign: "center",
+    marginBottom: Spacing.sm,
+  },
+  completedSubtitle: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    textAlign: "center",
+  },
   squareButtonGlow: {
     ...Shadow.glow,
   },
