@@ -169,23 +169,31 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
         return;
       }
 
-      const currentLocation = await Location.getCurrentPositionAsync({});
+      // Fix 1A: Added timeInterval to prevent infinite hang on iOS cold GPS start
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: 5000,
+      });
       setUserLocation(currentLocation);
       setLocationError(null);
     } catch (error) {
       console.error("Location error:", error);
-      setLocationError("حدث خطأ أثناء جلب موقعك الحالي.");
+      setLocationError("تعذر تحديد موقعك الحالي. يرجى التحقق من صلاحيات الموقع.");
     }
   };
 
   const refreshLocation = async () => {
     try {
       setLocationError(null);
-      const currentLocation = await Location.getCurrentPositionAsync({});
+      // Fix 1A: Added timeInterval to prevent infinite hang
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: 5000,
+      });
       setUserLocation(currentLocation);
     } catch (error) {
       console.error("Refresh location error:", error);
-      setLocationError("حدث خطأ أثناء تحديث الموقع.");
+      setLocationError("تعذر تحديث الموقع. حاول مجدداً.");
     }
   };
 
@@ -211,36 +219,39 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
 
   useEffect(() => {
     if (userLocation && companySettings) {
-      const accuracy = userLocation.coords.accuracy;
-      if (accuracy < 100) {
-        const dist = calculateDistance(
-          {
-            latitude: userLocation.coords.latitude,
-            longitude: userLocation.coords.longitude,
-          },
-          { latitude: companySettings.latitude, longitude: companySettings.longitude },
-        );
-        setDistance(dist);
-      }
+      // Fix 1B: Removed accuracy gate — always calculate distance.
+      // Previously, accuracy >= 100m blocked setDistance, keeping distance===null forever.
+      const dist = calculateDistance(
+        {
+          latitude: userLocation.coords.latitude,
+          longitude: userLocation.coords.longitude,
+        },
+        { latitude: companySettings.latitude, longitude: companySettings.longitude },
+      );
+      setDistance(dist);
     }
   }, [userLocation, companySettings]);
 
   useEffect(() => {
     const refresh = async () => {
       try {
-        setLocationError(null);
-        const currentLocation = await Location.getCurrentPositionAsync({});
+        // Fix 1A: Added timeInterval to prevent infinite hang on iOS
+        const currentLocation = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 5000,
+        });
         setUserLocation(currentLocation);
       } catch (error) {
         console.error("Auto-refresh location error:", error);
-        setLocationError("حدث خطأ أثناء تحديث الموقع.");
+        // Don't overwrite a more descriptive error from initializeLocation
+        setLocationError((prev) => prev || "تعذر تحديث الموقع تلقائياً.");
       }
     };
 
     refresh();
     const interval = setInterval(() => {
       refresh();
-    }, 5000);
+    }, 10000); // Increased to 10s to reduce battery drain
 
     return () => {
       clearInterval(interval);
@@ -514,6 +525,8 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
   const geofenceRadius = companySettings?.geofenceRadiusMeters || DEFAULT_GEOFENCE_RADIUS_METERS;
   const withinGeofence = distance !== null && distance <= geofenceRadius;
 
+  // Fix 1C: Loading gate now only depends on Firebase data fetches.
+  // Location (distance) is shown inline — never blocks the full UI.
   const isLoading = settingsLoading || attendanceLoading;
   const hasCheckedIn = attendanceStatus?.hasCheckedIn ?? false;
   const hasCheckedOut = attendanceStatus?.hasCheckedOut ?? false;
@@ -626,10 +639,11 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
           </View>
         </View>
 
-        {isLoading || distance === null ? (
+        {isLoading ? (
+          // Fix 1C: Spinner only for Firebase data — location is shown inline below
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.accent} />
-            <Text style={styles.loadingText}>جاري التحقق من البيانات والموقع...</Text>
+            <Text style={styles.loadingText}>جاري تحميل البيانات...</Text>
           </View>
         ) : (
           <>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"; // Fix 2A/2B
 import { signOut } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { getCurrentUserData } from "../services/authService";
@@ -40,6 +41,7 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const { width } = useWindowDimensions();
   const isMobile = width < 1024;
+  const insets = useSafeAreaInsets(); // Fix 2A: safe area insets for iOS notch/Dynamic Island
 
   useEffect(() => {
     if (!userName || !userDepartment) {
@@ -80,11 +82,13 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation
   };
 
   return (
-    <View style={styles.root}>
+    // Fix 2B: SafeAreaView prevents content from bleeding under iOS notch, Dynamic Island, and home indicator
+    <SafeAreaView style={[styles.root, { backgroundColor: Colors.background }]}>
       {/* ── Mobile Menu Toggle ── */}
       {isMobile && (
         <Pressable
-          style={styles.mobileToggle}
+          // Fix 2A: top position respects insets.top so button clears the iOS notch/Dynamic Island
+          style={[styles.mobileToggle, { top: insets.top + 8 }]}
           onPress={() => setSidebarVisible((prev) => !prev)}
         >
           <Ionicons name={sidebarVisible ? "close" : "menu"} size={24} color={Colors.accent} />
@@ -117,20 +121,19 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation
           children
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    // Fix 2B: backgroundColor set on SafeAreaView directly, kept here as fallback
     backgroundColor: Colors.background,
-    // NO border, NO extra padding — seamless background to edges
   },
   content: {
     flex: 1,
     backgroundColor: Colors.background,
-    // NO border, NO padding here — children handle their own padding
   },
   loadingWrap: {
     flex: 1,
@@ -145,6 +148,8 @@ const styles = StyleSheet.create({
   },
   mobileToggle: {
     position: "absolute",
+    // Fix 2A: `top` is set dynamically via inline style using insets.top + 8
+    // This base value is a safe fallback for non-iOS platforms
     top: Spacing.lg,
     right: Spacing.lg, // Physical right — always top-right regardless of RTL
     zIndex: 9999,
