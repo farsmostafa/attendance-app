@@ -63,7 +63,7 @@ const buildYearOptions = () => {
 
 const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true }) => {
   const { width } = useWindowDimensions();
-  const isMobile = width < 768;
+  const isMobile = width < 1024; // Match the breakpoint in EmployeeLayout
 
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(String(today.getMonth() + 1).padStart(2, "0"));
@@ -93,7 +93,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
     if (Number.isNaN(parsed.getTime())) return { day: "--", month: "--", weekday: "--" };
     return {
       day: parsed.toLocaleDateString("en-US", { day: "2-digit" }),
-      month: parsed.toLocaleDateString("ar-EG", { month: "long" }),
+      month: parsed.toLocaleDateString("ar-EG", { month: "short" }),
       weekday: parsed.toLocaleDateString("ar-EG", { weekday: "long" }),
     };
   };
@@ -159,11 +159,11 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
       <View style={styles.mainContent}>
         
         {/* ── Header Row ── */}
-        <View style={styles.headerRow}>
-          <Text style={styles.pageTitle}>سجل الحضور</Text>
-          <View style={styles.filtersWrap}>
+        <View style={[styles.headerRow, isMobile && styles.headerRowMobile]}>
+          <Text style={[styles.pageTitle,{paddingRight: 20} , isMobile && styles.pageTitleMobile]}>سجل الحضور</Text>
+          <View style={[styles.filtersWrap, isMobile && styles.filtersWrapMobile]}>
             {/* Year Dropdown */}
-            <View style={styles.filterField}>
+            <View style={[styles.filterField, isMobile && styles.filterFieldMobile]}>
               {Platform.OS === "web" ? (
                 <select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} style={webSelectStyle}>
                   {yearOptions.map((year) => (
@@ -175,7 +175,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
               )}
             </View>
             {/* Month Dropdown */}
-            <View style={styles.filterField}>
+            <View style={[styles.filterField, isMobile && styles.filterFieldMobile]}>
               {Platform.OS === "web" ? (
                 <select value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} style={webSelectStyle}>
                   {MONTH_OPTIONS.map((month) => (
@@ -245,42 +245,46 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
               }
 
               return (
-                <View key={record.id} style={styles.recordRow}>
-                  {/* 1. Date Box (Rightmost) */}
-                  <View style={styles.recordDateBox}>
-                    <Text style={styles.dateBoxDay}>{day}</Text>
-                    <Text style={styles.dateBoxMonth}>{month}</Text>
+                <View key={record.id} style={styles.recordCard}>
+                  {/* Top Row: Date & Status */}
+                  <View style={styles.recordTopRow}>
+                    <View style={styles.dateAndDayWrap}>
+                      <View style={styles.recordDateBox}>
+                        <Text style={styles.dateBoxDay}>{day}</Text>
+                        <Text style={styles.dateBoxMonth}>{month}</Text>
+                      </View>
+                      <View style={styles.dayNameBox}>
+                        <Text style={styles.dayNameText}>{weekday}</Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.recordCellLeft}>
+                      <View style={[styles.statusPill, record.isLate && styles.statusPillLate]}>
+                        <Text style={[styles.statusPillText, record.isLate && styles.statusPillTextLate]}>
+                          {record.isLate ? "متأخر" : "مكتمل"}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
 
-                  {/* 2. Day Name */}
-                  <View style={styles.dayNameBox}>
-                    <Text style={styles.dayNameText}>{weekday}</Text>
-                  </View>
+                  {/* Bottom Row: Details */}
+                  <View style={styles.recordBottomRow}>
+                    <View style={styles.recordCellCenter}>
+                      <Text style={styles.cellLabel}>الدخول</Text>
+                      <Text style={styles.cellValue}>{formatTimeValue(record.checkIn)}</Text>
+                    </View>
 
-                  {/* 3. Check In Column */}
-                  <View style={styles.recordCellCenter}>
-                    <Text style={styles.cellLabel}>الدخول</Text>
-                    <Text style={styles.cellValue}>{formatTimeValue(record.checkIn)}</Text>
-                  </View>
+                    <View style={styles.recordCellCenter}>
+                      <Text style={styles.cellLabel}>الخروج</Text>
+                      <Text style={styles.cellValue}>{formatTimeValue(record.checkOut)}</Text>
+                    </View>
 
-                  {/* 4. Check Out Column */}
-                  <View style={styles.recordCellCenter}>
-                    <Text style={styles.cellLabel}>الخروج</Text>
-                    <Text style={styles.cellValue}>{formatTimeValue(record.checkOut)}</Text>
-                  </View>
-
-                  {/* 5. Total Hours Column */}
-                  <View style={styles.recordCellCenter}>
-                    <Text style={styles.cellLabel}>إجمالي الساعات</Text>
-                    <Text style={styles.cellValue}>{durationFormatted}</Text>
-                  </View>
-
-                  {/* 6. Status Pill (Leftmost) */}
-                  <View style={styles.recordCellLeft}>
-                    <View style={[styles.statusPill, record.isLate && styles.statusPillLate]}>
-                      <Text style={[styles.statusPillText, record.isLate && styles.statusPillTextLate]}>
-                        {record.isLate ? "متأخر" : "مكتمل"}
-                      </Text>
+                    <View style={styles.recordCellCenter}>
+                      <Text style={styles.cellLabel}>إجمالي الساعات</Text>
+                      <View style={styles.cellValueWrap}>
+                        <Text style={styles.cellValue}>{durationFormatted}</Text>
+                        <Text style={styles.cellUnitText}>س</Text>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -335,6 +339,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.base,
     width: "100%",
+    flexWrap: "wrap",
+  },
+  headerRowMobile: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: Spacing.xl,
   },
   pageTitle: {
     fontFamily: Typography.fontArabic,
@@ -342,12 +352,25 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: Colors.accent,
   },
+  pageTitleMobile: {
+    alignSelf: "flex-end", // Align to right
+    marginRight: 60, // Space for the mobile toggle button
+  },
   filtersWrap: {
     flexDirection: "row-reverse", // RTL
     gap: Spacing.sm,
   },
+  filtersWrapMobile: {
+    width: "100%",
+    justifyContent: "space-between",
+    gap: Spacing.md,
+  },
   filterField: {
     width: 100,
+  },
+  filterFieldMobile: {
+    flex: 1,
+    width: "auto",
   },
   filterFallback: {
     fontFamily: Typography.fontArabic,
@@ -448,37 +471,33 @@ const styles = StyleSheet.create({
 
   // ── Populated Records List ──
   recordsList: {
-    gap: Spacing.sm,
+    gap: Spacing.base,
   },
-  recordRow: {
-    flexDirection: "row-reverse", // RTL
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    marginBottom: 12,
+  recordCard: {
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 12,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    flexDirection: "column",
+  },
+  recordTopRow: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  dateAndDayWrap: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: Spacing.md,
   },
   recordDateBox: {
     backgroundColor: Colors.surfaceElevated,
-    borderRadius: 8,
-    width: 75,
-    height: 75,
+    borderRadius: Radius.md,
+    width: 65,
+    height: 65,
     alignItems: "center",
     justifyContent: "center",
-  },
-  dayNameBox: {
-    minWidth: 50,
-    alignItems: "center",
-    marginHorizontal: Spacing.sm,
-  },
-  dayNameText: {
-    fontFamily: Typography.fontArabic,
-    fontSize: Typography.base,
-    color: Colors.textPrimary,
-    fontWeight: "700",
   },
   dateBoxDay: {
     fontFamily: Typography.fontArabic,
@@ -493,33 +512,55 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: Colors.textSecondary,
   },
-  recordCellCenter: {
-    flex: 1,
+  dayNameBox: {
+    minWidth: 50,
+    alignItems: "flex-end", // RTL align
+  },
+  dayNameText: {
+    fontFamily: Typography.fontArabic,
+    fontSize: Typography.md,
+    color: Colors.textPrimary,
+    fontWeight: "700",
+    textAlign: "right",
+  },
+  recordBottomRow: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-around",
     alignItems: "center",
+    marginTop: Spacing.base,
+    padding: Spacing.md,
+    backgroundColor: Colors.background,
+    borderRadius: Radius.md,
+  },
+  recordCellCenter: {
+    alignItems: "center",
+    flex: 1,
   },
   cellLabel: {
     fontFamily: Typography.fontArabic,
     fontSize: Typography.xs,
     color: Colors.textSecondary,
     fontWeight: "600",
-    marginBottom: 4,
+    marginBottom: Spacing.xs,
+    textAlign: "center",
   },
   cellValueWrap: {
     flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: Spacing.xs,
+    alignItems: "baseline",
+    gap: 2,
   },
   cellValue: {
     fontFamily: Typography.fontArabic,
     fontSize: Typography.base,
     color: Colors.textPrimary,
     fontWeight: "700",
+    textAlign: "center",
   },
-  cellWeekday: {
+  cellUnitText: {
     fontFamily: Typography.fontArabic,
-    fontSize: Typography.sm,
-    color: Colors.textPrimary,
-    fontWeight: "700",
+    fontSize: Typography.xs,
+    color: Colors.textSecondary,
+    fontWeight: "600",
   },
   recordCellLeft: {
     alignItems: "flex-start",
@@ -546,3 +587,4 @@ const styles = StyleSheet.create({
 });
 
 export default AttendanceHistory;
+

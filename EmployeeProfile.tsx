@@ -35,6 +35,7 @@ type EmployeeProfileProps = {
 
 const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
   const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -63,14 +64,14 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
   };
 
   const getTimelineStyle = (startStr?: string, endStr?: string) => {
-    if (!startStr || !endStr) return { right: "0%" as DimensionValue, width: "0%" as DimensionValue };
+    if (!startStr || !endStr) return { left: "0%" as DimensionValue, width: "0%" as DimensionValue };
     const [startH] = startStr.split(":");
     const [endH] = endStr.split(":");
     const startHour = parseInt(startH, 10);
     const endHour = parseInt(endH, 10);
     
-    // RTL layout - right position is based on start hour
-    const rightPercent = (startHour / 24) * 100;
+    // LTR layout to exactly match UI labels
+    const leftPercent = (startHour / 24) * 100;
     
     // Handle overnight shifts
     let widthHours = endHour - startHour;
@@ -79,7 +80,7 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
     }
     const widthPercent = (widthHours / 24) * 100;
     
-    return { right: `${rightPercent}%` as DimensionValue, width: `${widthPercent}%` as DimensionValue };
+    return { left: `${leftPercent}%` as DimensionValue, width: `${widthPercent}%` as DimensionValue };
   };
 
   const formatDate = (dateStr?: string) => {
@@ -93,21 +94,7 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
     }
   };
 
-  const renderTimelineLabel = (timeStr: string, displayStr?: string, isAccent: boolean = false) => {
-    if (!timeStr) return null;
-    const [h, m] = timeStr.split(":");
-    let hour = parseInt(h, 10);
-    let min = parseInt(m || "0", 10);
-    const rightPercent = ((hour + min / 60) / 24) * 100;
-    
-    return (
-      <View style={[styles.timelineLabelWrapper, { right: `${rightPercent}%` }]} key={timeStr + (displayStr || "")}>
-        <Text style={[styles.timelineLabel, isAccent && styles.timelineLabelAccent]}>
-          {displayStr || timeStr}
-        </Text>
-      </View>
-    );
-  };
+
 
   const handleEditProfile = () => {
     // Placeholder for edit action if it exists
@@ -124,13 +111,13 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
         ) : (
           <>
             {/* ── 1. Profile Header Card ── */}
-            <View style={styles.headerCard}>
-              <View style={styles.avatarBox}>
-                <Ionicons name="person" size={56} color={Colors.accent} />
+            <View style={[styles.headerCard, !isDesktop && styles.headerCardMobile]}>
+              <View style={[styles.avatarBox, !isDesktop && styles.avatarBoxMobile]}>
+                <Ionicons name="person" size={isDesktop ? 56 : 64} color="#52a3ce" />
               </View>
-              <View style={styles.headerInfo}>
-                <Text style={styles.userName}>{displayUser?.name || "الموظف"}</Text>
-                <View style={styles.badgesRow}>
+              <View style={[styles.headerInfo, !isDesktop && styles.headerInfoMobile]}>
+                <Text style={[styles.userName, !isDesktop && styles.userNameMobile]}>{displayUser?.name || "الموظف"}</Text>
+                <View style={[styles.badgesRow, !isDesktop && styles.badgesRowMobile]}>
                   <View style={styles.statusBadge}>
                     <Text style={styles.statusBadgeText}>{displayUser?.status === 'inactive' ? 'غير نشط' : 'نشط'}</Text>
                   </View>
@@ -141,54 +128,54 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
               </View>
             </View>
 
-            {/* ── 2. Grid Row: Basic Info & Salary ── */}
-            <View style={styles.gridRow}>
+            {/* ── 2. Responsive Grid: Basic Info & Salary ── */}
+            <View style={isDesktop ? styles.desktopGridRow : styles.mobileGridCol}>
               {/* Basic Info Card */}
-              <View style={styles.infoCard}>
-                <View style={styles.cardHeader}>
-                  <Ionicons name="person-circle-outline" size={24} color={Colors.accent} />
-                  <Text style={styles.cardTitle}>المعلومات الأساسية</Text>
+              <View style={[styles.infoCard, isDesktop && { flex: 2.5 }]}>
+              <View style={styles.cardHeader}>
+                <Ionicons name="person-circle-outline" size={24} color={Colors.accent} />
+                <Text style={styles.cardTitle}>المعلومات الأساسية</Text>
+              </View>
+              
+              <View style={styles.infoGrid}>
+                <View style={[styles.infoItem, { width: isDesktop ? "45%" : "100%" }]}>
+                  <Ionicons name="mail-outline" size={20} color={Colors.textSecondary} />
+                  <View style={styles.infoTextCol}>
+                    <Text style={styles.infoLabel}>البريد الإلكتروني</Text>
+                    <Text style={styles.infoValue}>{displayUser?.email || "--"}</Text>
+                  </View>
                 </View>
                 
-                <View style={styles.infoGrid}>
-                  <View style={styles.infoItem}>
-                    <Ionicons name="mail-outline" size={20} color={Colors.textSecondary} />
-                    <View style={styles.infoTextCol}>
-                      <Text style={styles.infoLabel}>البريد الإلكتروني</Text>
-                      <Text style={styles.infoValue}>{displayUser?.email || "--"}</Text>
-                    </View>
+                <View style={[styles.infoItem, { width: isDesktop ? "45%" : "100%" }]}>
+                  <Ionicons name="call-outline" size={20} color={Colors.textSecondary} />
+                  <View style={styles.infoTextCol}>
+                    <Text style={styles.infoLabel}>رقم الهاتف</Text>
+                    <Text style={[styles.infoValue, { fontFamily: Typography.fontMono }]}>{displayUser?.phone || "--"}</Text>
                   </View>
-                  
-                  <View style={styles.infoItem}>
-                    <Ionicons name="call-outline" size={20} color={Colors.textSecondary} />
-                    <View style={styles.infoTextCol}>
-                      <Text style={styles.infoLabel}>رقم الهاتف</Text>
-                      <Text style={[styles.infoValue, { fontFamily: Typography.fontMono }]}>{displayUser?.phone || "--"}</Text>
-                    </View>
-                  </View>
+                </View>
 
-                  <View style={styles.infoItem}>
-                    <Ionicons name="briefcase-outline" size={20} color={Colors.textSecondary} />
-                    <View style={styles.infoTextCol}>
-                      <Text style={styles.infoLabel}>القسم</Text>
-                      <Text style={styles.infoValue}>{displayUser?.department || "--"}</Text>
-                    </View>
+                <View style={[styles.infoItem, { width: isDesktop ? "45%" : "100%" }]}>
+                  <Ionicons name="briefcase-outline" size={20} color={Colors.textSecondary} />
+                  <View style={styles.infoTextCol}>
+                    <Text style={styles.infoLabel}>القسم</Text>
+                    <Text style={styles.infoValue}>{displayUser?.department || "--"}</Text>
                   </View>
+                </View>
 
-                  <View style={styles.infoItem}>
-                    <Ionicons name="calendar-outline" size={20} color={Colors.textSecondary} />
-                    <View style={styles.infoTextCol}>
-                      <Text style={styles.infoLabel}>تاريخ الانضمام</Text>
-                      <Text style={styles.infoValue}>{formatDate(displayUser?.joinDate || (displayUser as any)?.createdAt)}</Text>
-                    </View>
+                <View style={[styles.infoItem, { width: isDesktop ? "45%" : "100%" }]}>
+                  <Ionicons name="calendar-outline" size={20} color={Colors.textSecondary} />
+                  <View style={styles.infoTextCol}>
+                    <Text style={styles.infoLabel}>تاريخ الانضمام</Text>
+                    <Text style={styles.infoValue}>{formatDate(displayUser?.joinDate || (displayUser as any)?.createdAt)}</Text>
                   </View>
                 </View>
               </View>
+              </View>
 
               {/* Salary Card */}
-              <View style={styles.salaryCard}>
+              <View style={[styles.salaryCard, isDesktop && { flex: 1 }]}>
                 <Text style={styles.salaryLabel}>الراتب الشهري</Text>
-                <Text style={styles.salaryAmount}>{displayUser?.basicSalary ? displayUser.basicSalary.toLocaleString() : "--"}</Text>
+                <Text style={[styles.salaryAmount, !isDesktop && { fontSize: 48 }]}>{displayUser?.basicSalary ? displayUser.basicSalary.toLocaleString() : "--"}</Text>
                 <Text style={styles.salarySub}>ج.م / شهر</Text>
               </View>
             </View>
@@ -209,40 +196,40 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
                   <View style={[styles.timelineActive, getTimelineStyle(displayUser?.workStartTime || "09:00", displayUser?.workEndTime || "17:00")]} />
                 </View>
                 <View style={styles.timelineLabels}>
-                  {renderTimelineLabel("00:00", "00:00")}
-                  {renderTimelineLabel("04:00", "04:00")}
-                  {renderTimelineLabel(displayUser?.workStartTime || "08:00", formatTime(displayUser?.workStartTime || "08:00"), true)}
-                  {renderTimelineLabel("12:00", "12:00")}
-                  {renderTimelineLabel(displayUser?.workEndTime || "17:00", formatTime(displayUser?.workEndTime || "17:00"), true)}
-                  {renderTimelineLabel("20:00", "20:00")}
-                  {renderTimelineLabel("23:59", "23:59")}
-                </View>
+  <Text style={styles.timelineLabel}>00:00</Text>
+  {isDesktop && <Text style={styles.timelineLabel}>04:00</Text>}
+  <Text style={[styles.timelineLabel, styles.timelineLabelAccent]}>{formatTime(displayUser?.workStartTime || "08:00")}</Text>
+  {isDesktop && <Text style={styles.timelineLabel}>12:00</Text>}
+  <Text style={[styles.timelineLabel, styles.timelineLabelAccent]}>{formatTime(displayUser?.workEndTime || "17:00")}</Text>
+  {isDesktop && <Text style={styles.timelineLabel}>20:00</Text>}
+  <Text style={styles.timelineLabel}>23:59</Text>
+</View>
               </View>
 
               {/* Start / End Time Cards */}
               <View style={styles.timeCardsRow}>
-                <View style={styles.timeCard}>
-                  <View style={styles.timeCardInfo}>
-                    <Text style={styles.timeCardLabel}>وقت البدء</Text>
-                    <Text style={styles.timeCardValue}>{formatTime(displayUser?.workStartTime)}</Text>
+                <View style={[styles.timeCard, !isDesktop && styles.timeCardMobile]}>
+                  <View style={[styles.timeCardIconBox, !isDesktop && styles.timeCardIconBoxMobile]}>
+                    <Ionicons name="enter-outline" size={!isDesktop ? 20 : 24} color={Colors.accent} />
                   </View>
-                  <View style={styles.timeCardIconBox}>
-                    <Ionicons name="enter-outline" size={24} color={Colors.accent} />
+                  <View style={styles.timeCardInfo}>
+                    <Text style={[styles.timeCardLabel, !isDesktop && styles.timeCardLabelMobile]}>وقت البدء</Text>
+                    <Text style={[styles.timeCardValue, !isDesktop && styles.timeCardValueMobile]}>{formatTime(displayUser?.workStartTime)}</Text>
                   </View>
                 </View>
-                <View style={styles.timeCard}>
-                  <View style={styles.timeCardInfo}>
-                    <Text style={styles.timeCardLabel}>وقت الانتهاء</Text>
-                    <Text style={styles.timeCardValue}>{formatTime(displayUser?.workEndTime)}</Text>
+                <View style={[styles.timeCard, !isDesktop && styles.timeCardMobile]}>
+                  <View style={[styles.timeCardIconBox, !isDesktop && styles.timeCardIconBoxMobile]}>
+                    <Ionicons name="exit-outline" size={!isDesktop ? 20 : 24} color={Colors.success} />
                   </View>
-                  <View style={styles.timeCardIconBox}>
-                    <Ionicons name="exit-outline" size={24} color={Colors.success} />
+                  <View style={styles.timeCardInfo}>
+                    <Text style={[styles.timeCardLabel, !isDesktop && styles.timeCardLabelMobile]}>وقت الانتهاء</Text>
+                    <Text style={[styles.timeCardValue, !isDesktop && styles.timeCardValueMobile]}>{formatTime(displayUser?.workEndTime)}</Text>
                   </View>
                 </View>
               </View>
             </View>
 
-            {/* ── 4. Footer Actions ── */}
+            {/* ── 5. Footer Actions ── */}
             <View style={styles.footerRow}>
               {currentUser?.role === "admin" && (
                 <Pressable style={styles.editButton} onPress={handleEditProfile}>
@@ -284,7 +271,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 1000,
     gap: Spacing.xl,
-    paddingTop: Spacing.xl,
+    paddingTop: 80, // Large top padding to clear sidebar
     paddingBottom: Spacing.xxxl,
     paddingHorizontal: Spacing.base,
   },
@@ -297,40 +284,60 @@ const styles = StyleSheet.create({
   headerCard: {
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
-    padding: Spacing.xl, // 24px padding
-    flexDirection: "row-reverse", // RTL
+    padding: Spacing.xl,
+    flexDirection: "row-reverse", // Desktop: Avatar on right, text on left
     alignItems: "center",
-    gap: Spacing.xl, // 24px gap
-    borderWidth: 1, // Brutalist 1px border
+    justifyContent: "flex-start", // Pack to right side
+    gap: Spacing.xl,
+    borderWidth: 1,
     borderColor: Colors.border,
+  },
+  headerCardMobile: {
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatarBox: {
     width: 96,
     height: 96,
     borderRadius: Radius.lg,
-    borderWidth: 2, // Highlighted Avatar border
+    borderWidth: 2,
     borderColor: Colors.accent,
     backgroundColor: Colors.background,
     alignItems: "center",
     justifyContent: "center",
   },
+  avatarBoxMobile: {
+    marginBottom: Spacing.sm,
+  },
   headerInfo: {
     flex: 1,
-    alignItems: "flex-end", // RTL
+    alignItems: "flex-end", // Right-aligned text
     gap: Spacing.md,
+  },
+  headerInfoMobile: {
+    alignItems: "center", // Centered text on mobile
+    marginTop: Spacing.sm,
   },
   userName: {
     fontFamily: Typography.fontLatin,
     fontSize: 40,
-    fontWeight: "500", // Regular/Medium like image
+    fontWeight: "500",
     color: Colors.textPrimary,
     textAlign: "right",
     letterSpacing: -0.5,
+  },
+  userNameMobile: {
+    textAlign: "center",
+    fontSize: 32,
   },
   badgesRow: {
     flexDirection: "row-reverse", // RTL
     gap: Spacing.sm,
     marginTop: Spacing.xs,
+  },
+  badgesRowMobile: {
+    justifyContent: "center",
   },
   statusBadge: {
     backgroundColor: "transparent",
@@ -365,21 +372,24 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // ── Grid Layout ──
-  gridRow: {
-    flexDirection: "row-reverse", // RTL
-    flexWrap: "wrap",
+  // ── Responsive Layout Containers ──
+  desktopGridRow: {
+    flexDirection: "row-reverse", // Basic Info on right (1st), Salary on left (2nd)
+    alignItems: "stretch",
+    gap: Spacing.xl,
+  },
+  mobileGridCol: {
+    flexDirection: "column",
     gap: Spacing.xl,
   },
 
   // ── Basic Info Card ──
   infoCard: {
-    flex: 2,
-    minWidth: 320,
+    width: "100%",
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
     padding: Spacing.xl,
-    borderWidth: 1, // Brutalist 1px border
+    borderWidth: 1,
     borderColor: Colors.border,
   },
   cardHeader: {
@@ -399,17 +409,16 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   infoGrid: {
-    flexDirection: "row-reverse",
-    flexWrap: "wrap",
-    gap: Spacing.xl,
+    flexDirection: "row-reverse", // Populate right-to-left
+    flexWrap: "wrap", // Wrap items to form rows if width is 45%
+    gap: Spacing.xl, // Large spacing between rows
   },
   infoItem: {
-    flex: 1,
-    minWidth: "45%",
+    // width is set dynamically inline (45% desktop, 100% mobile)
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "flex-start",
-    gap: Spacing.md,
+    gap: Spacing.lg, // Space between icon and text
   },
   infoTextCol: {
     alignItems: "flex-end", // text right-aligned
@@ -430,14 +439,13 @@ const styles = StyleSheet.create({
 
   // ── Salary Card ──
   salaryCard: {
-    flex: 1,
-    minWidth: 240,
+    width: "100%",
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
     padding: Spacing.xl,
-    alignItems: "center",
+    alignItems: "flex-end", // Right-aligned matching the image
     justifyContent: "center",
-    borderWidth: 1, // Brutalist 1px border
+    borderWidth: 1,
     borderColor: Colors.border,
   },
   salaryLabel: {
@@ -507,15 +515,9 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
   },
   timelineLabels: {
-    height: 20,
-    position: "relative",
+    flexDirection: "row", // LTR exactly like the image
+    justifyContent: "space-between",
     marginTop: Spacing.md,
-  },
-  timelineLabelWrapper: {
-    position: "absolute",
-    width: 60,
-    transform: [{ translateX: 30 }], // Center over the exact percentage point
-    alignItems: "center",
   },
   timelineLabel: {
     fontFamily: Typography.fontMono,
@@ -528,26 +530,33 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   timeCardsRow: {
-    flexDirection: "row-reverse", // RTL
+    flexDirection: "row-reverse", // RTL (Start time on right, end time on left)
     gap: Spacing.base,
+    justifyContent: "space-between", // Spread cards
     flexWrap: "wrap",
   },
   timeCard: {
     flex: 1,
-    minWidth: 200,
+    minWidth: 120, // Small enough to fit side-by-side on mobile
     backgroundColor: Colors.background, // VERY dark
     borderRadius: Radius.md,
-    padding: Spacing.sm,
-    paddingLeft: Spacing.lg,
-    flexDirection: "row-reverse", // RTL
+    padding: Spacing.base,
+    flexDirection: "row-reverse", // Icon on right, text on left
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-start", // Pack towards the right side
+    gap: Spacing.lg,
     borderWidth: 1,
     borderColor: Colors.border,
+  },
+  timeCardMobile: {
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    minWidth: 0,
   },
   timeCardInfo: {
     alignItems: "flex-end", // Align to right since icon is on left of it (wait, RTL means text is on left, icon on right. So text is aligned end)
     gap: 4,
+    flexShrink: 1,
   },
   timeCardIconBox: {
     width: 44,
@@ -557,6 +566,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  timeCardIconBoxMobile: {
+    width: 36,
+    height: 36,
+  },
   timeCardLabel: {
     fontFamily: Typography.fontArabic,
     fontSize: 10,
@@ -565,10 +578,17 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
   },
+  timeCardLabelMobile: {
+    fontSize: 9,
+  },
   timeCardValue: {
     fontFamily: Typography.fontMono,
     fontSize: Typography.lg,
     color: Colors.textPrimary,
+    textAlign: "right",
+  },
+  timeCardValueMobile: {
+    fontSize: Typography.md,
   },
 
   // ── Footer ──
