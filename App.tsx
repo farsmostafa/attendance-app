@@ -20,6 +20,15 @@ import AdminSettingsContent from "./screens/AdminSettingsContent";
 import AdminLayout from "./components/AdminLayout";
 import EmployeeLayout from "./components/EmployeeLayout";
 
+import { Platform } from 'react-native';
+
+// الحقن المباشر لستايل المتصفح لمنع ظهور الشريط الأبيض
+if (Platform.OS === 'web') {
+  document.documentElement.style.backgroundColor = '#1f2029';
+  document.body.style.backgroundColor = '#1f2029';
+  document.body.style.overscrollBehavior = 'none'; // لمنع تأثير التمطط بالكامل
+}
+
 type AppStackParamList = {
   Login: undefined;
   AdminDashboard: undefined;
