@@ -27,6 +27,21 @@ if (Platform.OS === 'web') {
   document.documentElement.style.backgroundColor = '#1f2029';
   document.body.style.backgroundColor = '#1f2029';
   document.body.style.overscrollBehavior = 'none'; // لمنع تأثير التمطط بالكامل
+
+  // iOS Safari specific: zero-out the bottom safe area that the browser injects
+  // via env(safe-area-inset-bottom) into React Native Web's root div.
+  // Without this, a blank gap appears at the bottom on iPhones in Safari.
+  const style = document.createElement('style');
+  style.textContent = `
+    :root {
+      --safe-area-inset-bottom: 0px !important;
+    }
+    #root, body > div {
+      padding-bottom: 0 !important;
+      height: 100dvh !important;
+    }
+  `;
+  document.head.appendChild(style);
 }
 
 type AppStackParamList = {

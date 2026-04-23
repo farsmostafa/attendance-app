@@ -43,6 +43,16 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation
   const isMobile = width < 1024;
   const insets = useSafeAreaInsets(); // Fix 2A: safe area insets for iOS notch/Dynamic Island
 
+  // Precise environment detection:
+  // isIOSWeb = true ONLY on iPhones/iPads running inside a web browser (Safari, Chrome-iOS, etc.)
+  // This lets us surgically zero-out the bottom inset that the browser already handles natively.
+  const isWeb = Platform.OS === 'web';
+  const isIOSWeb = isWeb && typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  // On iOS Safari, insets.top from react-native-safe-area-context reads CSS env(safe-area-inset-top).
+  // On the web, the browser already reserves that space in the viewport, so we use 0.
+  const topInset = isIOSWeb ? 0 : insets.top;
+
   useEffect(() => {
     if (!userName || !userDepartment) {
       const loadUserData = async () => {
@@ -82,17 +92,23 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation
   };
 
   return (
-    // Fix 2B: SafeAreaView prevents content from bleeding under iOS notch, Dynamic Island, and home indicator
-    // On web, exclude 'bottom' edge — browser handles safe area natively, avoiding a dead gap
+    // SafeAreaView guards native iOS notch + home indicator.
+    // On iOS web (Safari), the browser already handles safe areas via CSS env().
+    // We override paddingBottom to 0 specifically for isIOSWeb to prevent the dead bottom gap.
     <SafeAreaView
-      style={[styles.root, { backgroundColor: Colors.background }]}
-      edges={Platform.OS === 'web' ? ['top', 'left', 'right'] : ['top', 'left', 'right', 'bottom']}
+      style={[
+        styles.root,
+        { backgroundColor: Colors.background },
+        // Surgically zero-out bottom padding on iOS Safari web only
+        isIOSWeb && { paddingBottom: 0 } as any,
+      ]}
+      edges={isWeb ? ['top', 'left', 'right'] : ['top', 'left', 'right', 'bottom']}
     >
       {/* ── Mobile Menu Toggle ── */}
       {isMobile && (
         <Pressable
-          // Fix 2A: top position respects insets.top so button clears the iOS notch/Dynamic Island
-          style={[styles.mobileToggle, { top: insets.top + 8 }]}
+          // Use topInset (= 0 on iOS web, real notch value on native) to position toggle correctly
+          style={[styles.mobileToggle, { top: topInset + 8 }]}
           onPress={() => setSidebarVisible((prev) => !prev)}
         >
           <Ionicons name={sidebarVisible ? "close" : "menu"} size={24} color={Colors.accent} />
