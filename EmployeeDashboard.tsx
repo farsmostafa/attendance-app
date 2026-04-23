@@ -712,7 +712,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
                     <Ionicons name="location" size={22} color={Colors.accent} />
                   </View>
                   <View>
-                    <Text style={styles.cardLabel}>الموقع الحالي</Text>
+                    <Text style={styles.cardLabel}>بعد الموقع الحالي عن مكان العمل</Text>
                     {locationError ? (
                       <Text style={styles.errorText}>{locationError}</Text>
                     ) : (
