@@ -689,7 +689,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
                   <View style={styles.completedIconBox}>
                     <Ionicons name="checkmark-circle-outline" size={48} color={Colors.accent} />
                   </View>
-                  <Text style={styles.completedTitle}>دوامك انتهى لليوم</Text>
+                  <Text style={styles.completedTitle}>دوامك انتهى اليوم</Text>
                   <Text style={styles.completedSubtitle}>نتمنى لك وقتاً سعيداً، نراك غداً</Text>
                 </View>
               ) : dashboardState === "outOfRange" ? (
