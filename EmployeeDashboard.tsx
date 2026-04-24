@@ -626,11 +626,47 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
       return "--";
     }
   };
-  const formatDuration = (minutes?: number): string => {
-    if (typeof minutes !== "number" || Number.isNaN(minutes)) return "--";
-    const hrs = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hrs.toLocaleString("en-US")} س ${mins.toLocaleString("en-US")} د`;
+  const formatDurationHHMM = (checkIn: any, checkOut: any, duration?: number): string => {
+    const toHHMM = (d: number): string => {
+      if (d < 0 || Number.isNaN(d)) return "--:--";
+      const h = Math.floor(d / 60);
+      const m = d % 60;
+      return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    };
+    if (typeof duration === "number" && duration >= 0) {
+      return toHHMM(duration);
+    }
+    if (!checkIn || !checkOut) return "--:--";
+    const parseTimeToMinutes = (timeVal: any): number | null => {
+      if (timeVal?.toDate) {
+        const dt = timeVal.toDate();
+        return dt.getHours() * 60 + dt.getMinutes();
+      }
+      if (timeVal instanceof Date && !isNaN(timeVal.getTime())) {
+        return timeVal.getHours() * 60 + timeVal.getMinutes();
+      }
+      if (typeof timeVal === "string") {
+        const str = timeVal.trim();
+        const match = str.match(/(\d+):(\d+)/);
+        if (!match) return null;
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        const isPM = str.toLowerCase().includes("pm") || str.includes("\u0645");
+        const isAM = str.toLowerCase().includes("am") || str.includes("\u0635");
+        if (isPM && hours < 12) hours += 12;
+        if (isAM && hours === 12) hours = 0;
+        return hours * 60 + minutes;
+      }
+      return null;
+    };
+    const inMins = parseTimeToMinutes(checkIn);
+    const outMins = parseTimeToMinutes(checkOut);
+    if (inMins !== null && outMins !== null) {
+      let diff = outMins - inMins;
+      if (diff < 0) diff += 24 * 60;
+      return toHHMM(diff);
+    }
+    return "--:--";
   };
 
   const dateLabel = currentDateTime.toLocaleDateString("ar-EG", {
@@ -856,7 +892,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
                   <Ionicons name="timer-outline" size={18} color={Colors.accent} />
                   <Text style={styles.summaryItemLabel}>إجمالي الساعات</Text>
                 </View>
-                <Text style={styles.summaryItemValue}>{formatDuration(todayRecord?.workDuration)}</Text>
+                <Text style={styles.summaryItemValue}>{formatDurationHHMM(todayRecord?.check_in, todayRecord?.check_out, todayRecord?.workDuration)}</Text>
               </View>
 
               {/* Status */}

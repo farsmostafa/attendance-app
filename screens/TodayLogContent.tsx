@@ -67,19 +67,49 @@ const TodayLogContent: React.FC<Props> = ({ companyId }) => {
     }
   };
 
-  const calculateHours = (checkIn: any, checkOut: any, duration?: number) => {
-    if (duration !== undefined) {
-      return (duration / 60).toFixed(1);
+  const formatDurationHHMM = (checkIn: any, checkOut: any, duration?: number): string => {
+    const toHHMM = (d: number): string => {
+      if (d < 0 || Number.isNaN(d)) return "--:--";
+      const h = Math.floor(d / 60);
+      const m = d % 60;
+      return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    };
+    // 1. Trust valid positive duration first
+    if (typeof duration === "number" && duration >= 0) {
+      return toHHMM(duration);
     }
-    if (!checkIn || !checkOut) return "—";
-    try {
-      const checkInTime = checkIn.toDate ? checkIn.toDate() : new Date(checkIn);
-      const checkOutTime = checkOut.toDate ? checkOut.toDate() : new Date(checkOut);
-      const hours = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
-      return hours.toFixed(1);
-    } catch {
-      return "—";
+    if (!checkIn || !checkOut) return "--:--";
+    // 2. Parse mixed formats (Strings, Timestamps, Dates) into minutes from midnight
+    const parseTimeToMinutes = (timeVal: any): number | null => {
+      if (timeVal?.toDate) {
+        const dt = timeVal.toDate();
+        return dt.getHours() * 60 + dt.getMinutes();
+      }
+      if (timeVal instanceof Date && !isNaN(timeVal.getTime())) {
+        return timeVal.getHours() * 60 + timeVal.getMinutes();
+      }
+      if (typeof timeVal === "string") {
+        const str = timeVal.trim();
+        const match = str.match(/(\d+):(\d+)/);
+        if (!match) return null;
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        const isPM = str.toLowerCase().includes("pm") || str.includes("\u0645");
+        const isAM = str.toLowerCase().includes("am") || str.includes("\u0635");
+        if (isPM && hours < 12) hours += 12;
+        if (isAM && hours === 12) hours = 0;
+        return hours * 60 + minutes;
+      }
+      return null;
+    };
+    const inMins = parseTimeToMinutes(checkIn);
+    const outMins = parseTimeToMinutes(checkOut);
+    if (inMins !== null && outMins !== null) {
+      let diff = outMins - inMins;
+      if (diff < 0) diff += 24 * 60; // Handle overnight shifts
+      return toHHMM(diff);
     }
+    return "--:--";
   };
 
   const handlePreviousDay = () => {
@@ -183,13 +213,13 @@ const TodayLogContent: React.FC<Props> = ({ companyId }) => {
               <Text style={[styles.tableCell, styles.cellTime]} numberOfLines={1}>
                 {formatTime(record.check_out)}
               </Text>
-              <View style={[styles.tableCell, styles.cellStatus]}>
+              <View style={styles.cellStatus}>
                 <Text style={[styles.statusBadge, record.status === "late" ? styles.statusBadgeLate : styles.statusBadgeOnTime]}>
                   {record.status === "late" ? "متأخر" : "في الموعد"}
                 </Text>
               </View>
               <Text style={[styles.tableCell, styles.cellHours]} numberOfLines={1}>
-                {calculateHours(record.check_in, record.check_out, record.workDuration)}
+                {formatDurationHHMM(record.check_in, record.check_out, record.workDuration)}
               </Text>
             </View>
           ))}

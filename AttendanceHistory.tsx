@@ -148,11 +148,57 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
   }, [isFocused, selectedMonth, selectedYear]);
 
   // Derived calculations for Summary Cards
-  const totalMinutes = records.reduce((sum, r) => sum + (r.workDuration || 0), 0);
-  const totalHours = (totalMinutes / 60).toFixed(1);
+  const totalMinutes = records.reduce((sum, r) => sum + Math.max(0, r.workDuration || 0), 0);
+  const totalHoursNum = Math.floor(totalMinutes / 60);
+  const totalMinsNum = totalMinutes % 60;
+  const totalHours = `${String(totalHoursNum).padStart(2, '0')}:${String(totalMinsNum).padStart(2, '0')}`;
   const daysPresent = records.length;
   // Simple absent calculation based on weekdays up to today (if current month) or total weekdays
   const daysAbsent = 0; // Using 0 as a placeholder per logic lock
+
+  // ── Bulletproof duration formatter ──
+  const formatDurationHHMM = (checkIn: any, checkOut: any, duration?: number): string => {
+    const toHHMM = (d: number): string => {
+      if (d < 0 || Number.isNaN(d)) return '--:--';
+      const h = Math.floor(d / 60);
+      const m = d % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    };
+    if (typeof duration === 'number' && duration >= 0) {
+      return toHHMM(duration);
+    }
+    if (!checkIn || !checkOut) return '--:--';
+    const parseTimeToMinutes = (timeVal: any): number | null => {
+      if (timeVal?.toDate) {
+        const d = timeVal.toDate();
+        return d.getHours() * 60 + d.getMinutes();
+      }
+      if (timeVal instanceof Date && !isNaN(timeVal.getTime())) {
+        return timeVal.getHours() * 60 + timeVal.getMinutes();
+      }
+      if (typeof timeVal === 'string') {
+        const str = timeVal.trim();
+        const match = str.match(/(\d+):(\d+)/);
+        if (!match) return null;
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        const isPM = str.toLowerCase().includes('pm') || str.includes('م');
+        const isAM = str.toLowerCase().includes('am') || str.includes('ص');
+        if (isPM && hours < 12) hours += 12;
+        if (isAM && hours === 12) hours = 0;
+        return hours * 60 + minutes;
+      }
+      return null;
+    };
+    const inMins = parseTimeToMinutes(checkIn);
+    const outMins = parseTimeToMinutes(checkOut);
+    if (inMins !== null && outMins !== null) {
+      let diff = outMins - inMins;
+      if (diff < 0) diff += 24 * 60;
+      return toHHMM(diff);
+    }
+    return '--:--';
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -196,7 +242,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
             <Text style={styles.summaryLabel}>إجمالي الساعات</Text>
             <View style={styles.summaryValueWrap}>
               <Text style={styles.summaryValue}>{totalHours}</Text>
-              <Text style={styles.summaryUnit}>ساعة</Text>
+              <Text style={styles.summaryUnit}>س:د</Text>
             </View>
           </View>
           {/* Days Absent */}
@@ -237,12 +283,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
           <View style={styles.recordsList}>
             {records.map((record) => {
               const { day, month, weekday } = getDayAndMonth(record.date);
-              let durationFormatted = "--:--";
-              if (record.workDuration !== undefined && record.workDuration !== null) {
-                const hours = Math.floor(record.workDuration / 60);
-                const minutes = Math.floor(record.workDuration % 60);
-                durationFormatted = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-              }
+              const durationFormatted = formatDurationHHMM(record.checkIn, record.checkOut, record.workDuration);
 
               return (
                 <View key={record.id} style={styles.recordCard}>
@@ -283,7 +324,6 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
                       <Text style={styles.cellLabel}>إجمالي الساعات</Text>
                       <View style={styles.cellValueWrap}>
                         <Text style={styles.cellValue}>{durationFormatted}</Text>
-                        <Text style={styles.cellUnitText}>س</Text>
                       </View>
                     </View>
                   </View>
