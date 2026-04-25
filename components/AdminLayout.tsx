@@ -16,32 +16,34 @@ interface AdminLayoutProps {
 
 const ADMIN_ITEMS: SidebarItem[] = [
   { id: "admin-dashboard", routeName: "AdminDashboard", label: "Dashboard", icon: "grid-outline" },
-  { id: "admin-employee-management", routeName: "EmployeeList", label: "Employee Management", icon: "people-outline" },
-  { id: "admin-add-employee", routeName: "AddEmployee", label: "Add Employee", icon: "person-add-outline" },
+  { id: "admin-employee-management", routeName: "EmployeeList", label: "Employees", icon: "people-outline" },
+  { id: "admin-add-employee", routeName: "AddEmployee", label: "Attendance Logs", icon: "person-add-outline" },
   { id: "admin-settings", routeName: "AdminSettings", label: "Settings", icon: "settings-outline" },
 ];
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ activeRoute, navigation, children, showLoading = false, userName }) => {
   const [currentUserName, setCurrentUserName] = useState<string>(userName || "Admin");
+  const [currentUserDepartment, setCurrentUserDepartment] = useState<string>("System Administrator");
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const { width } = useWindowDimensions();
   const isMobile = width < 900;
 
   useEffect(() => {
-    if (!userName) {
-      const loadName = async () => {
-        try {
-          const currentUser = await getCurrentUserData();
-          if (currentUser?.name) {
+    const loadUserProfile = async () => {
+      try {
+        const currentUser = await getCurrentUserData();
+        if (currentUser) {
+          if (!userName && currentUser.name) {
             setCurrentUserName(currentUser.name);
           }
-        } catch (error) {
-          console.error("Failed to load current user for header:", error);
+          setCurrentUserDepartment(currentUser.department || "System Administrator");
         }
-      };
-      loadName();
-    }
+      } catch (error) {
+        console.error("Failed to load current user for header:", error);
+      }
+    };
+    loadUserProfile();
   }, [userName]);
 
   const handleNavigate = (routeName: string) => {
@@ -79,6 +81,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ activeRoute, navigation, chil
             onNavigate={handleNavigate}
             onLogout={handleLogout}
             userName={currentUserName}
+            userDepartment={currentUserDepartment}
             logoutLabel="تسجيل الخروج"
             mobile={isMobile}
             onExpandedChange={setSidebarExpanded}
@@ -87,14 +90,17 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ activeRoute, navigation, chil
         )}
 
         <ScrollView
-          style={[styles.content, { marginRight: isMobile ? 0 : sidebarExpanded ? 250 : 80 }]}
-          contentContainerStyle={[styles.contentContainer, isMobile && styles.mobileContentContainer]}
+          style={[styles.content, { marginRight: isMobile ? 0 : 280 }]}
+          contentContainerStyle={[
+            styles.contentContainer,
+            isMobile && styles.mobileContentContainer,
+          ]}
           showsVerticalScrollIndicator={false}
         >
           {showLoading ? (
             <View style={styles.loadingWrap}>
-              <ActivityIndicator size="large" color="#2a2b38" />
-              <Text style={styles.loadingText}>Loading...</Text>
+              <ActivityIndicator size="large" color="#ffeba7" />
+              <Text style={styles.loadingText}>جاري التحميل...</Text>
             </View>
           ) : (
             children
@@ -108,7 +114,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ activeRoute, navigation, chil
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#1f2029",
   },
   body: {
     flex: 1,
@@ -116,14 +122,16 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#1f2029",
   },
   contentContainer: {
-    padding: 16,
+    padding: 24,
+    paddingBottom: 48,
     minHeight: "100%",
   },
   mobileContentContainer: {
-    padding: 20,
+    paddingTop: 72, // clears the absolute burger button (top:20 + height~44 + gap)
+    paddingHorizontal: 16,
   },
   loadingWrap: {
     flex: 1,
@@ -133,7 +141,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    color: "#555",
+    color: "#969081",
     fontSize: 15,
   },
   mobileToggle: {

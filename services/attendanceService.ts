@@ -254,3 +254,61 @@ export const countPresentToday = async (todayDate: string): Promise<number> => {
     throw error;
   }
 };
+
+/**
+ * Fetch present employees count for multiple dates.
+ * Counts unique userIds per date (multiple check-ins by same user/day count once).
+ *
+ * @param dates - Array of dates in YYYY-MM-DD format
+ * @returns Object keyed by date with unique present count
+ */
+export const fetchPresentCountsByDates = async (dates: string[]): Promise<Record<string, number>> => {
+  try {
+    const sanitizedDates = Array.from(new Set(dates.filter(Boolean)));
+    const countsByDate: Record<string, number> = {};
+
+    sanitizedDates.forEach((date) => {
+      countsByDate[date] = 0;
+    });
+
+    if (sanitizedDates.length === 0) {
+      return countsByDate;
+    }
+
+    const uniqueByDate = new Map<string, Set<string>>();
+    sanitizedDates.forEach((date) => {
+      uniqueByDate.set(date, new Set<string>());
+    });
+
+    const chunkSize = 10; // Firestore "in" query supports up to 10 values
+    for (let i = 0; i < sanitizedDates.length; i += chunkSize) {
+      const datesChunk = sanitizedDates.slice(i, i + chunkSize);
+      const attendanceQuery = query(collection(db, "attendance"), where("date", "in", datesChunk));
+      const querySnapshot = await getDocs(attendanceQuery);
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const date = data.date as string | undefined;
+        const userId = data.userId as string | undefined;
+
+        if (!date || !userId) {
+          return;
+        }
+
+        const dateSet = uniqueByDate.get(date);
+        if (dateSet) {
+          dateSet.add(userId);
+        }
+      });
+    }
+
+    uniqueByDate.forEach((uniqueUsers, date) => {
+      countsByDate[date] = uniqueUsers.size;
+    });
+
+    return countsByDate;
+  } catch (error) {
+    console.error("Error fetching present counts by dates:", error);
+    throw error;
+  }
+};

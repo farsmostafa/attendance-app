@@ -128,7 +128,7 @@ const AdminDashboardScreen: React.FC<AdminScreenProps> = ({ navigation }) => {
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : (
-        <DashboardContent employees={employees} presentToday={presentToday} />
+        <DashboardContent employees={employees} presentToday={presentToday} onViewAllAttendance={() => navigation.navigate("AddEmployee" as never)} />
       )}
     </AdminLayout>
   );

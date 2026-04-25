@@ -1,9 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, FlatList, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, FlatList, ScrollView, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackNavigationProp } from "../types";
 import { fetchCompanyEmployees } from "../services/adminService";
+
+// ── Design Tokens ─────────────────────────────────────────────────────────────
+const C = {
+  bg: "#1f2029",
+  surface: "#2a2b38",
+  surfaceElevated: "#32333f",
+  border: "rgba(255,235,167,0.10)",
+  accent: "#ffeba7",
+  accentDim: "rgba(255,235,167,0.15)",
+  accentBorder: "rgba(255,235,167,0.30)",
+  textPrimary: "#e7e2da",
+  textSecondary: "#969081",
+  error: "#ffb4ab",
+  errorDim: "rgba(255,180,171,0.10)",
+  errorBorder: "rgba(255,180,171,0.30)",
+};
 
 interface EmployeeCard {
   id: string;
@@ -25,6 +41,8 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
   const [employees, setEmployees] = useState<EmployeeCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { width } = useWindowDimensions();
+  const isMobile = width < 900;
 
   useEffect(() => {
     loadEmployees();
@@ -83,7 +101,7 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
+        <ActivityIndicator size="large" color={C.accent} />
         <Text style={styles.loadingText}>جاري تحميل الموظفين...</Text>
       </View>
     );
@@ -92,7 +110,7 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
   if (error) {
     return (
       <View style={styles.centerContainer}>
-        <Ionicons name="alert-circle" size={48} color="#dc3545" />
+        <Ionicons name="alert-circle" size={48} color={C.error} />
         <Text style={styles.errorText}>{error}</Text>
       </View>
     );
@@ -110,25 +128,36 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>قائمة الموظفين</Text>
-        <View style={styles.statsContainer}>
-          <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{employees.length}</Text>
-            <Text style={styles.statLabel}>إجمالي الموظفين</Text>
-          </View>
+      {/* ── Page Header ── */}
+      <View style={[styles.pageHeader, isMobile && styles.pageHeaderMobile]}>
+        <Text style={styles.pageTitle}>إدارة الموظفين</Text>
+        <Text style={styles.pageSubtitle}>عرض وإدارة حسابات الموظفين</Text>
+      </View>
+
+      {/* ── Stats Strip ── */}
+      <View style={styles.statsStrip}>
+        <View style={styles.statPill}>
+          <Ionicons name="people-outline" size={16} color={C.accent} />
+          <Text style={styles.statPillText}>{employees.length} موظف</Text>
         </View>
       </View>
 
-      {/* Employees Grid with Max Width Container */}
+      {/* ── Employees Grid ── */}
       <View style={styles.gridContainer}>
         <ScrollView contentContainerStyle={styles.gridRow} showsVerticalScrollIndicator={false}>
-          {employees.map((item) => (
-            <View key={item.id} style={styles.cardWrapper}>
-              {renderEmployeeCard({ item })}
+          {employees.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="people" size={48} color={C.textSecondary} />
+              <Text style={styles.emptyText}>لا توجد موظفين بعد</Text>
+              <Text style={styles.emptySubText}>ابدأ بإضافة موظف جديد من قسم “إضافة موظف”</Text>
             </View>
-          ))}
+          ) : (
+            employees.map((item) => (
+              <View key={item.id} style={styles.cardWrapper}>
+                {renderEmployeeCard({ item })}
+              </View>
+            ))
+          )}
         </ScrollView>
       </View>
     </View>
@@ -137,86 +166,81 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 20,
-    paddingHorizontal: 12,
+    flex: 1,
   },
+  /* ── Page Header ── */
+  pageHeader: {
+    marginBottom: 24,
+    paddingRight: 0,
+  },
+  pageHeaderMobile: {
+    paddingRight: 56, // ensures text wraps instead of colliding with burger
+  },
+  pageTitle: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: C.textPrimary,
+    textAlign: "right",
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  pageSubtitle: {
+    fontSize: 14,
+    color: C.textSecondary,
+    textAlign: "right",
+    fontWeight: "500",
+  },
+  /* ── Stats Strip ── */
+  statsStrip: {
+    flexDirection: "row-reverse",
+    gap: 12,
+    marginBottom: 20,
+  },
+  statPill: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: C.accentDim,
+    borderWidth: 1,
+    borderColor: C.accentBorder,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  statPillText: {
+    color: C.accent,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  /* ── Grid ── */
   gridContainer: {
-    maxWidth: 800,
-    width: "100%",
-    alignSelf: "center",
+    flex: 1,
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 40,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 16,
-    textAlign: "right",
-  },
-  statsContainer: {
-    flexDirection: "row-reverse",
+    paddingVertical: 60,
     gap: 12,
-  },
-  statBox: {
-    flex: 1,
-    backgroundColor: "#f0f7ff",
-    borderLeftWidth: 3,
-    borderLeftColor: "#007bff",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#007bff",
-    textAlign: "right",
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 4,
-    textAlign: "right",
-  },
-  columnWrapper: {
-    justifyContent: "space-between",
-    gap: 12,
-    marginBottom: 12,
-  },
-  listContent: {
-    paddingBottom: 20,
   },
   gridRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "flex-start",
     gap: 16,
-    paddingBottom: 20,
+    paddingBottom: 24,
   },
   cardWrapper: {
     width: 300,
-    marginRight: 16,
-    marginBottom: 16,
   },
+  /* ── Employee Card ── */
   card: {
     width: "100%",
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
     padding: 16,
-    marginBottom: 16,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    overflow: "hidden",
   },
   cardTopRow: {
     flexDirection: "row",
@@ -233,11 +257,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#22c55e",
+    backgroundColor: C.accent,
   },
   activeLabel: {
     fontSize: 12,
-    color: "#16a34a",
+    color: C.accent,
     fontWeight: "600",
   },
   avatarSection: {
@@ -245,157 +269,96 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   largeAvatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: "#2563eb",
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: C.accentDim,
+    borderWidth: 1,
+    borderColor: C.accentBorder,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 12,
   },
   largeAvatarText: {
-    color: "#fff",
-    fontSize: 28,
+    color: C.accent,
+    fontSize: 26,
     fontWeight: "bold",
   },
   employeeNameLarge: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#111827",
+    fontSize: 16,
+    fontWeight: "700",
+    color: C.textPrimary,
     textAlign: "center",
     marginBottom: 4,
   },
   departmentLarge: {
-    fontSize: 14,
-    color: "#6b7280",
+    fontSize: 13,
+    color: C.textSecondary,
     textAlign: "center",
   },
   contactBox: {
-    backgroundColor: "#f3f4f6",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
+    backgroundColor: C.bg,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 12,
+    marginBottom: 14,
+    gap: 8,
   },
   contactRow: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     gap: 8,
-    marginBottom: 10,
   },
   contactText: {
-    color: "#374151",
-    fontSize: 13,
+    color: C.textSecondary,
+    fontSize: 12,
     flex: 1,
     textAlign: "right",
   },
   cardBottomRow: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
   },
   joinedText: {
-    color: "#6b7280",
-    fontSize: 12,
+    color: C.textSecondary,
+    fontSize: 11,
   },
   viewDetails: {
-    color: "#2563eb",
-    fontSize: 13,
+    color: C.accent,
+    fontSize: 12,
     fontWeight: "600",
   },
-  cardHeader: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    backgroundColor: "#f9f9f9",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-    gap: 10,
-  },
-  avatarContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#007bff",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  cardHeaderInfo: {
-    flex: 1,
-  },
-  employeeName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    textAlign: "right",
-  },
-  department: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 2,
-    textAlign: "right",
-  },
-  statusBadge: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#28a745",
-  },
-  cardBody: {
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    gap: 10,
-  },
-  infoRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 8,
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: "#666",
-    fontWeight: "500",
-    minWidth: 50,
-    textAlign: "right",
-  },
-  infoValue: {
-    fontSize: 12,
-    color: "#333",
-    fontWeight: "500",
-    flex: 1,
-    textAlign: "right",
-  },
-  salaryValue: {
-    color: "#28a745",
-    fontWeight: "600",
-  },
+  /* ── States ── */
   loadingText: {
     marginTop: 12,
-    color: "#666",
+    color: C.textSecondary,
     fontSize: 14,
   },
   errorText: {
     marginTop: 12,
-    color: "#dc3545",
+    color: C.error,
     fontSize: 14,
     textAlign: "center",
   },
+  emptyContainer: {
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 40,
+    width: "100%",
+  },
   emptyText: {
-    marginTop: 12,
-    color: "#999",
+    marginTop: 4,
+    color: C.textSecondary,
     fontSize: 16,
     fontWeight: "600",
   },
   emptySubText: {
-    marginTop: 6,
-    color: "#bbb",
+    color: C.textSecondary,
     fontSize: 13,
     textAlign: "center",
+    opacity: 0.7,
   },
 });
 
