@@ -241,7 +241,7 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>سجلات الحضور والانصراف</Text>
         </View>
-        <View style={styles.tableHeader}>
+        <View className="hidden md:flex" style={styles.tableHeader}>
           <Text style={[styles.thCell, styles.colEmployee]}>الموظف</Text>
           <Text style={[styles.thCell, styles.colDate]}>التاريخ</Text>
           <Text style={[styles.thCell, styles.colTime]}>الحضور</Text>
@@ -266,7 +266,7 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
             <Text style={styles.emptyText}>لا توجد سجلات مطابقة</Text>
           </View>
         ) : (
-          filteredRecords.map((record, idx) => {
+          filteredRecords.map((record) => {
             const isLate = record.status === "late";
             const badgeColor = isLate ? C.error : C.accent;
             const badgeBg = isLate ? C.errorDim : C.accentDim;
@@ -275,28 +275,39 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
             return (
               <Pressable
                 key={record.id}
-                className="flex-row-reverse items-center px-4 py-3 border-b border-[#ffeba7]/10 hover:bg-[#2c2a25] active:bg-[#2c2a25] transition-colors w-full"
+                className="flex flex-col md:flex-row-reverse items-end md:items-center p-4 gap-3 md:gap-0 border-b border-[#ffeba7]/10 hover:bg-[#2c2a25] active:bg-[#2c2a25] transition-colors"
               >
-                <View style={[styles.cell, styles.colEmployee]}>
+                {/* Employee Name + Status Badge — top row on mobile */}
+                <View className="flex-row-reverse justify-between w-full md:w-[20%]">
                   <Text style={styles.name} numberOfLines={1}>{record.userName || "—"}</Text>
-                </View>
-                <View style={[styles.cell, styles.colDate]}>
-                  <Text style={styles.timeText}>{formatDate(record.date)}</Text>
-                </View>
-                <View style={[styles.cell, styles.colTime]}>
-                  <Text style={styles.timeText}>{formatTime(record.check_in)}</Text>
-                </View>
-                <View style={[styles.cell, styles.colTime]}>
-                  <Text style={styles.timeText}>{formatTime(record.check_out)}</Text>
-                </View>
-                <View style={[styles.cell, styles.colStatus]}>
                   <View style={[styles.badge, { borderColor: badgeBorder, backgroundColor: badgeBg }]}>
                     <Text style={[styles.badgeText, { color: badgeColor }]}>
                       {isLate ? "متأخر" : "في الموعد"}
                     </Text>
                   </View>
                 </View>
-                <View style={[styles.cell, styles.colTime]}>
+
+                {/* Date */}
+                <View className="flex-row-reverse md:flex-col items-center justify-between w-full md:w-[20%]">
+                  <Text className="md:hidden text-[#969081] text-xs">التاريخ:</Text>
+                  <Text style={styles.timeText}>{formatDate(record.date)}</Text>
+                </View>
+
+                {/* Check-in */}
+                <View className="flex-row-reverse md:flex-col items-center justify-between w-full md:w-[15%]">
+                  <Text className="md:hidden text-[#969081] text-xs">الحضور:</Text>
+                  <Text style={styles.timeText}>{formatTime(record.check_in)}</Text>
+                </View>
+
+                {/* Check-out */}
+                <View className="flex-row-reverse md:flex-col items-center justify-between w-full md:w-[15%]">
+                  <Text className="md:hidden text-[#969081] text-xs">الانصراف:</Text>
+                  <Text style={styles.timeText}>{formatTime(record.check_out)}</Text>
+                </View>
+
+                {/* Hours */}
+                <View className="flex-row-reverse md:flex-col items-center justify-between w-full md:w-[15%]">
+                  <Text className="md:hidden text-[#969081] text-xs">الساعات:</Text>
                   <Text style={styles.timeText}>
                     {formatDurationHHMM(record.check_in, record.check_out, record.workDuration)}
                   </Text>
