@@ -1,365 +1,315 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, FlatList, ScrollView, useWindowDimensions } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import React, { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { RootStackNavigationProp } from "../types";
-import { fetchCompanyEmployees } from "../services/adminService";
-
-// ── Design Tokens ─────────────────────────────────────────────────────────────
-const C = {
-  bg: "#1f2029",
-  surface: "#2a2b38",
-  surfaceElevated: "#32333f",
-  border: "rgba(255,235,167,0.10)",
-  accent: "#ffeba7",
-  accentDim: "rgba(255,235,167,0.15)",
-  accentBorder: "rgba(255,235,167,0.30)",
-  textPrimary: "#e7e2da",
-  textSecondary: "#969081",
-  error: "#ffb4ab",
-  errorDim: "rgba(255,180,171,0.10)",
-  errorBorder: "rgba(255,180,171,0.30)",
-};
-
-interface EmployeeCard {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  department: string;
-  basicSalary: number;
-  status: string;
-  joinDate?: string;
-}
+import { Department, fetchCompanyEmployees, fetchDepartments } from "../services/adminService";
 
 interface Props {
   navigation?: RootStackNavigationProp;
   companyId: string;
 }
 
-const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
-  const [employees, setEmployees] = useState<EmployeeCard[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { width } = useWindowDimensions();
-  const isMobile = width < 900;
+type EmployeeStatus = "active" | "inactive";
 
-  useEffect(() => {
-    loadEmployees();
-  }, [companyId]);
+interface EmployeeCardItem {
+  id: string;
+  name: string;
+  role: "admin" | "employee";
+  email: string;
+  department: string;
+  status: EmployeeStatus;
+  avatar: string;
+}
 
-  const loadEmployees = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await fetchCompanyEmployees(companyId);
-      setEmployees(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "فشل في جلب قائمة الموظفين");
-      console.error("Error loading employees:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+const ALL_DEPARTMENTS = "\u062c\u0645\u064a\u0639 \u0627\u0644\u0623\u0642\u0633\u0627\u0645";
 
-  const renderEmployeeCard = ({ item }: { item: EmployeeCard }) => (
-    <View style={styles.card}>
-      <View style={styles.cardTopRow}>
-        <View style={styles.statusRow}>
-          <View style={styles.activeDot} />
-          <Text style={styles.activeLabel}>Active</Text>
-        </View>
-        <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
-      </View>
-
-      <View style={styles.avatarSection}>
-        <View style={styles.largeAvatar}>
-          <Text style={styles.largeAvatarText}>{item.name.charAt(0).toUpperCase()}</Text>
-        </View>
-        <Text style={styles.employeeNameLarge}>{item.name}</Text>
-        <Text style={styles.departmentLarge}>{item.department}</Text>
-      </View>
-
-      <View style={styles.contactBox}>
-        <View style={styles.contactRow}>
-          <Ionicons name="mail" size={16} color="#6b7280" />
-          <Text style={styles.contactText}>{item.email}</Text>
-        </View>
-        <View style={styles.contactRow}>
-          <Ionicons name="call" size={16} color="#6b7280" />
-          <Text style={styles.contactText}>{item.phone || "غير محدد"}</Text>
-        </View>
-      </View>
-
-      <View style={styles.cardBottomRow}>
-        <Text style={styles.joinedText}>انضم {item.joinDate || "غير معروف"}</Text>
-        <Text style={styles.viewDetails}>عرض التفاصيل {">"}</Text>
-      </View>
-    </View>
-  );
-
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={C.accent} />
-        <Text style={styles.loadingText}>جاري تحميل الموظفين...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.centerContainer}>
-        <Ionicons name="alert-circle" size={48} color={C.error} />
-        <Text style={styles.errorText}>{error}</Text>
-      </View>
-    );
-  }
-
-  if (employees.length === 0) {
-    return (
-      <View style={styles.centerContainer}>
-        <Ionicons name="people" size={48} color="#ccc" />
-        <Text style={styles.emptyText}>لا توجد موظفين بعد</Text>
-        <Text style={styles.emptySubText}>ابدأ بإضافة موظف جديد من قسم "إضافة موظف"</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      {/* ── Page Header ── */}
-      <View style={[styles.pageHeader, isMobile && styles.pageHeaderMobile]}>
-        <Text style={styles.pageTitle}>إدارة الموظفين</Text>
-        <Text style={styles.pageSubtitle}>عرض وإدارة حسابات الموظفين</Text>
-      </View>
-
-      {/* ── Stats Strip ── */}
-      <View style={styles.statsStrip}>
-        <View style={styles.statPill}>
-          <Ionicons name="people-outline" size={16} color={C.accent} />
-          <Text style={styles.statPillText}>{employees.length} موظف</Text>
-        </View>
-      </View>
-
-      {/* ── Employees Grid ── */}
-      <View style={styles.gridContainer}>
-        <ScrollView contentContainerStyle={styles.gridRow} showsVerticalScrollIndicator={false}>
-          {employees.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="people" size={48} color={C.textSecondary} />
-              <Text style={styles.emptyText}>لا توجد موظفين بعد</Text>
-              <Text style={styles.emptySubText}>ابدأ بإضافة موظف جديد من قسم “إضافة موظف”</Text>
-            </View>
-          ) : (
-            employees.map((item) => (
-              <View key={item.id} style={styles.cardWrapper}>
-                {renderEmployeeCard({ item })}
-              </View>
-            ))
-          )}
-        </ScrollView>
-      </View>
-    </View>
-  );
+const getRoleLabel = (role: "admin" | "employee") => {
+  return role === "admin" ? "\u0645\u062f\u064a\u0631 \u0646\u0638\u0627\u0645" : "\u0645\u0648\u0638\u0641";
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  /* ── Page Header ── */
-  pageHeader: {
-    marginBottom: 24,
-    paddingRight: 0,
-  },
-  pageHeaderMobile: {
-    paddingRight: 56, // ensures text wraps instead of colliding with burger
-  },
-  pageTitle: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: C.textPrimary,
-    textAlign: "right",
-    letterSpacing: -0.5,
-    marginBottom: 6,
-  },
-  pageSubtitle: {
-    fontSize: 14,
-    color: C.textSecondary,
-    textAlign: "right",
-    fontWeight: "500",
-  },
-  /* ── Stats Strip ── */
-  statsStrip: {
-    flexDirection: "row-reverse",
-    gap: 12,
-    marginBottom: 20,
-  },
-  statPill: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: C.accentDim,
-    borderWidth: 1,
-    borderColor: C.accentBorder,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  statPillText: {
-    color: C.accent,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  /* ── Grid ── */
-  gridContainer: {
-    flex: 1,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 60,
-    gap: 12,
-  },
-  gridRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-    paddingBottom: 24,
-  },
-  cardWrapper: {
-    width: 300,
-  },
-  /* ── Employee Card ── */
-  card: {
-    width: "100%",
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    padding: 16,
-    overflow: "hidden",
-  },
-  cardTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 18,
-  },
-  statusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  activeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: C.accent,
-  },
-  activeLabel: {
-    fontSize: 12,
-    color: C.accent,
-    fontWeight: "600",
-  },
-  avatarSection: {
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  largeAvatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: C.accentDim,
-    borderWidth: 1,
-    borderColor: C.accentBorder,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  largeAvatarText: {
-    color: C.accent,
-    fontSize: 26,
-    fontWeight: "bold",
-  },
-  employeeNameLarge: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: C.textPrimary,
-    textAlign: "center",
-    marginBottom: 4,
-  },
-  departmentLarge: {
-    fontSize: 13,
-    color: C.textSecondary,
-    textAlign: "center",
-  },
-  contactBox: {
-    backgroundColor: C.bg,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: C.border,
-    padding: 12,
-    marginBottom: 14,
-    gap: 8,
-  },
-  contactRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 8,
-  },
-  contactText: {
-    color: C.textSecondary,
-    fontSize: 12,
-    flex: 1,
-    textAlign: "right",
-  },
-  cardBottomRow: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  joinedText: {
-    color: C.textSecondary,
-    fontSize: 11,
-  },
-  viewDetails: {
-    color: C.accent,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  /* ── States ── */
-  loadingText: {
-    marginTop: 12,
-    color: C.textSecondary,
-    fontSize: 14,
-  },
-  errorText: {
-    marginTop: 12,
-    color: C.error,
-    fontSize: 14,
-    textAlign: "center",
-  },
-  emptyContainer: {
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 40,
-    width: "100%",
-  },
-  emptyText: {
-    marginTop: 4,
-    color: C.textSecondary,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  emptySubText: {
-    color: C.textSecondary,
-    fontSize: 13,
-    textAlign: "center",
-    opacity: 0.7,
-  },
-});
+const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState(ALL_DEPARTMENTS);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const [employees, setEmployees] = useState<EmployeeCardItem[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const loadEmployees = async () => {
+      try {
+        setIsLoading(true);
+        setError("");
+
+        const data = await fetchCompanyEmployees(companyId);
+        const mapped: EmployeeCardItem[] = data.map((emp) => ({
+          id: emp.id,
+          name: emp.name || "\u0628\u062f\u0648\u0646 \u0627\u0633\u0645",
+          role: emp.role === "admin" ? "admin" : "employee",
+          email: emp.email || "",
+          department: emp.department || "\u063a\u064a\u0631 \u0645\u062d\u062f\u062f",
+          status: emp.status === "inactive" ? "inactive" : "active",
+          avatar: "https://images.unsplash.com/photo-1594824388122-649cf0d5fbe4?w=300&q=80",
+        }));
+        setEmployees(mapped);
+
+        try {
+          const departmentsData = await fetchDepartments(companyId);
+          setDepartments(departmentsData);
+        } catch (departmentsError: any) {
+          setDepartments([]);
+          setError(departmentsError.message || "\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u062c\u0644\u0628 \u0627\u0644\u0623\u0642\u0633\u0627\u0645");
+        }
+      } catch (err: any) {
+        setError(err.message || "\u062d\u062f\u062b \u062e\u0637\u0623 \u0623\u062b\u0646\u0627\u0621 \u062c\u0644\u0628 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (companyId) {
+      loadEmployees();
+    }
+  }, [companyId]);
+
+  const departmentOptions = useMemo(() => {
+    return [ALL_DEPARTMENTS, ...departments.map((department) => department.name)];
+  }, [departments]);
+
+  useEffect(() => {
+    if (!departmentOptions.includes(departmentFilter)) {
+      setDepartmentFilter(ALL_DEPARTMENTS);
+    }
+  }, [departmentFilter, departmentOptions]);
+
+  useEffect(() => {
+    setIsDropdownOpen(false);
+  }, [departmentFilter]);
+
+  const filteredEmployees = useMemo(() => {
+    return employees.filter((employee) => {
+      const matchesSearch =
+        employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        employee.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesDepartment = departmentFilter === ALL_DEPARTMENTS || employee.department === departmentFilter;
+      return matchesSearch && matchesDepartment;
+    });
+  }, [employees, searchTerm, departmentFilter]);
+
+  return (
+    <ScrollView
+      className="flex-1 bg-[#1f2029]"
+      contentContainerClassName="px-6 pt-12 lg:pt-0 pb-12 gap-6"
+      showsVerticalScrollIndicator={false}
+    >
+      <View className="flex-col md:flex-row-reverse justify-between items-start md:items-end gap-4">
+        <View className="items-end">
+          <Text className="text-[32px] font-bold text-[#ffeba7] text-right">{"\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0645\u0648\u0638\u0641\u064a\u0646"}</Text>
+          <Text className="text-base text-[#969081] mt-1 text-right">{"\u0639\u0631\u0636 \u0648\u0625\u062f\u0627\u0631\u0629 \u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u0645\u0648\u0638\u0641\u064a\u0646"}</Text>
+        </View>
+        <Pressable className="bg-[#ffeba7] px-6 py-3 rounded-[12px] flex-row-reverse items-center gap-2 self-start">
+          <MaterialIcons name="add" size={20} color="#1f2029" />
+          <Text className="text-[#102770] font-semibold text-sm text-right">{"\u0625\u0636\u0627\u0641\u0629 \u0645\u0648\u0638\u0641"}</Text>
+        </Pressable>
+      </View>
+
+      <View className="bg-[#2a2b38] p-4 rounded-[12px] border border-[#ffeba7]/10 flex-col md:flex-row-reverse gap-4 items-center justify-between">
+        <View className="flex-col md:flex-row-reverse gap-4 w-full md:w-auto flex-1">
+          <View className="relative w-full md:w-96">
+            <TextInput
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+              placeholder={"\u0627\u0628\u062d\u062b \u0628\u0627\u0644\u0627\u0633\u0645 \u0623\u0648 \u0627\u0644\u0628\u0631\u064a\u062f..."}
+              placeholderTextColor="#969081"
+              className="w-full bg-[#1f2029] border border-[#3e3f4b] rounded-[12px] py-3 pr-10 pl-4 text-[#e7e2da] text-right"
+            />
+            <View className="absolute right-3 top-3">
+              <Ionicons name="search" size={20} color="#969081" />
+            </View>
+          </View>
+
+          <View className="relative w-full md:w-64 z-50">
+            <Pressable
+              onPress={() => setIsDropdownOpen((prev) => !prev)}
+              className="w-full bg-[#1f2029] border border-[#3e3f4b] rounded-[12px] py-3 px-4 flex-row-reverse items-center justify-between"
+            >
+              <Text className="text-[#e7e2da] text-right" numberOfLines={1}>{departmentFilter}</Text>
+              <MaterialIcons name={isDropdownOpen ? "keyboard-arrow-up" : "keyboard-arrow-down"} size={20} color="#969081" />
+            </Pressable>
+
+            {isDropdownOpen && (
+              <View className="absolute top-full mt-2 left-0 right-0 z-50 bg-[#2a2b38] border border-[#ffeba7]/10 rounded-[12px] max-h-48 overflow-hidden">
+                <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                  {departmentOptions.map((option) => {
+                    const isActive = option === departmentFilter;
+                    return (
+                      <Pressable
+                        key={option}
+                        onPress={() => {
+                          setDepartmentFilter(option);
+                          setIsDropdownOpen(false);
+                        }}
+                        className={`px-4 py-3 border-b border-[#ffeba7]/10 last:border-b-0 ${
+                          isActive ? "bg-[#37352f]" : "bg-transparent"
+                        }`}
+                      >
+                        <Text className={`text-right ${isActive ? "text-[#ffeba7]" : "text-[#e7e2da]"}`} numberOfLines={1}>
+                          {option}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+          </View>
+        </View>
+
+        <View className="flex-row-reverse items-center gap-3 w-full md:w-auto justify-end">
+          <Text className="text-[#e7e2da] text-sm font-semibold">{"\u0639\u0631\u0636:"}</Text>
+          <View className="flex-row-reverse bg-[#1f2029] rounded-[12px] border border-[#3e3f4b] p-1 gap-1">
+            <Pressable
+              onPress={() => setViewMode("list")}
+              className={`p-2 rounded-[8px] ${viewMode === "list" ? "bg-[#37352f]" : "bg-transparent"}`}
+            >
+              <MaterialIcons name="list" size={20} color={viewMode === "list" ? "#ffeba7" : "#969081"} />
+            </Pressable>
+            <Pressable
+              onPress={() => setViewMode("grid")}
+              className={`p-2 rounded-[8px] ${viewMode === "grid" ? "bg-[#37352f]" : "bg-transparent"}`}
+            >
+              <MaterialIcons name="grid-view" size={20} color={viewMode === "grid" ? "#ffeba7" : "#969081"} />
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
+      {isLoading ? (
+        <View className="flex-1 items-center justify-center py-20 mt-10">
+          <ActivityIndicator size="large" color="#ffeba7" />
+        </View>
+      ) : error ? (
+        <View className="flex-1 items-center justify-center py-20 mt-10">
+          <Text className="text-red-400 text-lg font-bold">{error}</Text>
+        </View>
+      ) : filteredEmployees.length === 0 ? (
+        <View className="flex-1 items-center justify-center py-20 mt-10">
+          <Text className="text-[#969081] text-lg font-bold">{"\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0648\u0638\u0641\u064a\u0646 \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u0642\u0633\u0645 \u062d\u0627\u0644\u064a\u0627\u064b"}</Text>
+        </View>
+      ) : viewMode === "list" ? (
+        <View className="flex-col gap-2">
+          <View className="hidden md:flex flex-row-reverse items-center gap-3 px-4 py-2">
+            <Text className="flex-[2] text-[#969081] text-[11px] font-semibold text-right">{"\u0627\u0644\u0645\u0648\u0638\u0641"}</Text>
+            <Text className="flex-[1.5] text-[#969081] text-[11px] font-semibold text-right">{"\u0627\u0644\u0642\u0633\u0645"}</Text>
+            <Text className="flex-[2] text-[#969081] text-[11px] font-semibold text-right">{"\u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a"}</Text>
+            <Text className="flex-1 text-[#969081] text-[11px] font-semibold text-center">{"\u0627\u0644\u062d\u0627\u0644\u0629"}</Text>
+            <Text className="flex-[1.5] text-[#969081] text-[11px] font-semibold text-left">{"\u0627\u0644\u0625\u062c\u0631\u0627\u0621\u0627\u062a"}</Text>
+          </View>
+
+          {filteredEmployees.map((employee) => {
+            const isActive = employee.status === "active";
+            return (
+              <View
+                key={employee.id}
+                className="bg-[#2a2b38] rounded-[12px] border border-[#ffeba7]/10 p-3 md:px-4 flex-col md:flex-row-reverse items-start md:items-center gap-3 md:gap-3"
+              >
+                <View className="w-full md:flex-[2] min-w-0 flex-row-reverse items-center gap-3">
+                  <View className="w-10 h-10 rounded-[12px] overflow-hidden border border-[#ffeba7]/20 bg-[#37352f]">
+                    <Image source={{ uri: employee.avatar }} className="w-full h-full" resizeMode="cover" />
+                  </View>
+                  <View className="flex-col items-end flex-1 min-w-0">
+                    <Text className="text-[#e7e2da] font-bold text-sm text-right" numberOfLines={1}>{employee.name}</Text>
+                    <Text className="text-[#969081] text-xs text-right mt-0.5">{getRoleLabel(employee.role)}</Text>
+                  </View>
+                </View>
+
+                <View className="w-full md:flex-[1.5] min-w-0">
+                  <Text className="text-[#e7e2da] text-sm text-right flex-shrink" numberOfLines={1}>{employee.department}</Text>
+                </View>
+
+                <View className="w-full md:flex-[2] min-w-0">
+                  <Text className="text-[#969081] text-sm text-right flex-shrink" numberOfLines={1}>{employee.email}</Text>
+                </View>
+
+                <View className="w-full md:flex-1 md:items-center">
+                  <View className="px-2 py-0.5 border border-[#3e3f4b] rounded-[4px] bg-[#1f2029] self-end md:self-auto">
+                    <Text className={`text-[10px] font-bold ${isActive ? "text-[#ffeba7]" : "text-[#ffb4ab]"}`}>
+                      {isActive ? "\u0646\u0634\u0637" : "\u063a\u064a\u0631 \u0646\u0634\u0637"}
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="w-full md:flex-[1.5] flex-row-reverse md:flex-row gap-2 justify-end md:justify-start">
+                  <Pressable className="border border-[#3e3f4b] py-2 px-3 rounded-[12px] flex-row-reverse items-center gap-1.5 bg-transparent">
+                    <Ionicons name="eye-outline" size={16} color="#e7e2da" />
+                    <Text className="text-[#e7e2da] text-xs font-semibold">{"\u0639\u0631\u0636 \u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644"}</Text>
+                  </Pressable>
+                  <Pressable className="px-2.5 py-2 border border-[#3e3f4b] rounded-[12px] items-center justify-center bg-transparent">
+                    <Ionicons name="settings" size={18} color="#e7e2da" />
+                  </Pressable>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      ) : (
+        <View className="flex-row-reverse flex-wrap gap-6 w-full justify-start">
+          {filteredEmployees.map((employee) => {
+            const isActive = employee.status === "active";
+            return (
+              <View
+                key={employee.id}
+                className="w-full sm:w-[48%] lg:w-[31%] xl:w-[23%] bg-[#2a2b38] rounded-[12px] border border-[#ffeba7]/10 p-5 flex-col gap-4 relative"
+              >
+                <View className="absolute top-4 left-4 z-10">
+                  <View className="px-2 py-1 border border-[#3e3f4b] rounded-[4px] bg-[#1f2029]">
+                    <Text className={`text-[12px] ${isActive ? "text-[#ffeba7]" : "text-[#ffb4ab]"}`}>
+                      {isActive ? "\u0646\u0634\u0637" : "\u063a\u064a\u0631 \u0646\u0634\u0637"}
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="flex-row-reverse items-center gap-4 justify-end mt-2">
+                  <View className="w-16 h-16 rounded-[12px] overflow-hidden border border-[#ffeba7]/20 bg-[#37352f] items-center justify-center">
+                    <Image source={{ uri: employee.avatar }} className="w-full h-full" resizeMode="cover" />
+                  </View>
+                  <View className="flex-col items-end flex-1">
+                    <Text className="text-[18px] font-bold text-[#e7e2da] text-right" numberOfLines={1}>{employee.name}</Text>
+                    <Text className="text-sm text-[#969081] text-right w-full mt-1">{getRoleLabel(employee.role)}</Text>
+                  </View>
+                </View>
+
+                <View className="flex-col gap-3 mt-2 border-t border-[#ffeba7]/10 pt-4">
+                  <View className="flex-row-reverse items-center gap-3 justify-start">
+                    <MaterialIcons name="mail" size={18} color="#969081" />
+                    <Text className="text-sm text-[#969081] text-right flex-1" numberOfLines={1}>{employee.email}</Text>
+                  </View>
+                  <View className="flex-row-reverse items-center gap-3 justify-start">
+                    <MaterialIcons name="apartment" size={18} color="#969081" />
+                    <Text className="text-sm text-[#969081] text-right">{employee.department}</Text>
+                  </View>
+                </View>
+
+                <View className="flex-row-reverse gap-3 mt-auto pt-4 border-t border-[#ffeba7]/10">
+                  <Pressable className="flex-1 bg-transparent border border-[#3e3f4b] py-2.5 rounded-[12px] flex-row-reverse items-center justify-center gap-2">
+                    <Ionicons name="eye-outline" size={16} color="#e7e2da" />
+                    <Text className="text-[#e7e2da] text-sm font-semibold">{"\u0639\u0631\u0636 \u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644"}</Text>
+                  </Pressable>
+                  <Pressable className="px-4 py-2.5 bg-transparent border border-[#3e3f4b] rounded-[12px] items-center justify-center">
+                    <Ionicons name="settings" size={18} color="#e7e2da" />
+                  </Pressable>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+    </ScrollView>
+  );
+};
 
 export default EmployeeListContent;
