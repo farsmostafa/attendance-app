@@ -147,13 +147,15 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
   });
 
   return (
-    <ScrollView
-      className="flex-1 bg-[#1f2029]"
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      showsVerticalScrollIndicator={false}
-    >
+    <View className="flex-1 bg-[#1f2029] relative">
+      <ScrollView
+        className="flex-1 bg-[#1f2029]"
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
       {/* ── Header ── */}
+      {showStatusDropdown && <Pressable className="absolute inset-0 z-40" onPress={() => setShowStatusDropdown(false)} />}
       <View style={[styles.header, !isWide && { paddingRight: 64, justifyContent: 'center' }]}>
         <Text className="text-[32px] font-bold text-[#ffeba7] text-right mb-1">سجل الحضور</Text>
         <Text className="text-[#969081] text-right mt-1">{logsDateSubtitle}</Text>
@@ -198,31 +200,31 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
           <View style={[styles.filterGroup, { flexBasis: isWide ? "22%" : width >= 600 ? "46%" : "100%", zIndex: 50 }]}>
             <Text style={styles.filterLabel}>الحالة</Text>
             <View className="relative z-50 flex-1">
-              <Pressable className="w-full bg-[#1f2029] border border-[#3e3f4b] rounded-[12px] py-3 px-4 flex-row-reverse justify-between items-center hover:bg-[#2c2a25] active:bg-[#2c2a25] transition-colors" onPress={() => setShowStatusDropdown(!showStatusDropdown)}>
+              <Pressable className="w-full bg-[#1f2029] border border-[#3e3f4b] rounded-[12px] py-2.5 px-4 flex-row-reverse justify-between items-center hover:bg-[#2c2a25] active:bg-[#2c2a25] transition-colors" onPress={() => setShowStatusDropdown(!showStatusDropdown)}>
                 <Text style={{ color: C.textPrimary, textAlign: "right" }}>
                   {statusFilter === "all" ? "الكل" : statusFilter === "on-time" ? "في الموعد" : "متأخر"}
                 </Text>
                 <Ionicons name="chevron-down" size={16} color={C.textSecondary} style={styles.dropdownIcon} />
               </Pressable>
               {showStatusDropdown && (
-                <View className="absolute top-[105%] left-0 w-full bg-[#2a2b38] border border-[#ffeba7]/20 rounded-[12px] z-50 overflow-hidden" style={{ elevation: 15 }}>
+                <View className="absolute top-[100%] mt-1 left-0 w-full bg-[#2a2b38] border border-[#ffeba7]/20 rounded-[12px] z-50 overflow-hidden shadow-xl" style={{ elevation: 15 }}>
                   <Pressable
                     
-                    className="w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors"
+                    className="w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors flex-row-reverse items-center"
                     onPress={() => { setStatusFilter("all"); setShowStatusDropdown(false); }}
                   >
                     <Text className={`text-right ${statusFilter === "all" ? "text-[#ffeba7]" : "text-[#e7e2da]"}`}>الكل</Text>
                   </Pressable>
                   <Pressable
                     
-                    className="w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors"
+                    className="w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors flex-row-reverse items-center"
                     onPress={() => { setStatusFilter("on-time"); setShowStatusDropdown(false); }}
                   >
                     <Text className={`text-right ${statusFilter === "on-time" ? "text-[#ffeba7]" : "text-[#e7e2da]"}`}>في الموعد</Text>
                   </Pressable>
                   <Pressable
                     
-                    className="w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors"
+                    className="w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors flex-row-reverse items-center"
                     onPress={() => { setStatusFilter("late"); setShowStatusDropdown(false); }}
                   >
                     <Text className={`text-right ${statusFilter === "late" ? "text-[#ffeba7]" : "text-[#e7e2da]"}`}>متأخر</Text>
@@ -304,7 +306,8 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
           })
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 

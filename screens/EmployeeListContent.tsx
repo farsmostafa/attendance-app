@@ -103,17 +103,19 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
   }, [employees, searchTerm, departmentFilter]);
 
   return (
-    <ScrollView
-      className="flex-1 bg-[#1f2029]"
-      contentContainerClassName="px-6 pt-12 lg:pt-0 pb-12 gap-6"
-      showsVerticalScrollIndicator={false}
-    >
+    <View className="flex-1 bg-[#1f2029] relative">
+      <ScrollView
+        className="flex-1 bg-[#1f2029]"
+        contentContainerClassName="px-6 pt-12 lg:pt-0 pb-12 gap-6"
+        showsVerticalScrollIndicator={false}
+      >
+      {isDropdownOpen && <Pressable className="absolute inset-0 z-40" onPress={() => setIsDropdownOpen(false)} />}
       <View className="flex-col md:flex-row-reverse justify-between items-start md:items-end gap-4">
         <View className="items-end">
           <Text className="text-[32px] font-bold text-[#ffeba7] text-right">{"\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0645\u0648\u0638\u0641\u064a\u0646"}</Text>
           <Text className="text-base text-[#969081] mt-1 text-right">{"\u0639\u0631\u0636 \u0648\u0625\u062f\u0627\u0631\u0629 \u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u0645\u0648\u0638\u0641\u064a\u0646"}</Text>
         </View>
-        <Pressable className="bg-[#ffeba7] px-6 py-3 rounded-[12px] flex-row-reverse items-center gap-2 self-start">
+        <Pressable className="bg-[#ffeba7] px-6 py-3 rounded-[12px] flex-row-reverse items-center gap-2 self-start hover:bg-[#e4d295] active:bg-[#d4c285] transition-colors">
           <MaterialIcons name="add" size={20} color="#1f2029" />
           <Text className="text-[#102770] font-semibold text-sm text-right">{"\u0625\u0636\u0627\u0641\u0629 \u0645\u0648\u0638\u0641"}</Text>
         </Pressable>
@@ -141,7 +143,7 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
             <View className="relative z-50" style={{ zIndex: 50, elevation: 10 }}>
               <Pressable
                 onPress={() => setIsDropdownOpen((prev) => !prev)}
-                className="w-full bg-[#1f2029] border border-[#3e3f4b] rounded-[12px] py-3 px-4 flex-row-reverse items-center justify-between"
+                className="w-full bg-[#1f2029] border border-[#3e3f4b] rounded-[12px] py-2.5 px-4 flex-row-reverse justify-between items-center hover:bg-[#2c2a25] active:bg-[#2c2a25] transition-colors"
               >
                 <Text className="text-[#e7e2da] text-right" numberOfLines={1}>{departmentFilter}</Text>
                 <MaterialIcons name={isDropdownOpen ? "keyboard-arrow-up" : "keyboard-arrow-down"} size={20} color="#969081" />
@@ -149,8 +151,8 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
 
               {isDropdownOpen && (
                 <View
-                  className="absolute top-full mt-2 w-full bg-[#2a2b38] brutalist-border rounded-custom overflow-hidden z-50"
-                  style={{ zIndex: 50, elevation: 10, maxHeight: 192 }}
+                  className="absolute top-[100%] mt-1 left-0 w-full bg-[#2a2b38] border border-[#ffeba7]/20 rounded-[12px] z-50 overflow-hidden shadow-xl"
+                  style={{ elevation: 15, maxHeight: 192 }}
                 >
                   <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
                     {departmentOptions.map((option) => {
@@ -162,7 +164,7 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
                             setDepartmentFilter(option);
                             setIsDropdownOpen(false);
                           }}
-                          className={`px-4 py-3 border-b border-[#ffeba7]/10 last:border-b-0 hover:bg-[#37352f] active:bg-[#37352f] transition-colors ${
+                          className={`w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors flex-row-reverse items-center ${
                             isActive ? "bg-[#37352f]" : "bg-transparent"
                           }`}
                         >
@@ -331,7 +333,8 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
         </View>
       )}
 
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
