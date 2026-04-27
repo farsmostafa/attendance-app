@@ -116,7 +116,10 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
         </Pressable>
       </View>
 
-      <View className="bg-[#2a2b38] p-4 rounded-[12px] border border-[#ffeba7]/10 flex-col md:flex-row-reverse gap-4 items-center justify-between">
+      <View
+        className="bg-[#2a2b38] p-4 rounded-[12px] border border-[#ffeba7]/10 flex-col md:flex-row-reverse gap-4 items-center justify-between z-50"
+        style={{ elevation: 10 }}
+      >
         <View className="flex-col md:flex-row-reverse gap-4 w-full md:w-auto flex-1">
           <View className="relative w-full md:w-96">
             <TextInput
@@ -131,40 +134,45 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
             </View>
           </View>
 
-          <View className="relative w-full md:w-64 z-50">
-            <Pressable
-              onPress={() => setIsDropdownOpen((prev) => !prev)}
-              className="w-full bg-[#1f2029] border border-[#3e3f4b] rounded-[12px] py-3 px-4 flex-row-reverse items-center justify-between"
-            >
-              <Text className="text-[#e7e2da] text-right" numberOfLines={1}>{departmentFilter}</Text>
-              <MaterialIcons name={isDropdownOpen ? "keyboard-arrow-up" : "keyboard-arrow-down"} size={20} color="#969081" />
-            </Pressable>
+          <View className="w-full md:w-64">
+            <View className="relative z-50" style={{ zIndex: 50, elevation: 10 }}>
+              <Pressable
+                onPress={() => setIsDropdownOpen((prev) => !prev)}
+                className="w-full bg-[#1f2029] border border-[#3e3f4b] rounded-[12px] py-3 px-4 flex-row-reverse items-center justify-between"
+              >
+                <Text className="text-[#e7e2da] text-right" numberOfLines={1}>{departmentFilter}</Text>
+                <MaterialIcons name={isDropdownOpen ? "keyboard-arrow-up" : "keyboard-arrow-down"} size={20} color="#969081" />
+              </Pressable>
 
-            {isDropdownOpen && (
-              <View className="absolute top-full mt-2 left-0 right-0 z-50 bg-[#2a2b38] border border-[#ffeba7]/10 rounded-[12px] max-h-48 overflow-hidden">
-                <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
-                  {departmentOptions.map((option) => {
-                    const isActive = option === departmentFilter;
-                    return (
-                      <Pressable
-                        key={option}
-                        onPress={() => {
-                          setDepartmentFilter(option);
-                          setIsDropdownOpen(false);
-                        }}
-                        className={`px-4 py-3 border-b border-[#ffeba7]/10 last:border-b-0 ${
-                          isActive ? "bg-[#37352f]" : "bg-transparent"
-                        }`}
-                      >
-                        <Text className={`text-right ${isActive ? "text-[#ffeba7]" : "text-[#e7e2da]"}`} numberOfLines={1}>
-                          {option}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-            )}
+              {isDropdownOpen && (
+                <View
+                  className="absolute top-full mt-2 w-full bg-[#2a2b38] brutalist-border rounded-custom overflow-hidden z-50"
+                  style={{ zIndex: 50, elevation: 10, maxHeight: 192 }}
+                >
+                  <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                    {departmentOptions.map((option) => {
+                      const isActive = option === departmentFilter;
+                      return (
+                        <Pressable
+                          key={option}
+                          onPress={() => {
+                            setDepartmentFilter(option);
+                            setIsDropdownOpen(false);
+                          }}
+                          className={`px-4 py-3 border-b border-[#ffeba7]/10 last:border-b-0 ${
+                            isActive ? "bg-[#37352f]" : "bg-transparent"
+                          }`}
+                        >
+                          <Text className={`text-right ${isActive ? "text-[#ffeba7]" : "text-[#e7e2da]"}`} numberOfLines={1}>
+                            {option}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
           </View>
         </View>
 
