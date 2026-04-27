@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TextInput, TouchableOpacity, useWindowDimensions } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TextInput, Pressable, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { RootStackNavigationProp } from "../types";
 import { fetchAllAttendanceRecords } from "../services/attendanceService";
@@ -52,6 +52,13 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
 
   const { width } = useWindowDimensions();
   const isWide = width >= 900;
+  const logsDateSubtitle = new Date().toLocaleDateString("ar-EG", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Africa/Cairo",
+  });
 
   useEffect(() => {
     const fetchRecords = async () => {
@@ -140,19 +147,26 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
   });
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      className="flex-1 bg-[#1f2029]"
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+    >
       {/* ── Header ── */}
       <View style={[styles.header, !isWide && { paddingRight: 64, justifyContent: 'center' }]}>
-        <Text style={styles.headerTitle}>سجل الحضور</Text>
+        <Text className="text-3xl font-bold text-[#ffeba7] text-right">سجل الحضور</Text>
+        <Text className="text-[#969081] text-right mt-1">{logsDateSubtitle}</Text>
       </View>
 
       {/* ── Filter Bar ── */}
-      <View style={styles.filterBar}>
+      <View className="relative z-50" style={[styles.filterBar, { elevation: 10 }]}>
         <View style={styles.filterRow}>
           <View style={[styles.filterGroup, { flexBasis: isWide ? "22%" : width >= 600 ? "46%" : "100%" }]}>
             <Text style={styles.filterLabel}>بحث بالموظف</Text>
             <TextInput
               style={styles.input}
+              className="hover:bg-[#2c2a25] active:bg-[#2c2a25] hover:border-[#ffeba7]/30 transition-colors"
               placeholder="اسم الموظف..."
               placeholderTextColor={C.textSecondary}
               value={searchQuery}
@@ -163,6 +177,7 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
             <Text style={styles.filterLabel}>من تاريخ</Text>
             <TextInput
               style={styles.input}
+              className="hover:bg-[#2c2a25] active:bg-[#2c2a25] hover:border-[#ffeba7]/30 transition-colors"
               placeholder="YYYY-MM-DD"
               placeholderTextColor={C.textSecondary}
               value={startDate}
@@ -173,36 +188,49 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
             <Text style={styles.filterLabel}>إلى تاريخ</Text>
             <TextInput
               style={styles.input}
+              className="hover:bg-[#2c2a25] active:bg-[#2c2a25] hover:border-[#ffeba7]/30 transition-colors"
               placeholder="YYYY-MM-DD"
               placeholderTextColor={C.textSecondary}
               value={endDate}
               onChangeText={setEndDate}
             />
           </View>
-          <View style={[styles.filterGroup, { flexBasis: isWide ? "22%" : width >= 600 ? "46%" : "100%", zIndex: 10 }]}>
+          <View style={[styles.filterGroup, { flexBasis: isWide ? "22%" : width >= 600 ? "46%" : "100%", zIndex: 50 }]}>
             <Text style={styles.filterLabel}>الحالة</Text>
             <View style={styles.dropdownWrap}>
-              <TouchableOpacity 
-                style={styles.input} 
+              <Pressable 
+                style={styles.input}
+              className="hover:bg-[#2c2a25] active:bg-[#2c2a25] hover:border-[#ffeba7]/30 transition-colors" 
                 onPress={() => setShowStatusDropdown(!showStatusDropdown)}
-                activeOpacity={0.8}
-              >
+                              >
                 <Text style={{ color: C.textPrimary, textAlign: "right" }}>
                   {statusFilter === "all" ? "الكل" : statusFilter === "on-time" ? "في الموعد" : "متأخر"}
                 </Text>
                 <Ionicons name="chevron-down" size={16} color={C.textSecondary} style={styles.dropdownIcon} />
-              </TouchableOpacity>
+              </Pressable>
               {showStatusDropdown && (
-                <View style={styles.dropdownMenu}>
-                  <TouchableOpacity style={styles.dropdownOption} onPress={() => { setStatusFilter("all"); setShowStatusDropdown(false); }}>
-                    <Text style={styles.dropdownOptionText}>الكل</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.dropdownOption} onPress={() => { setStatusFilter("on-time"); setShowStatusDropdown(false); }}>
-                    <Text style={styles.dropdownOptionText}>في الموعد</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.dropdownOption} onPress={() => { setStatusFilter("late"); setShowStatusDropdown(false); }}>
-                    <Text style={styles.dropdownOptionText}>متأخر</Text>
-                  </TouchableOpacity>
+                <View className="absolute z-50" style={[styles.dropdownMenu, { zIndex: 50, elevation: 10 }]}>
+                  <Pressable
+                    style={styles.dropdownOption}
+                    className="hover:bg-[#37352f] active:bg-[#37352f] transition-colors"
+                    onPress={() => { setStatusFilter("all"); setShowStatusDropdown(false); }}
+                  >
+                    <Text style={[styles.dropdownOptionText, statusFilter === "all" && { color: C.accent }]}>الكل</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.dropdownOption}
+                    className="hover:bg-[#37352f] active:bg-[#37352f] transition-colors"
+                    onPress={() => { setStatusFilter("on-time"); setShowStatusDropdown(false); }}
+                  >
+                    <Text style={[styles.dropdownOptionText, statusFilter === "on-time" && { color: C.accent }]}>في الموعد</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.dropdownOption}
+                    className="hover:bg-[#37352f] active:bg-[#37352f] transition-colors"
+                    onPress={() => { setStatusFilter("late"); setShowStatusDropdown(false); }}
+                  >
+                    <Text style={[styles.dropdownOptionText, statusFilter === "late" && { color: C.accent }]}>متأخر</Text>
+                  </Pressable>
                 </View>
               )}
             </View>
@@ -211,7 +239,7 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
       </View>
 
       {/* ── Logs Table ── */}
-      <View style={styles.bentoCard}>
+      <View className="bg-[#2a2b38] p-4 rounded-[12px] border border-[#ffeba7]/10" style={styles.bentoCard}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>سجلات الحضور والانصراف</Text>
         </View>
@@ -247,7 +275,11 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
             const badgeBorder = isLate ? C.errorBorder : C.accentBorder;
 
             return (
-              <View key={record.id} style={[styles.row, idx % 2 === 1 && styles.rowAlt]}>
+              <Pressable
+                key={record.id}
+                className={`flex-row-reverse items-center px-4 py-3 border-b border-[#ffeba7]/10 hover:bg-[#2c2a25] active:bg-[#2c2a25] hover:border-[#ffeba7]/30 transition-colors ${idx % 2 === 1 ? "bg-[#1f2029]/30" : ""}`}
+                style={[styles.row, idx % 2 === 1 && styles.rowAlt]}
+              >
                 <View style={[styles.cell, styles.colEmployee]}>
                   <Text style={styles.name} numberOfLines={1}>{record.userName || "—"}</Text>
                 </View>
@@ -272,7 +304,7 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
                     {formatDurationHHMM(record.check_in, record.check_out, record.workDuration)}
                   </Text>
                 </View>
-              </View>
+              </Pressable>
             );
           })
         )}
@@ -471,3 +503,6 @@ const styles = StyleSheet.create({
 });
 
 export default AttendanceLogsContent;
+
+
+

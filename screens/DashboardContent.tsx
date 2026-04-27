@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { fetchPresentCountsByDates, fetchTodaysAttendanceRecords } from "../services/attendanceService";
+import { getCairoTimeString, getCurrentCairoDateString } from "../utils/timeUtils";
 
 // ── Design Tokens (shared with AttendanceLogsContent) ─────────────────────────
 const C = {
@@ -103,6 +104,7 @@ const getArabicDate = (): string => {
       day: "numeric",
       month: "long",
       year: "numeric",
+      timeZone: "Africa/Cairo",
     });
   } catch {
     return "";
@@ -124,7 +126,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ employees, presentT
     const fetchAttendanceData = async () => {
       try {
         setAttendanceLoading(true);
-        const today = new Date().toISOString().split("T")[0];
+        const today = getCurrentCairoDateString();
         const records = await fetchTodaysAttendanceRecords(today);
         setAttendanceRecords(records);
       } catch (error) {
@@ -174,10 +176,8 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ employees, presentT
   }, [employees.length]);
 
   const formatTime = (timestamp: any) => {
-    if (!timestamp) return "—";
     try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return date.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
+      return getCairoTimeString(timestamp);
     } catch {
       return "—";
     }
@@ -239,17 +239,23 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ employees, presentT
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      className="flex-1 bg-[#1f2029]"
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+    >
 
       {/* ═══════════════════════ PAGE HEADER ═══════════════════════ */}
       <View style={[styles.pageHeader, isMobile && styles.pageHeaderMobile]}>
-        <Text style={styles.pageTitle}>لوحة القيادة</Text>
-        <Text style={styles.pageSubtitle}>{getArabicDate()}</Text>
+        <Text className="text-3xl font-bold text-[#ffeba7] text-right">{"\u0644\u0648\u062d\u0629 \u0627\u0644\u0642\u064a\u0627\u062f\u0629"}</Text>
+        <Text className="text-[#969081] text-right">{getArabicDate()}</Text>
       </View>
-      <View style={[styles.statsGrid, isWide && styles.statsGridWide]}>
+      <View className="flex-row-reverse flex-wrap gap-4" style={[styles.statsGrid, isWide && styles.statsGridWide]}>
         {statCards.map((card, idx) => (
           <View
             key={idx}
+            className="bg-[#2a2b38] border border-[#ffeba7]/10 rounded-[8px] p-5"
             style={[
               styles.statCard,
               isWide
@@ -644,3 +650,5 @@ const styles = StyleSheet.create({
 });
 
 export default DashboardContent;
+
+
