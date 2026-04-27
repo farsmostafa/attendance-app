@@ -27,6 +27,9 @@ const getRoleLabel = (role: "admin" | "employee") => {
   return role === "admin" ? "\u0645\u062f\u064a\u0631 \u0646\u0638\u0627\u0645" : "\u0645\u0648\u0638\u0641";
 };
 
+const FLAT_ITEM_INTERACTIVE_CLASS =
+  "bg-[#2a2b38] border border-[#ffeba7]/10 rounded-[12px] hover:bg-[#2c2a25] active:bg-[#2c2a25] hover:border-[#ffeba7]/30 active:border-[#ffeba7]/30 transition-colors duration-200";
+
 const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState(ALL_DEPARTMENTS);
@@ -159,7 +162,7 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
                             setDepartmentFilter(option);
                             setIsDropdownOpen(false);
                           }}
-                          className={`px-4 py-3 border-b border-[#ffeba7]/10 last:border-b-0 ${
+                          className={`px-4 py-3 border-b border-[#ffeba7]/10 last:border-b-0 hover:bg-[#37352f] active:bg-[#37352f] transition-colors ${
                             isActive ? "bg-[#37352f]" : "bg-transparent"
                           }`}
                         >
@@ -181,13 +184,13 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
           <View className="flex-row-reverse bg-[#1f2029] rounded-[12px] border border-[#3e3f4b] p-1 gap-1">
             <Pressable
               onPress={() => setViewMode("list")}
-              className={`p-2 rounded-[8px] ${viewMode === "list" ? "bg-[#37352f]" : "bg-transparent"}`}
+              className={`p-2 rounded-[8px] hover:bg-[#37352f] transition-colors ${viewMode === "list" ? "bg-[#37352f]" : "bg-transparent"}`}
             >
               <MaterialIcons name="list" size={20} color={viewMode === "list" ? "#ffeba7" : "#969081"} />
             </Pressable>
             <Pressable
               onPress={() => setViewMode("grid")}
-              className={`p-2 rounded-[8px] ${viewMode === "grid" ? "bg-[#37352f]" : "bg-transparent"}`}
+              className={`p-2 rounded-[8px] hover:bg-[#37352f] transition-colors ${viewMode === "grid" ? "bg-[#37352f]" : "bg-transparent"}`}
             >
               <MaterialIcons name="grid-view" size={20} color={viewMode === "grid" ? "#ffeba7" : "#969081"} />
             </Pressable>
@@ -220,12 +223,18 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
           {filteredEmployees.map((employee) => {
             const isActive = employee.status === "active";
             return (
-              <View
+              <Pressable
                 key={employee.id}
-                className="bg-[#2a2b38] rounded-[12px] border border-[#ffeba7]/10 p-3 md:px-4 flex-col md:flex-row-reverse items-start md:items-center gap-3 md:gap-3"
+                className={`${FLAT_ITEM_INTERACTIVE_CLASS} p-3 md:px-4 flex-col md:flex-row-reverse items-start md:items-center gap-3 md:gap-3 ${
+                  !isActive ? "opacity-70" : ""
+                }`}
               >
                 <View className="w-full md:flex-[2] min-w-0 flex-row-reverse items-center gap-3">
-                  <View className="w-10 h-10 rounded-[12px] overflow-hidden border border-[#ffeba7]/20 bg-[#37352f]">
+                  <View
+                    className={`w-10 h-10 rounded-[12px] overflow-hidden border border-[#ffeba7]/20 bg-[#37352f] ${
+                      !isActive ? "grayscale" : ""
+                    }`}
+                  >
                     <Image source={{ uri: employee.avatar }} className="w-full h-full" resizeMode="cover" />
                   </View>
                   <View className="flex-col items-end flex-1 min-w-0">
@@ -251,15 +260,15 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
                 </View>
 
                 <View className="w-full md:flex-[1.5] flex-row-reverse md:flex-row gap-2 justify-end md:justify-start">
-                  <Pressable className="border border-[#3e3f4b] py-2 px-3 rounded-[12px] flex-row-reverse items-center gap-1.5 bg-transparent">
+                  <Pressable className="border border-[#3e3f4b] py-2 px-3 rounded-[12px] flex-row-reverse items-center gap-1.5 bg-transparent hover:bg-[#1f2029] active:bg-[#1f2029] hover:border-[#ffeba7]/50 transition-colors">
                     <Ionicons name="eye-outline" size={16} color="#e7e2da" />
                     <Text className="text-[#e7e2da] text-xs font-semibold">{"\u0639\u0631\u0636 \u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644"}</Text>
                   </Pressable>
-                  <Pressable className="px-2.5 py-2 border border-[#3e3f4b] rounded-[12px] items-center justify-center bg-transparent">
+                  <Pressable className="px-2.5 py-2 border border-[#3e3f4b] rounded-[12px] items-center justify-center bg-transparent hover:bg-[#1f2029] active:bg-[#1f2029] hover:border-[#ffeba7]/50 transition-colors">
                     <Ionicons name="settings" size={18} color="#e7e2da" />
                   </Pressable>
                 </View>
-              </View>
+              </Pressable>
             );
           })}
         </View>
@@ -268,9 +277,11 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
           {filteredEmployees.map((employee) => {
             const isActive = employee.status === "active";
             return (
-              <View
+              <Pressable
                 key={employee.id}
-                className="w-full sm:w-[48%] lg:w-[31%] xl:w-[23%] bg-[#2a2b38] rounded-[12px] border border-[#ffeba7]/10 p-5 flex-col gap-4 relative"
+                className={`w-full sm:w-[48%] lg:w-[31%] xl:w-[23%] ${FLAT_ITEM_INTERACTIVE_CLASS} p-5 flex-col gap-4 relative ${
+                  !isActive ? "opacity-70" : ""
+                }`}
               >
                 <View className="absolute top-4 left-4 z-10">
                   <View className="px-2 py-1 border border-[#3e3f4b] rounded-[4px] bg-[#1f2029]">
@@ -281,7 +292,11 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
                 </View>
 
                 <View className="flex-row-reverse items-center gap-4 justify-end mt-2">
-                  <View className="w-16 h-16 rounded-[12px] overflow-hidden border border-[#ffeba7]/20 bg-[#37352f] items-center justify-center">
+                  <View
+                    className={`w-16 h-16 rounded-[12px] overflow-hidden border border-[#ffeba7]/20 bg-[#37352f] items-center justify-center ${
+                      !isActive ? "grayscale" : ""
+                    }`}
+                  >
                     <Image source={{ uri: employee.avatar }} className="w-full h-full" resizeMode="cover" />
                   </View>
                   <View className="flex-col items-end flex-1">
@@ -302,15 +317,15 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
                 </View>
 
                 <View className="flex-row-reverse gap-3 mt-auto pt-4 border-t border-[#ffeba7]/10">
-                  <Pressable className="flex-1 bg-transparent border border-[#3e3f4b] py-2.5 rounded-[12px] flex-row-reverse items-center justify-center gap-2">
+                  <Pressable className="flex-1 bg-transparent border border-[#3e3f4b] py-2.5 rounded-[12px] flex-row-reverse items-center justify-center gap-2 hover:bg-[#1f2029] active:bg-[#1f2029] hover:border-[#ffeba7]/50 transition-colors">
                     <Ionicons name="eye-outline" size={16} color="#e7e2da" />
                     <Text className="text-[#e7e2da] text-sm font-semibold">{"\u0639\u0631\u0636 \u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644"}</Text>
                   </Pressable>
-                  <Pressable className="px-4 py-2.5 bg-transparent border border-[#3e3f4b] rounded-[12px] items-center justify-center">
+                  <Pressable className="px-4 py-2.5 bg-transparent border border-[#3e3f4b] rounded-[12px] items-center justify-center hover:bg-[#1f2029] active:bg-[#1f2029] hover:border-[#ffeba7]/50 transition-colors">
                     <Ionicons name="settings" size={18} color="#e7e2da" />
                   </Pressable>
                 </View>
-              </View>
+              </Pressable>
             );
           })}
         </View>
