@@ -248,7 +248,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ employees, presentT
 
       {/* ═══════════════════════ PAGE HEADER ═══════════════════════ */}
       <View style={[styles.pageHeader, isMobile && styles.pageHeaderMobile]}>
-        <Text className="text-3xl font-bold text-[#ffeba7] text-right">{"\u0644\u0648\u062d\u0629 \u0627\u0644\u0642\u064a\u0627\u062f\u0629"}</Text>
+        <Text className="text-[32px] font-bold text-[#ffeba7] text-right mb-1">لوحة القيادة</Text>
         <Text className="text-[#969081] text-right">{getArabicDate()}</Text>
       </View>
       <View className="flex-row-reverse flex-wrap gap-4" style={[styles.statsGrid, isWide && styles.statsGridWide]}>
@@ -650,5 +650,10 @@ const styles = StyleSheet.create({
 });
 
 export default DashboardContent;
+
+
+
+
+
 
 

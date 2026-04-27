@@ -155,7 +155,7 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
     >
       {/* ── Header ── */}
       <View style={[styles.header, !isWide && { paddingRight: 64, justifyContent: 'center' }]}>
-        <Text className="text-3xl font-bold text-[#ffeba7] text-right">سجل الحضور</Text>
+        <Text className="text-[32px] font-bold text-[#ffeba7] text-right mb-1">سجل الحضور</Text>
         <Text className="text-[#969081] text-right mt-1">{logsDateSubtitle}</Text>
       </View>
 
@@ -197,39 +197,35 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
           </View>
           <View style={[styles.filterGroup, { flexBasis: isWide ? "22%" : width >= 600 ? "46%" : "100%", zIndex: 50 }]}>
             <Text style={styles.filterLabel}>الحالة</Text>
-            <View style={styles.dropdownWrap}>
-              <Pressable 
-                style={styles.input}
-              className="hover:bg-[#2c2a25] active:bg-[#2c2a25] hover:border-[#ffeba7]/30 transition-colors" 
-                onPress={() => setShowStatusDropdown(!showStatusDropdown)}
-                              >
+            <View className="relative z-50 flex-1">
+              <Pressable className="w-full bg-[#1f2029] border border-[#3e3f4b] rounded-[12px] py-3 px-4 flex-row-reverse justify-between items-center hover:bg-[#2c2a25] active:bg-[#2c2a25] transition-colors" onPress={() => setShowStatusDropdown(!showStatusDropdown)}>
                 <Text style={{ color: C.textPrimary, textAlign: "right" }}>
                   {statusFilter === "all" ? "الكل" : statusFilter === "on-time" ? "في الموعد" : "متأخر"}
                 </Text>
                 <Ionicons name="chevron-down" size={16} color={C.textSecondary} style={styles.dropdownIcon} />
               </Pressable>
               {showStatusDropdown && (
-                <View className="absolute z-50" style={[styles.dropdownMenu, { zIndex: 50, elevation: 10 }]}>
+                <View className="absolute top-[105%] left-0 w-full bg-[#2a2b38] border border-[#ffeba7]/20 rounded-[12px] z-50 overflow-hidden" style={{ elevation: 15 }}>
                   <Pressable
-                    style={styles.dropdownOption}
-                    className="hover:bg-[#37352f] active:bg-[#37352f] transition-colors"
+                    
+                    className="w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors"
                     onPress={() => { setStatusFilter("all"); setShowStatusDropdown(false); }}
                   >
-                    <Text style={[styles.dropdownOptionText, statusFilter === "all" && { color: C.accent }]}>الكل</Text>
+                    <Text className={`text-right ${statusFilter === "all" ? "text-[#ffeba7]" : "text-[#e7e2da]"}`}>الكل</Text>
                   </Pressable>
                   <Pressable
-                    style={styles.dropdownOption}
-                    className="hover:bg-[#37352f] active:bg-[#37352f] transition-colors"
+                    
+                    className="w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors"
                     onPress={() => { setStatusFilter("on-time"); setShowStatusDropdown(false); }}
                   >
-                    <Text style={[styles.dropdownOptionText, statusFilter === "on-time" && { color: C.accent }]}>في الموعد</Text>
+                    <Text className={`text-right ${statusFilter === "on-time" ? "text-[#ffeba7]" : "text-[#e7e2da]"}`}>في الموعد</Text>
                   </Pressable>
                   <Pressable
-                    style={styles.dropdownOption}
-                    className="hover:bg-[#37352f] active:bg-[#37352f] transition-colors"
+                    
+                    className="w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors"
                     onPress={() => { setStatusFilter("late"); setShowStatusDropdown(false); }}
                   >
-                    <Text style={[styles.dropdownOptionText, statusFilter === "late" && { color: C.accent }]}>متأخر</Text>
+                    <Text className={`text-right ${statusFilter === "late" ? "text-[#ffeba7]" : "text-[#e7e2da]"}`}>متأخر</Text>
                   </Pressable>
                 </View>
               )}
@@ -277,8 +273,7 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
             return (
               <Pressable
                 key={record.id}
-                className={`flex-row-reverse items-center px-4 py-3 border-b border-[#ffeba7]/10 hover:bg-[#2c2a25] active:bg-[#2c2a25] hover:border-[#ffeba7]/30 transition-colors ${idx % 2 === 1 ? "bg-[#1f2029]/30" : ""}`}
-                style={[styles.row, idx % 2 === 1 && styles.rowAlt]}
+                className="flex-row-reverse items-center px-4 py-3 border-b border-[#ffeba7]/10 hover:bg-[#2c2a25] active:bg-[#2c2a25] transition-colors w-full"
               >
                 <View style={[styles.cell, styles.colEmployee]}>
                   <Text style={styles.name} numberOfLines={1}>{record.userName || "—"}</Text>
@@ -503,6 +498,11 @@ const styles = StyleSheet.create({
 });
 
 export default AttendanceLogsContent;
+
+
+
+
+
 
 
 
