@@ -45,13 +45,13 @@ const PendingRequests: React.FC<PendingRequestsProps> = ({ navigation }) => {
     try {
       setLoading(true);
       const userData = await getCurrentUserData();
-      if (!userData?.company_id) {
+      if (!userData?.companyId) {
         Alert.alert("خطأ", "لم نتمكن من العثور على شركتك");
         setLoading(false);
         return;
       }
 
-      const pendingRequests = await getPendingRequests(userData.company_id);
+      const pendingRequests = await getPendingRequests(userData.companyId);
       setRequests(pendingRequests);
     } catch (error: any) {
       Alert.alert("خطأ", error.message || "فشل في جلب الطلبات");

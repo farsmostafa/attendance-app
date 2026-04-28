@@ -23,7 +23,13 @@ const Colors = {
 const Spacing = { xs: 4, sm: 8, md: 12, base: 16, lg: 20, xl: 24, xxl: 32, xxxl: 48 };
 const Radius = { sm: 6, md: 12, lg: 16, xl: 24, full: 9999 };
 const Typography = {
-  xs: 11, sm: 13, base: 15, md: 17, lg: 20, xl: 24, xxl: 28,
+  xs: 11,
+  sm: 13,
+  base: 15,
+  md: 17,
+  lg: 20,
+  xl: 24,
+  xxl: 28,
   fontArabic: "Cairo" as const,
   fontLatin: "Manrope" as const,
   fontMono: "SpaceMono" as const,
@@ -78,11 +84,14 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
       if (!value) return "--:--";
       const dateValue = typeof value.toDate === "function" ? value.toDate() : value instanceof Date ? value : null;
       if (!dateValue) return "--:--";
-      return dateValue.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }).replace("AM", "ص").replace("PM", "م");
+      return dateValue
+        .toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
+        .replace("AM", "ص")
+        .replace("PM", "م");
     } catch {
       return "--:--";
     }
@@ -93,8 +102,8 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
     if (Number.isNaN(parsed.getTime())) return { day: "--", month: "--", weekday: "--" };
     return {
       day: parsed.toLocaleDateString("en-US", { day: "2-digit" }),
-      month: parsed.toLocaleDateString("ar-EG", { month: "short" }),
-      weekday: parsed.toLocaleDateString("ar-EG", { weekday: "long" }),
+      month: parsed.toLocaleDateString("en-US", { month: "short" }),
+      weekday: parsed.toLocaleDateString("en-US", { weekday: "long" }),
     };
   };
 
@@ -151,7 +160,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
   const totalMinutes = records.reduce((sum, r) => sum + Math.max(0, r.workDuration || 0), 0);
   const totalHoursNum = Math.floor(totalMinutes / 60);
   const totalMinsNum = totalMinutes % 60;
-  const totalHours = `${String(totalHoursNum).padStart(2, '0')}:${String(totalMinsNum).padStart(2, '0')}`;
+  const totalHours = `${String(totalHoursNum).padStart(2, "0")}:${String(totalMinsNum).padStart(2, "0")}`;
   const daysPresent = records.length;
   // Simple absent calculation based on weekdays up to today (if current month) or total weekdays
   const daysAbsent = 0; // Using 0 as a placeholder per logic lock
@@ -159,15 +168,15 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
   // ── Bulletproof duration formatter ──
   const formatDurationHHMM = (checkIn: any, checkOut: any, duration?: number): string => {
     const toHHMM = (d: number): string => {
-      if (d < 0 || Number.isNaN(d)) return '--:--';
+      if (d < 0 || Number.isNaN(d)) return "--:--";
       const h = Math.floor(d / 60);
       const m = d % 60;
-      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
     };
-    if (typeof duration === 'number' && duration >= 0) {
+    if (typeof duration === "number" && duration >= 0) {
       return toHHMM(duration);
     }
-    if (!checkIn || !checkOut) return '--:--';
+    if (!checkIn || !checkOut) return "--:--";
     const parseTimeToMinutes = (timeVal: any): number | null => {
       if (timeVal?.toDate) {
         const d = timeVal.toDate();
@@ -176,14 +185,14 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
       if (timeVal instanceof Date && !isNaN(timeVal.getTime())) {
         return timeVal.getHours() * 60 + timeVal.getMinutes();
       }
-      if (typeof timeVal === 'string') {
+      if (typeof timeVal === "string") {
         const str = timeVal.trim();
         const match = str.match(/(\d+):(\d+)/);
         if (!match) return null;
         let hours = parseInt(match[1], 10);
         const minutes = parseInt(match[2], 10);
-        const isPM = str.toLowerCase().includes('pm') || str.includes('م');
-        const isAM = str.toLowerCase().includes('am') || str.includes('ص');
+        const isPM = str.toLowerCase().includes("pm") || str.includes("م");
+        const isAM = str.toLowerCase().includes("am") || str.includes("ص");
         if (isPM && hours < 12) hours += 12;
         if (isAM && hours === 12) hours = 0;
         return hours * 60 + minutes;
@@ -197,23 +206,24 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
       if (diff < 0) diff += 24 * 60;
       return toHHMM(diff);
     }
-    return '--:--';
+    return "--:--";
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.mainContent}>
-        
         {/* ── Header Row ── */}
         <View style={[styles.headerRow, isMobile && styles.headerRowMobile]}>
-          <Text style={[styles.pageTitle,{paddingRight: 20} , isMobile && styles.pageTitleMobile]}>سجل الحضور</Text>
+          <Text style={[styles.pageTitle, { paddingRight: 20 }, isMobile && styles.pageTitleMobile]}>سجل الحضور</Text>
           <View style={[styles.filtersWrap, isMobile && styles.filtersWrapMobile]}>
             {/* Year Dropdown */}
             <View style={[styles.filterField, isMobile && styles.filterFieldMobile]}>
               {Platform.OS === "web" ? (
                 <select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)} style={webSelectStyle}>
                   {yearOptions.map((year) => (
-                    <option key={year} value={year}>{year}</option>
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
                   ))}
                 </select>
               ) : (
@@ -225,7 +235,9 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
               {Platform.OS === "web" ? (
                 <select value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} style={webSelectStyle}>
                   {MONTH_OPTIONS.map((month) => (
-                    <option key={month.value} value={month.value}>{month.label}</option>
+                    <option key={month.value} value={month.value}>
+                      {month.label}
+                    </option>
                   ))}
                 </select>
               ) : (
@@ -274,9 +286,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
           <View style={styles.emptyStateCard}>
             <Ionicons name="calendar-outline" size={64} color={Colors.textSecondary} />
             <Text style={styles.emptyTitle}>لا توجد سجلات حضور لهذا الشهر</Text>
-            <Text style={styles.emptySubtitle}>
-              سيظهر جدول حضورك وانصرافك هنا بمجرد توفر البيانات لهذا التاريخ المختار.
-            </Text>
+            <Text style={styles.emptySubtitle}>سيظهر جدول حضورك وانصرافك هنا بمجرد توفر البيانات لهذا التاريخ المختار.</Text>
           </View>
         ) : (
           // ── Populated State ──
@@ -298,7 +308,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ isFocused = true 
                         <Text style={styles.dayNameText}>{weekday}</Text>
                       </View>
                     </View>
-                    
+
                     <View style={styles.recordCellLeft}>
                       <View style={[styles.statusPill, record.isLate && styles.statusPillLate]}>
                         <Text style={[styles.statusPillText, record.isLate && styles.statusPillTextLate]}>
@@ -371,7 +381,7 @@ const styles = StyleSheet.create({
     maxWidth: 1000, // Constrain width on large desktops
     gap: Spacing.xl,
   },
-  
+
   // ── Header Row ──
   headerRow: {
     flexDirection: "row-reverse", // RTL
@@ -627,4 +637,3 @@ const styles = StyleSheet.create({
 });
 
 export default AttendanceHistory;
-

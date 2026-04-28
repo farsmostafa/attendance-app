@@ -42,15 +42,14 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
         throw new Error("فشل في جلب بيانات المستخدم الحالي");
       }
 
-
-      if (!userData?.company_id) {
+      if (!userData?.companyId) {
         throw new Error("لم نتمكن من العثور على شركتك");
       }
 
-      console.log("Company ID:", userData.company_id);
+      console.log("Company ID:", userData.companyId);
 
       // Query users collection directly with proper filters
-      const q = query(collection(db, "users"), where("company_id", "==", userData.company_id), where("role", "==", "employee"));
+      const q = query(collection(db, "users"), where("companyId", "==", userData.companyId), where("role", "==", "employee"));
 
       const querySnapshot = await getDocs(q);
       console.log("Query snapshot size:", querySnapshot.size);
@@ -190,7 +189,7 @@ const EmployeeList: React.FC<EmployeeListProps> = ({ navigation }) => {
 
             <View style={styles.salaryContainer}>
               <Text style={styles.salaryLabel}>الراتب:</Text>
-              <Text style={styles.salaryValue}>{typeof salary === "number" ? salary.toLocaleString("ar-EG") : "0"} EGP</Text>
+              <Text style={styles.salaryValue}>{typeof salary === "number" ? salary.toLocaleString("en-US") : "0"} EGP</Text>
             </View>
           </View>
 

@@ -19,6 +19,7 @@ import { addFinancialRecord, getMonthlyFinancialSummary, getMonthlyFinancialReco
 import { fetchCompanyEmployees } from "./services/adminService";
 import { db } from "./firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
+import { getCurrentCairoDateString } from "./utils/timeUtils";
 
 type EmployeeProfileAdminViewProps = NativeStackScreenProps<RootStackParamList, "EmployeeProfileAdminView">;
 
@@ -130,7 +131,7 @@ const EmployeeProfileAdminView: React.FC<EmployeeProfileAdminViewProps> = ({ rou
         type: modalType,
         amount: numAmount,
         reason,
-        date: new Date().toISOString().split("T")[0],
+        date: getCurrentCairoDateString(),
       });
 
       // Refresh data
@@ -189,7 +190,7 @@ const EmployeeProfileAdminView: React.FC<EmployeeProfileAdminViewProps> = ({ rou
         <Text style={styles.employeeEmail}>{employee.email}</Text>
         <View style={styles.salaryRow}>
           <Text style={styles.salaryLabel}>الراتب الأساسي:</Text>
-          <Text style={styles.salaryValue}>{employee.basic_salary.toLocaleString("ar-EG")} EGP</Text>
+          <Text style={styles.salaryValue}>{employee.basic_salary.toLocaleString("en-US")} EGP</Text>
         </View>
       </View>
 
@@ -213,17 +214,17 @@ const EmployeeProfileAdminView: React.FC<EmployeeProfileAdminViewProps> = ({ rou
           <View style={styles.reportRow}>
             <View style={styles.reportItem}>
               <Text style={styles.reportLabel}>الحوافز</Text>
-              <Text style={[styles.reportValue, styles.bonusValue]}>+{financialSummary.totalBonuses.toLocaleString("ar-EG")}</Text>
+              <Text style={[styles.reportValue, styles.bonusValue]}>+{financialSummary.totalBonuses.toLocaleString("en-US")}</Text>
             </View>
             <View style={styles.reportDivider} />
             <View style={styles.reportItem}>
               <Text style={styles.reportLabel}>الخصومات</Text>
-              <Text style={[styles.reportValue, styles.deductionValue]}>-{financialSummary.totalDeductions.toLocaleString("ar-EG")}</Text>
+              <Text style={[styles.reportValue, styles.deductionValue]}>-{financialSummary.totalDeductions.toLocaleString("en-US")}</Text>
             </View>
             <View style={styles.reportDivider} />
             <View style={styles.reportItem}>
               <Text style={styles.reportLabel}>غياب</Text>
-              <Text style={[styles.reportValue, styles.deductionValue]}>-{financialSummary.absencePenalty.toLocaleString("ar-EG")}</Text>
+              <Text style={[styles.reportValue, styles.deductionValue]}>-{financialSummary.absencePenalty.toLocaleString("en-US")}</Text>
             </View>
           </View>
 
@@ -231,7 +232,7 @@ const EmployeeProfileAdminView: React.FC<EmployeeProfileAdminViewProps> = ({ rou
 
           <View style={styles.expectedSalaryContainer}>
             <Text style={styles.expectedSalaryLabel}>الراتب المتوقع</Text>
-            <Text style={styles.expectedSalaryValue}>{financialSummary.expectedSalary.toLocaleString("ar-EG")} EGP</Text>
+            <Text style={styles.expectedSalaryValue}>{financialSummary.expectedSalary.toLocaleString("en-US")} EGP</Text>
           </View>
         </View>
       </View>
@@ -252,7 +253,7 @@ const EmployeeProfileAdminView: React.FC<EmployeeProfileAdminViewProps> = ({ rou
                     <Text style={styles.recordReason}>{record.reason}</Text>
                     <Text style={[styles.recordAmount, record.type === "bonus" ? styles.bonusText : styles.deductionText]}>
                       {record.type === "bonus" ? "+" : "-"}
-                      {record.amount.toLocaleString("ar-EG")}
+                      {record.amount.toLocaleString("en-US")}
                     </Text>
                   </View>
                   <Text style={styles.recordDate}>{record.date}</Text>

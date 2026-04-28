@@ -6,7 +6,11 @@
 import { collection, query, where, orderBy, limit, getDocs, addDoc, serverTimestamp, updateDoc, doc, Timestamp } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { Coordinates } from "../utils/geo";
-import { getCurrentCairoDateString } from "../utils/timeUtils";
+
+// Standardize date format for both functions
+const getTodayDateForAttendance = (): string => {
+  return new Date().toISOString().split("T")[0];
+};
 
 export interface AttendanceCheckResult {
   hasCheckedIn: boolean;
@@ -37,8 +41,16 @@ export interface CheckInPayload {
   location: Coordinates;
 }
 
+export class AttendanceError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AttendanceError";
+  }
+}
+
 export const getTodayRecord = async (uid: string, companyId: string): Promise<CheckInRecord | null> => {
-  const todayDate = getCurrentCairoDateString();
+  const todayDate = getTodayDateForAttendance();
+  console.log("[getTodayRecord] Query start", { uid, companyId, todayDate });
 
   const toRecord = (recordDoc: any): CheckInRecord => {
     const data = recordDoc.data();
@@ -47,43 +59,30 @@ export const getTodayRecord = async (uid: string, companyId: string): Promise<Ch
       userId: data.userId || data.employeeId || uid,
       userName: data.userName,
       date: data.date,
-      check_in: data.check_in || data.checkInTime,
-      check_out: data.check_out || data.checkOutTime,
-      checkInTime: data.checkInTime || data.check_in || null,
-      checkOutTime: data.checkOutTime || data.check_out || null,
+      check_in: data.check_in || null,
+      check_out: data.check_out || null,
       isLate: !!data.isLate,
-      status: data.status || (data.isLate ? "late" : "on-time"),
+      status: data.status || "on-time",
       location: data.location,
       workDuration: data.workDuration,
-    } as CheckInRecord;
+    };
   };
 
-  // Primary query requested by product spec: employeeId + companyId + date
-  const byEmployeeId = query(
-    collection(db, "attendance"),
-    where("employeeId", "==", uid),
-    where("companyId", "==", companyId),
-    where("date", "==", todayDate),
-    orderBy("check_in", "desc"),
-    limit(1),
-  );
+  const queryByField = (field: string) =>
+    query(
+      collection(db, "attendance"),
+      where(field, "==", uid),
+      where("companyId", "==", companyId),
+      where("date", "==", todayDate),
+      limit(1),
+    );
 
-  const byEmployeeIdSnap = await getDocs(byEmployeeId);
+  const byEmployeeIdSnap = await getDocs(queryByField("employeeId"));
   if (!byEmployeeIdSnap.empty) {
     return toRecord(byEmployeeIdSnap.docs[0]);
   }
 
-  // Backward compatibility for existing records using userId
-  const byUserId = query(
-    collection(db, "attendance"),
-    where("userId", "==", uid),
-    where("companyId", "==", companyId),
-    where("date", "==", todayDate),
-    orderBy("check_in", "desc"),
-    limit(1),
-  );
-
-  const byUserIdSnap = await getDocs(byUserId);
+  const byUserIdSnap = await getDocs(queryByField("userId"));
   if (!byUserIdSnap.empty) {
     return toRecord(byUserIdSnap.docs[0]);
   }
@@ -146,36 +145,38 @@ export const checkTodayAttendance = async (userId: string, todayDate: string): P
 
 /**
  * Record a new check-in to Firestore
- * Creates a new attendance document with check-in timestamp and metadata
+ * ENFORCES IDEMPOTENCY: Checks for existing record before creating a new one
+ * Saves both userId and employeeId for query compatibility
  *
  * @param payload - Check-in information (userId, userName, companyId, date, isLate, location)
  * @returns Document ID of the created attendance record
+ * @throws AttendanceError if record already exists today
  */
 export const recordCheckIn = async (payload: CheckInPayload): Promise<string> => {
-  try {
-    const attendanceData = {
-      userId: payload.userId,
-      employeeId: payload.userId,
-      userName: payload.userName,
-      companyId: payload.companyId,
-      date: payload.date,
-      check_in: serverTimestamp(),
-      isLate: payload.isLate,
-      status: payload.status,
-      location: {
-        latitude: payload.location.latitude,
-        longitude: payload.location.longitude,
-      },
-      created_at: serverTimestamp(),
-    };
+  const userId = payload.userId;
+  const companyId = payload.companyId;
+  const todayDate = getTodayDateForAttendance();
 
-    const docRef = await addDoc(collection(db, "attendance"), attendanceData);
-    console.log("Check-in recorded successfully:", docRef.id);
-    return docRef.id;
-  } catch (error) {
-    console.error("Error recording check-in:", error);
-    throw error;
+  const existingRecord = await getTodayRecord(userId, companyId);
+  if (existingRecord) {
+    throw new Error("تم تسجيل الحضور مسبقاً لهذا اليوم");
   }
+
+  const attendanceData = {
+    userId,
+    employeeId: userId,
+    userName: payload.userName,
+    companyId,
+    date: todayDate,
+    check_in: serverTimestamp(),
+    isLate: payload.isLate,
+    status: payload.status,
+    location: payload.location,
+    created_at: serverTimestamp(),
+  };
+
+  const docRef = await addDoc(collection(db, "attendance"), attendanceData);
+  return docRef.id;
 };
 
 /**

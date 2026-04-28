@@ -52,7 +52,7 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
 
   const { width } = useWindowDimensions();
   const isWide = width >= 900;
-  const logsDateSubtitle = new Date().toLocaleDateString("ar-EG", {
+  const logsDateSubtitle = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -82,7 +82,7 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
     if (!timestamp) return "—";
     try {
       const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return date.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
+      return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
     } catch {
       return "—";
     }
@@ -91,7 +91,7 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString + "T00:00:00");
-      return date.toLocaleDateString("ar-EG", { year: "numeric", month: "2-digit", day: "2-digit" });
+      return date.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
     } catch {
       return dateString;
     }
@@ -154,169 +154,185 @@ const AttendanceLogsContent: React.FC<Props> = ({ companyId }) => {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-      {/* ── Header ── */}
-      {showStatusDropdown && <Pressable className="absolute inset-0 z-40" onPress={() => setShowStatusDropdown(false)} />}
-      <View style={[styles.header, !isWide && { paddingRight: 64, justifyContent: 'center' }]}>
-        <Text className="text-[32px] font-bold text-[#ffeba7] text-right mb-1">سجل الحضور</Text>
-        <Text className="text-[#969081] text-right mt-1">{logsDateSubtitle}</Text>
-      </View>
+        {/* ── Header ── */}
+        {showStatusDropdown && <Pressable className="absolute inset-0 z-40" onPress={() => setShowStatusDropdown(false)} />}
+        <View style={[styles.header, !isWide && { paddingRight: 64, justifyContent: "center" }]}>
+          <Text className="text-[32px] font-bold text-[#ffeba7] text-right mb-1">سجل الحضور</Text>
+          <Text className="text-[#969081] text-right mt-1">{logsDateSubtitle}</Text>
+        </View>
 
-      {/* ── Filter Bar ── */}
-      <View className="relative z-50" style={[styles.filterBar, { elevation: 10 }]}>
-        <View style={styles.filterRow}>
-          <View style={[styles.filterGroup, { flexBasis: isWide ? "22%" : width >= 600 ? "46%" : "100%" }]}>
-            <Text style={styles.filterLabel}>بحث بالموظف</Text>
-            <TextInput
-              style={styles.input}
-              className="hover:bg-[#2c2a25] active:bg-[#2c2a25] hover:border-[#ffeba7]/30 transition-colors"
-              placeholder="اسم الموظف..."
-              placeholderTextColor={C.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-          <View style={[styles.filterGroup, { flexBasis: isWide ? "22%" : width >= 600 ? "46%" : "100%" }]}>
-            <Text style={styles.filterLabel}>من تاريخ</Text>
-            <TextInput
-              style={styles.input}
-              className="hover:bg-[#2c2a25] active:bg-[#2c2a25] hover:border-[#ffeba7]/30 transition-colors"
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={C.textSecondary}
-              value={startDate}
-              onChangeText={setStartDate}
-            />
-          </View>
-          <View style={[styles.filterGroup, { flexBasis: isWide ? "22%" : width >= 600 ? "46%" : "100%" }]}>
-            <Text style={styles.filterLabel}>إلى تاريخ</Text>
-            <TextInput
-              style={styles.input}
-              className="hover:bg-[#2c2a25] active:bg-[#2c2a25] hover:border-[#ffeba7]/30 transition-colors"
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={C.textSecondary}
-              value={endDate}
-              onChangeText={setEndDate}
-            />
-          </View>
-          <View style={[styles.filterGroup, { flexBasis: isWide ? "22%" : width >= 600 ? "46%" : "100%", zIndex: 50 }]}>
-            <Text style={styles.filterLabel}>الحالة</Text>
-            <View className="relative z-50 flex-1">
-              <Pressable className="w-full bg-[#1f2029] border border-[#3e3f4b] rounded-[12px] py-2.5 px-4 flex-row-reverse justify-between items-center hover:bg-[#2c2a25] active:bg-[#2c2a25] transition-colors" onPress={() => setShowStatusDropdown(!showStatusDropdown)}>
-                <Text style={{ color: C.textPrimary, textAlign: "right" }}>
-                  {statusFilter === "all" ? "الكل" : statusFilter === "on-time" ? "في الموعد" : "متأخر"}
-                </Text>
-                <Ionicons name="chevron-down" size={16} color={C.textSecondary} style={styles.dropdownIcon} />
-              </Pressable>
-              {showStatusDropdown && (
-                <View className="absolute top-[100%] mt-1 left-0 w-full bg-[#2a2b38] border border-[#ffeba7]/20 rounded-[12px] z-50 overflow-hidden shadow-xl" style={{ elevation: 15 }}>
-                  <Pressable
-                    
-                    className="w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors flex-row-reverse items-center"
-                    onPress={() => { setStatusFilter("all"); setShowStatusDropdown(false); }}
+        {/* ── Filter Bar ── */}
+        <View className="relative z-50" style={[styles.filterBar, { elevation: 10 }]}>
+          <View style={styles.filterRow}>
+            <View style={[styles.filterGroup, { flexBasis: isWide ? "22%" : width >= 600 ? "46%" : "100%" }]}>
+              <Text style={styles.filterLabel}>بحث بالموظف</Text>
+              <TextInput
+                style={styles.input}
+                className="hover:bg-[#2c2a25] active:bg-[#2c2a25] hover:border-[#ffeba7]/30 transition-colors"
+                placeholder="اسم الموظف..."
+                placeholderTextColor={C.textSecondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+            <View style={[styles.filterGroup, { flexBasis: isWide ? "22%" : width >= 600 ? "46%" : "100%" }]}>
+              <Text style={styles.filterLabel}>من تاريخ</Text>
+              <TextInput
+                style={styles.input}
+                className="hover:bg-[#2c2a25] active:bg-[#2c2a25] hover:border-[#ffeba7]/30 transition-colors"
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={C.textSecondary}
+                value={startDate}
+                onChangeText={setStartDate}
+              />
+            </View>
+            <View style={[styles.filterGroup, { flexBasis: isWide ? "22%" : width >= 600 ? "46%" : "100%" }]}>
+              <Text style={styles.filterLabel}>إلى تاريخ</Text>
+              <TextInput
+                style={styles.input}
+                className="hover:bg-[#2c2a25] active:bg-[#2c2a25] hover:border-[#ffeba7]/30 transition-colors"
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={C.textSecondary}
+                value={endDate}
+                onChangeText={setEndDate}
+              />
+            </View>
+            <View style={[styles.filterGroup, { flexBasis: isWide ? "22%" : width >= 600 ? "46%" : "100%", zIndex: 50 }]}>
+              <Text style={styles.filterLabel}>الحالة</Text>
+              <View className="relative z-50 flex-1">
+                <Pressable
+                  className="w-full bg-[#1f2029] border border-[#3e3f4b] rounded-[12px] py-2.5 px-4 flex-row-reverse justify-between items-center hover:bg-[#2c2a25] active:bg-[#2c2a25] transition-colors"
+                  onPress={() => setShowStatusDropdown(!showStatusDropdown)}
+                >
+                  <Text style={{ color: C.textPrimary, textAlign: "right" }}>
+                    {statusFilter === "all" ? "الكل" : statusFilter === "on-time" ? "في الموعد" : "متأخر"}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color={C.textSecondary} style={styles.dropdownIcon} />
+                </Pressable>
+                {showStatusDropdown && (
+                  <View
+                    className="absolute top-[100%] mt-1 left-0 w-full bg-[#2a2b38] border border-[#ffeba7]/20 rounded-[12px] z-50 overflow-hidden shadow-xl"
+                    style={{ elevation: 15 }}
                   >
-                    <Text className={`text-right ${statusFilter === "all" ? "text-[#ffeba7]" : "text-[#e7e2da]"}`}>الكل</Text>
-                  </Pressable>
-                  <Pressable
-                    
-                    className="w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors flex-row-reverse items-center"
-                    onPress={() => { setStatusFilter("on-time"); setShowStatusDropdown(false); }}
-                  >
-                    <Text className={`text-right ${statusFilter === "on-time" ? "text-[#ffeba7]" : "text-[#e7e2da]"}`}>في الموعد</Text>
-                  </Pressable>
-                  <Pressable
-                    
-                    className="w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors flex-row-reverse items-center"
-                    onPress={() => { setStatusFilter("late"); setShowStatusDropdown(false); }}
-                  >
-                    <Text className={`text-right ${statusFilter === "late" ? "text-[#ffeba7]" : "text-[#e7e2da]"}`}>متأخر</Text>
-                  </Pressable>
-                </View>
-              )}
+                    <Pressable
+                      className="w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors flex-row-reverse items-center"
+                      onPress={() => {
+                        setStatusFilter("all");
+                        setShowStatusDropdown(false);
+                      }}
+                    >
+                      <Text className={`text-right ${statusFilter === "all" ? "text-[#ffeba7]" : "text-[#e7e2da]"}`}>الكل</Text>
+                    </Pressable>
+                    <Pressable
+                      className="w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors flex-row-reverse items-center"
+                      onPress={() => {
+                        setStatusFilter("on-time");
+                        setShowStatusDropdown(false);
+                      }}
+                    >
+                      <Text className={`text-right ${statusFilter === "on-time" ? "text-[#ffeba7]" : "text-[#e7e2da]"}`}>في الموعد</Text>
+                    </Pressable>
+                    <Pressable
+                      className="w-full px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 transition-colors flex-row-reverse items-center"
+                      onPress={() => {
+                        setStatusFilter("late");
+                        setShowStatusDropdown(false);
+                      }}
+                    >
+                      <Text className={`text-right ${statusFilter === "late" ? "text-[#ffeba7]" : "text-[#e7e2da]"}`}>متأخر</Text>
+                    </Pressable>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
         </View>
-      </View>
 
-      {/* ── Logs Table ── */}
-      <View className="bg-[#2a2b38] p-4 rounded-[12px] border border-[#ffeba7]/10" style={styles.bentoCard}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>سجلات الحضور والانصراف</Text>
-        </View>
-        <View className="hidden md:flex" style={styles.tableHeader}>
-          <Text style={[styles.thCell, styles.colEmployee]}>الموظف</Text>
-          <Text style={[styles.thCell, styles.colDate]}>التاريخ</Text>
-          <Text style={[styles.thCell, styles.colTime]}>الحضور</Text>
-          <Text style={[styles.thCell, styles.colTime]}>الانصراف</Text>
-          <Text style={[styles.thCell, styles.colStatus]}>الحالة</Text>
-          <Text style={[styles.thCell, styles.colTime]}>الساعات</Text>
-        </View>
+        {/* ── Logs Table ── */}
+        <View className="bg-[#2a2b38] p-4 rounded-[12px] border border-[#ffeba7]/10" style={styles.bentoCard}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>سجلات الحضور والانصراف</Text>
+          </View>
+          <View className="hidden md:flex" style={styles.tableHeader}>
+            <Text className="w-[20%] text-right text-[#969081] text-[11px] font-semibold uppercase tracking-wider">الموظف</Text>
+            <Text className="w-[15%] text-right text-[#969081] text-[11px] font-semibold uppercase tracking-wider">التاريخ</Text>
+            <Text className="w-[15%] text-right text-[#969081] text-[11px] font-semibold uppercase tracking-wider">الحضور</Text>
+            <Text className="w-[15%] text-right text-[#969081] text-[11px] font-semibold uppercase tracking-wider">الانصراف</Text>
+            <Text className="w-[15%] text-right text-[#969081] text-[11px] font-semibold uppercase tracking-wider">الحالة</Text>
+            <Text className="w-[20%] text-right text-[#969081] text-[11px] font-semibold uppercase tracking-wider">الساعات</Text>
+          </View>
 
-        {loading ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="small" color={C.accent} />
-            <Text style={styles.loadingText}>جاري التحميل...</Text>
-          </View>
-        ) : error ? (
-          <View style={styles.emptyBox}>
-            <Ionicons name="alert-circle-outline" size={28} color={C.error} />
-            <Text style={[styles.emptyText, { color: C.error }]}>{error}</Text>
-          </View>
-        ) : filteredRecords.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Ionicons name="document-outline" size={28} color={C.textSecondary} />
-            <Text style={styles.emptyText}>لا توجد سجلات مطابقة</Text>
-          </View>
-        ) : (
-          filteredRecords.map((record) => {
-            const isLate = record.status === "late";
-            const badgeColor = isLate ? C.error : C.accent;
-            const badgeBg = isLate ? C.errorDim : C.accentDim;
-            const badgeBorder = isLate ? C.errorBorder : C.accentBorder;
+          {loading ? (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="small" color={C.accent} />
+              <Text style={styles.loadingText}>جاري التحميل...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.emptyBox}>
+              <Ionicons name="alert-circle-outline" size={28} color={C.error} />
+              <Text style={[styles.emptyText, { color: C.error }]}>{error}</Text>
+            </View>
+          ) : filteredRecords.length === 0 ? (
+            <View style={styles.emptyBox}>
+              <Ionicons name="document-outline" size={28} color={C.textSecondary} />
+              <Text style={styles.emptyText}>لا توجد سجلات مطابقة</Text>
+            </View>
+          ) : (
+            filteredRecords.map((record) => {
+              const isLate = record.status === "late";
+              const badgeColor = isLate ? C.error : C.accent;
+              const badgeBg = isLate ? C.errorDim : C.accentDim;
+              const badgeBorder = isLate ? C.errorBorder : C.accentBorder;
 
-            return (
-              <Pressable
-                key={record.id}
-                className="flex flex-col md:flex-row-reverse items-end md:items-center p-4 gap-3 md:gap-0 border-b border-[#ffeba7]/10 hover:bg-[#2c2a25] active:bg-[#2c2a25] transition-colors"
-              >
-                {/* Employee Name + Status Badge — top row on mobile */}
-                <View className="flex-row-reverse justify-between w-full md:w-[20%]">
-                  <Text style={styles.name} numberOfLines={1}>{record.userName || "—"}</Text>
-                  <View style={[styles.badge, { borderColor: badgeBorder, backgroundColor: badgeBg }]}>
-                    <Text style={[styles.badgeText, { color: badgeColor }]}>
-                      {isLate ? "متأخر" : "في الموعد"}
+              return (
+                <Pressable
+                  key={record.id}
+                  className="flex flex-col md:flex-row-reverse items-end md:items-center p-4 gap-3 md:gap-0 border-b border-[#ffeba7]/10 hover:bg-[#2c2a25] active:bg-[#2c2a25] transition-colors"
+                >
+                  {/* 1. الموظف */}
+                  <View className="flex-row-reverse justify-between items-center w-full md:w-[20%]">
+                    <Text className="md:hidden text-[#969081] text-xs">الموظف:</Text>
+                    <Text style={styles.name} numberOfLines={1}>
+                      {record.userName || "—"}
                     </Text>
                   </View>
-                </View>
 
-                {/* Date */}
-                <View className="flex-row-reverse md:flex-col items-center justify-between w-full md:w-[20%]">
-                  <Text className="md:hidden text-[#969081] text-xs">التاريخ:</Text>
-                  <Text style={styles.timeText}>{formatDate(record.date)}</Text>
-                </View>
+                  {/* 2. التاريخ */}
+                  <View className="flex-row-reverse justify-between items-center w-full md:w-[15%]">
+                    <Text className="md:hidden text-[#969081] text-xs">التاريخ:</Text>
+                    <Text style={styles.timeText}>{formatDate(record.date)}</Text>
+                  </View>
 
-                {/* Check-in */}
-                <View className="flex-row-reverse md:flex-col items-center justify-between w-full md:w-[15%]">
-                  <Text className="md:hidden text-[#969081] text-xs">الحضور:</Text>
-                  <Text style={styles.timeText}>{formatTime(record.check_in)}</Text>
-                </View>
+                  {/* 3. الحضور */}
+                  <View className="flex-row-reverse justify-between items-center w-full md:w-[15%]">
+                    <Text className="md:hidden text-[#969081] text-xs">الحضور:</Text>
+                    <Text style={styles.timeText}>{formatTime(record.check_in)}</Text>
+                  </View>
 
-                {/* Check-out */}
-                <View className="flex-row-reverse md:flex-col items-center justify-between w-full md:w-[15%]">
-                  <Text className="md:hidden text-[#969081] text-xs">الانصراف:</Text>
-                  <Text style={styles.timeText}>{formatTime(record.check_out)}</Text>
-                </View>
+                  {/* 4. الانصراف */}
+                  <View className="flex-row-reverse justify-between items-center w-full md:w-[15%]">
+                    <Text className="md:hidden text-[#969081] text-xs">الانصراف:</Text>
+                    <Text style={styles.timeText}>{formatTime(record.check_out)}</Text>
+                  </View>
 
-                {/* Hours */}
-                <View className="flex-row-reverse md:flex-col items-center justify-between w-full md:w-[15%]">
-                  <Text className="md:hidden text-[#969081] text-xs">الساعات:</Text>
-                  <Text style={styles.timeText}>
-                    {formatDurationHHMM(record.check_in, record.check_out, record.workDuration)}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })
-        )}
-      </View>
+                  {/* 5. الحالة */}
+                  <View className="flex-row-reverse justify-between items-center w-full md:w-[15%]">
+                    <Text className="md:hidden text-[#969081] text-xs">الحالة:</Text>
+                    <View style={[styles.badge, { borderColor: badgeBorder, backgroundColor: badgeBg }]}>
+                      <Text style={[styles.badgeText, { color: badgeColor }]}>{isLate ? "متأخر" : "في الموعد"}</Text>
+                    </View>
+                  </View>
+
+                  {/* 6. الساعات */}
+                  <View className="flex-row-reverse justify-between items-center w-full md:w-[20%]">
+                    <Text className="md:hidden text-[#969081] text-xs">الساعات:</Text>
+                    <Text style={styles.timeText}>{formatDurationHHMM(record.check_in, record.check_out, record.workDuration)}</Text>
+                  </View>
+                </Pressable>
+              );
+            })
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -512,11 +528,3 @@ const styles = StyleSheet.create({
 });
 
 export default AttendanceLogsContent;
-
-
-
-
-
-
-
-

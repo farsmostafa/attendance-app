@@ -41,7 +41,7 @@ const TodayLog: React.FC<TodayLogProps> = ({ navigation }) => {
     const setupRealtimeUpdates = async () => {
       try {
         const userData = await getCurrentUserData();
-        if (!userData?.company_id) {
+        if (!userData?.companyId) {
           Alert.alert("خطأ", "لم نتمكن من العثور على شركتك");
           setLoading(false);
           return;
@@ -50,7 +50,7 @@ const TodayLog: React.FC<TodayLogProps> = ({ navigation }) => {
         // Fetch all employees for the company
         const employeesQuery = query(
           collection(db, "users"),
-          where("company_id", "==", userData.company_id),
+          where("companyId", "==", userData.companyId),
           where("role", "==", "employee"),
         );
 
@@ -137,14 +137,14 @@ const TodayLog: React.FC<TodayLogProps> = ({ navigation }) => {
               const checkOutDate = checkOut ? checkOut.timestamp.toDate() : undefined;
 
               const checkInTime = checkInDate
-                ? checkInDate.toLocaleTimeString("ar-EG", {
+                ? checkInDate.toLocaleTimeString("en-US", {
                     hour: "2-digit",
                     minute: "2-digit",
                   })
                 : "-";
 
               const checkOutTime = checkOutDate
-                ? checkOutDate.toLocaleTimeString("ar-EG", {
+                ? checkOutDate.toLocaleTimeString("en-US", {
                     hour: "2-digit",
                     minute: "2-digit",
                   })

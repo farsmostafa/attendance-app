@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, ScrollView } from "react-native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackNavigationProp } from "../types";
 import { db } from "../firebaseConfig";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -27,7 +26,7 @@ const AdminSettingsContent: React.FC<Props> = ({ companyId }) => {
     const loadSettings = async () => {
       setLoading(true);
       try {
-        const companyDoc = await getDoc(doc(db, "companies", "MainCompany"));
+        const companyDoc = await getDoc(doc(db, "companies", companyId || ""));
         if (companyDoc.exists()) {
           const data = companyDoc.data();
           setSettings({
@@ -46,7 +45,7 @@ const AdminSettingsContent: React.FC<Props> = ({ companyId }) => {
     };
 
     loadSettings();
-  }, []);
+  }, [companyId]);
 
   const handleSave = async () => {
     setErrorMessage("");
@@ -74,7 +73,7 @@ const AdminSettingsContent: React.FC<Props> = ({ companyId }) => {
     setSaving(true);
     try {
       await setDoc(
-        doc(db, "companies", "MainCompany"),
+        doc(db, "companies", companyId || ""),
         {
           latitude: latitudeValue,
           longitude: longitudeValue,
@@ -173,12 +172,7 @@ const AdminSettingsContent: React.FC<Props> = ({ companyId }) => {
             />
           </View>
 
-          <TouchableOpacity
-            style={[styles.button, saving && styles.buttonDisabled]}
-            onPress={handleSave}
-            disabled={saving}
-            activeOpacity={0.8}
-          >
+          <TouchableOpacity style={[styles.button, saving && styles.buttonDisabled]} onPress={handleSave} disabled={saving} activeOpacity={0.8}>
             {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.buttonText}>حفظ الإعدادات</Text>}
           </TouchableOpacity>
         </View>
@@ -188,105 +182,22 @@ const AdminSettingsContent: React.FC<Props> = ({ companyId }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f3f4f6",
-  },
-  content: {
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#111827",
-    marginBottom: 4,
-    textAlign: "right",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginBottom: 20,
-    textAlign: "right",
-  },
-  loadingContainer: {
-    paddingVertical: 60,
-    alignItems: "center",
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 5,
-  },
-  field: {
-    marginBottom: 18,
-  },
-  label: {
-    fontSize: 14,
-    color: "#374151",
-    marginBottom: 8,
-    textAlign: "right",
-    fontWeight: "600",
-  },
-  input: {
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: "#f9fafb",
-    fontSize: 14,
-    color: "#111827",
-  },
-  errorBox: {
-    backgroundColor: "#fdecea",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#f5c2c7",
-    padding: 14,
-    marginBottom: 16,
-  },
-  errorText: {
-    color: "#b02a37",
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "right",
-  },
-  successBox: {
-    backgroundColor: "#ecfdf5",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#a7f3d0",
-    padding: 14,
-    marginBottom: 16,
-  },
-  successText: {
-    color: "#065f46",
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "right",
-  },
-  button: {
-    backgroundColor: "#2563eb",
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
-  },
+  container: { flex: 1, backgroundColor: "#f3f4f6" },
+  content: { paddingVertical: 20, paddingHorizontal: 16 },
+  title: { fontSize: 24, fontWeight: "bold", color: "#111827", marginBottom: 4, textAlign: "right" },
+  subtitle: { fontSize: 14, color: "#6b7280", marginBottom: 20, textAlign: "right" },
+  loadingContainer: { paddingVertical: 60, alignItems: "center" },
+  card: { backgroundColor: "#fff", borderRadius: 16, padding: 24, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 20, elevation: 5 },
+  field: { marginBottom: 18 },
+  label: { fontSize: 14, color: "#374151", marginBottom: 8, textAlign: "right", fontWeight: "600" },
+  input: { width: "100%", borderWidth: 1, borderColor: "#d1d5db", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: "#f9fafb", fontSize: 14, color: "#111827" },
+  errorBox: { backgroundColor: "#fdecea", borderRadius: 12, borderWidth: 1, borderColor: "#f5c2c7", padding: 14, marginBottom: 16 },
+  errorText: { color: "#b02a37", fontSize: 14, lineHeight: 20, textAlign: "right" },
+  successBox: { backgroundColor: "#ecfdf5", borderRadius: 12, borderWidth: 1, borderColor: "#a7f3d0", padding: 14, marginBottom: 16 },
+  successText: { color: "#065f46", fontSize: 14, lineHeight: 20, textAlign: "right" },
+  button: { backgroundColor: "#2563eb", paddingVertical: 14, borderRadius: 12, alignItems: "center", marginTop: 8 },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });
 
 export default AdminSettingsContent;

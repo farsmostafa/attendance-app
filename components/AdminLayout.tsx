@@ -86,7 +86,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ activeRoute, navigation, chil
             userName={currentUserName}
             userDepartment={currentUserDepartment}
             userAvatarUrl={currentUserAvatar}
-            logoutLabel="\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c"
+            logoutLabel="تسجيل الخروج"
             mobile={isMobile}
             onMobileClose={() => setSidebarVisible(false)}
           />
@@ -104,7 +104,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ activeRoute, navigation, chil
           {showLoading ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator size="large" color="#ffeba7" />
-              <Text style={styles.loadingText}>{"\u062c\u0627\u0631\u064a \u0627\u0644\u062a\u062d\u0645\u064a\u0644..."}</Text>
+              <Text style={styles.loadingText}>جاري التحميل...</Text>
             </View>
           ) : (
             children

@@ -25,12 +25,18 @@ const Colors = {
   warning: "#ffd27a",
   info: "#90caf9",
   overlay: "rgba(0, 0, 0, 0.5)",
-  outOfRange: "#4a3728",  // Stitch State 2: Out-of-range button (dark brown)
+  outOfRange: "#4a3728", // Stitch State 2: Out-of-range button (dark brown)
 };
 const Spacing = { xs: 4, sm: 8, md: 12, base: 16, lg: 20, xl: 24, xxl: 32, xxxl: 48 };
 const Radius = { sm: 6, md: 12, lg: 16, xl: 24, full: 9999 };
 const Typography = {
-  xs: 11, sm: 13, base: 15, md: 17, lg: 20, xl: 24, xxl: 30,
+  xs: 11,
+  sm: 13,
+  base: 15,
+  md: 17,
+  lg: 20,
+  xl: 24,
+  xxl: 30,
   fontArabic: "Cairo" as const,
   fontLatin: "Manrope" as const,
   fontMono: "SpaceMono" as const,
@@ -356,7 +362,8 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
       const isLate = currentTimeInMinutes > workStartTimeInMinutes + gracePeriodMinutes;
       const status = (isLate ? "late" : "on-time") as "on-time" | "late";
 
-      const todayDate = now.toISOString().split("T")[0];
+      // Standardize date to ISO format for consistency with attendance service queries
+      const todayDate = new Date().toISOString().split("T")[0];
 
       const checkInPayload = {
         userId: userData.uid,
@@ -393,28 +400,19 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
       try {
         const docId = await recordCheckIn(checkInPayload);
         attendanceDocIdRef.current = docId;
+        console.log("[Dashboard] Check-in created, doc ID:", docId);
 
-        setTodayLog({
-          id: docId,
-          userId: userData.uid,
-          userName: userData.name || userData.email || "Unknown",
-          date: todayDate,
-          check_in: new Date() as any,
-          isLate,
-          status,
-          location: {
-            latitude: currentLocation.coords.latitude,
-            longitude: currentLocation.coords.longitude,
-          },
-        });
+        // Immediately fetch today's record to update UI state
+        // This ensures getTodayRecord finds the newly created record and updates the button state
+        console.log("[Dashboard] Fetching updated record to refresh UI state");
+        await fetchTodayLog();
 
         const message = isLate ? "✓ تم تسجيل حضورك بنجاح!\n⚠️ تنبيه: لقد تجاوزت فترة السماح" : "✓ تم تسجيل حضورك بنجاح!";
         showAlert(message);
-        console.log("Check-in successful:", docId);
-        await fetchTodayLog();
       } catch (checkInError) {
-        console.error("Check-in DB Error:", checkInError);
-        showAlert(`خطأ في تسجيل الحضور: ${checkInError instanceof Error ? checkInError.message : "خطأ غير معروف"}`);
+        console.error("[Dashboard] Check-in error:", checkInError);
+        const errorMessage = checkInError instanceof Error ? checkInError.message : "خطأ غير معروف";
+        showAlert(`خطأ في تسجيل الحضور: ${errorMessage}`);
         throw checkInError;
       }
     } catch (error) {
@@ -526,8 +524,8 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
   // Fix 1C: Loading gate now only depends on Firebase data fetches.
   // Location (distance) is shown inline — never blocks the full UI.
   const isLoading = settingsLoading || attendanceLoading;
-  const hasCheckedIn = !!todayLog?.check_in;
-  const hasCheckedOut = !!todayLog?.check_out;
+  const hasCheckedIn = !!((todayLog as any)?.checkInTime || todayLog?.check_in);
+  const hasCheckedOut = !!((todayLog as any)?.checkOutTime || todayLog?.check_out);
   const shiftCompleted = hasCheckedIn && hasCheckedOut;
   const isProcessing = isCheckingIn || isCheckingOut;
   const buttonDisabled = isProcessing || shiftCompleted || !withinGeofence;
@@ -583,7 +581,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
           duration: 1500,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
     loop.start();
     return () => loop.stop();
@@ -600,10 +598,10 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
         : "checkin";
 
   const stateConfig = {
-    checkin:    { label: "تسجيل الحضور",    subtitle: "بدء الدوام",                    icon: "finger-print" as const },
-    outOfRange: { label: "خارج نطاق العمل",  subtitle: "LOCATION ACCESS RESTRICTED", icon: "alert-circle-outline" as const },
-    checkout:   { label: "تسجيل الانصراف",   subtitle: "إنهاء الدوام",                  icon: "finger-print" as const },
-    completed:  { label: "تم انتهاء دوام اليوم", subtitle: "شكراً لالتزامك في الدوام",     icon: "checkmark-done" as const },
+    checkin: { label: "تسجيل الحضور", subtitle: "بدء الدوام", icon: "finger-print" as const },
+    outOfRange: { label: "خارج نطاق العمل", subtitle: "LOCATION ACCESS RESTRICTED", icon: "alert-circle-outline" as const },
+    checkout: { label: "تسجيل الانصراف", subtitle: "إنهاء الدوام", icon: "finger-print" as const },
+    completed: { label: "تم انتهاء دوام اليوم", subtitle: "شكراً لالتزامك في الدوام", icon: "checkmark-done" as const },
   };
   const { label: actionLabel, subtitle: actionSubtitle, icon: actionIcon } = stateConfig[dashboardState];
 
@@ -665,7 +663,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
     return "--:--";
   };
 
-  const dateLabel = currentDateTime.toLocaleDateString("ar-EG", {
+  const dateLabel = currentDateTime.toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -683,7 +681,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-      <View style={[styles.mainContent,{ paddingVertical: 25}, { maxWidth: width > 1024 ? 720 : "100%" }]}>
+      <View style={[styles.mainContent, { paddingVertical: 25 }, { maxWidth: width > 1024 ? 720 : "100%" }]}>
         {/* ── Clock Section (Stitch: Clock Section) ── */}
         <View style={styles.clockSection}>
           <Text style={styles.dateLabel}>{dateLabel}</Text>
@@ -736,30 +734,22 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
                           inputRange: [0, 1],
                           outputRange: [0.1, 0.05],
                         }),
-                        transform: [{
-                          scale: pulseAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [1, 1.02],
-                          }),
-                        }],
+                        transform: [
+                          {
+                            scale: pulseAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [1, 1.02],
+                            }),
+                          },
+                        ],
                       },
                     ]}
                   />
                   {/* Static foreground card — never animates */}
                   <View style={styles.squareButton_outOfRange_card}>
-                    <MaterialIcons
-                      name="location-off"
-                      size={56}
-                      color={Colors.error}
-                      style={{ opacity: 0.4 }}
-                    />
-                    <Text style={[styles.squareButtonLabel, { color: Colors.error }]}>
-                      خارج نطاق العمل
-                    </Text>
-                    <Text style={[
-                      styles.squareButtonSub,
-                      { color: Colors.error, opacity: 0.6, letterSpacing: 2 },
-                    ]}>
+                    <MaterialIcons name="location-off" size={56} color={Colors.error} style={{ opacity: 0.4 }} />
+                    <Text style={[styles.squareButtonLabel, { color: Colors.error }]}>خارج نطاق العمل</Text>
+                    <Text style={[styles.squareButtonSub, { color: Colors.error, opacity: 0.6, letterSpacing: 2 }]}>
                       LOCATION ACCESS RESTRICTED
                     </Text>
                   </View>
@@ -778,20 +768,13 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
                   disabled={buttonDisabled}
                 >
                   {isProcessing ? (
-                    <ActivityIndicator
-                      size="large"
-                      color={dashboardState === "checkin" ? Colors.accentText : Colors.textPrimary}
-                    />
+                    <ActivityIndicator size="large" color={dashboardState === "checkin" ? Colors.accentText : Colors.textPrimary} />
                   ) : (
                     <>
                       <Ionicons
                         name={actionIcon}
                         size={56}
-                        color={
-                          dashboardState === "checkin" || dashboardState === "checkout"
-                            ? Colors.accentText
-                            : Colors.textPrimary
-                        }
+                        color={dashboardState === "checkin" || dashboardState === "checkout" ? Colors.accentText : Colors.textPrimary}
                       />
                       <Text
                         style={[
@@ -888,7 +871,13 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
                   <Ionicons name="timer-outline" size={18} color={Colors.accent} />
                   <Text style={styles.summaryItemLabel}>إجمالي الساعات</Text>
                 </View>
-                <Text style={styles.summaryItemValue}>{formatDurationHHMM((todayRecord as any)?.checkInTime || todayRecord?.check_in, (todayRecord as any)?.checkOutTime || todayRecord?.check_out, todayRecord?.workDuration)}</Text>
+                <Text style={styles.summaryItemValue}>
+                  {formatDurationHHMM(
+                    (todayRecord as any)?.checkInTime || todayRecord?.check_in,
+                    (todayRecord as any)?.checkOutTime || todayRecord?.check_out,
+                    todayRecord?.workDuration,
+                  )}
+                </Text>
               </View>
 
               {/* Status */}
@@ -906,11 +895,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
                   <Text
                     style={[
                       styles.statusPillText,
-                      !hasCheckedIn
-                        ? { color: Colors.error }
-                        : todayRecord?.isLate
-                          ? { color: Colors.error }
-                          : { color: Colors.success },
+                      !hasCheckedIn ? { color: Colors.error } : todayRecord?.isLate ? { color: Colors.error } : { color: Colors.success },
                     ]}
                   >
                     {!hasCheckedIn ? "لم يتم التسجيل" : todayRecord?.isLate ? "متأخر" : "في الموعد"}
@@ -1275,4 +1260,3 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
-

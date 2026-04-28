@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "./types";
 import { submitLeaveRequest, getEmployeeRequests, LeaveRequest } from "./services/requestsService";
 import { getCurrentUserData } from "./services/authService";
+import { getCurrentCairoDateString } from "./utils/timeUtils";
 
 type RequestsProps = NativeStackScreenProps<RootStackParamList, "Requests"> & { isFocused?: boolean };
 
@@ -157,7 +158,7 @@ const Requests: React.FC<RequestsProps> = ({ navigation, isFocused = true }) => 
         </View>
       )}
 
-      <Text style={styles.requestMeta}>تم التقديم: {new Date(item.created_at || "").toLocaleDateString("ar-EG")}</Text>
+      <Text style={styles.requestMeta}>تم التقديم: {new Date(item.created_at || "").toLocaleDateString("en-US")}</Text>
     </View>
   );
 
@@ -245,7 +246,7 @@ const Requests: React.FC<RequestsProps> = ({ navigation, isFocused = true }) => 
                   <TouchableOpacity
                     style={styles.dateNavButton}
                     onPress={() => {
-                      const currentDate = new Date(requestDate || new Date().toISOString().split("T")[0]);
+                      const currentDate = new Date(requestDate || getCurrentCairoDateString());
                       currentDate.setDate(currentDate.getDate() - 1);
                       setRequestDate(currentDate.toISOString().split("T")[0]);
                     }}
@@ -266,7 +267,7 @@ const Requests: React.FC<RequestsProps> = ({ navigation, isFocused = true }) => 
                   <TouchableOpacity
                     style={styles.dateNavButton}
                     onPress={() => {
-                      const currentDate = new Date(requestDate || new Date().toISOString().split("T")[0]);
+                      const currentDate = new Date(requestDate || getCurrentCairoDateString());
                       currentDate.setDate(currentDate.getDate() + 1);
                       setRequestDate(currentDate.toISOString().split("T")[0]);
                     }}

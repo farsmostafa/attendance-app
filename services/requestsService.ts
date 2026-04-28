@@ -8,7 +8,7 @@ export interface LeaveRequest {
   type: "leave" | "late";
   date: string;
   reason: string;
-  status: "Pending" | "Approved" | "Rejected";
+  status: "pending" | "approved" | "rejected";
   created_at?: string;
   admin_notes?: string;
   resolved_at?: string;
@@ -81,7 +81,7 @@ export const getPendingRequests = async (
 ): Promise<Array<LeaveRequest & { employeeName: string; employeeEmail: string }>> => {
   try {
     // Fetch all pending requests
-    const q = query(collection(db, "requests"), where("status", "==", "Pending"));
+    const q = query(collection(db, "requests"), where("status", "==", "pending"));
 
     const querySnapshot = await getDocs(q);
     const requests: Array<LeaveRequest & { employeeName: string; employeeEmail: string }> = [];
@@ -133,7 +133,7 @@ export const approveRequest = async (requestId: string, adminNotes?: string): Pr
   try {
     const requestRef = doc(db, "requests", requestId);
     await updateDoc(requestRef, {
-      status: "Approved",
+      status: "approved",
       admin_notes: adminNotes || "",
       resolved_at: new Date().toISOString(),
     });
@@ -150,7 +150,7 @@ export const rejectRequest = async (requestId: string, adminNotes?: string): Pro
   try {
     const requestRef = doc(db, "requests", requestId);
     await updateDoc(requestRef, {
-      status: "Rejected",
+      status: "rejected",
       admin_notes: adminNotes || "",
       resolved_at: new Date().toISOString(),
     });

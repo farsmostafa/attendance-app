@@ -8,6 +8,7 @@ import { getCurrentUserData } from "./services/authService";
 import { countPresentToday } from "./services/attendanceService";
 import AdminLayout from "./components/AdminLayout";
 import DashboardContent from "./screens/DashboardContent";
+import { getCurrentCairoDateString } from "./utils/timeUtils";
 
 type AdminDashboardProps = NativeStackScreenProps<RootStackParamList, "AdminDashboard">;
 
@@ -32,7 +33,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
 
       try {
         const userData = await getCurrentUserData();
-        const companyId = userData?.companyId || userData?.company_id || "MainCompany";
+        const companyId = userData?.companyId || userData?.company_id || "";
 
         const employeesQuery = query(collection(db, "users"), where("companyId", "==", companyId), where("role", "==", "employee"));
         const employeesSnapshot = await getDocs(employeesQuery);
@@ -49,7 +50,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
           });
         });
 
-        const today = new Date().toISOString().split("T")[0];
+        const today = getCurrentCairoDateString();
         const presentCount = await countPresentToday(today);
 
         setEmployees(employeeRows);
@@ -72,7 +73,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigation }) => {
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : (
-        <DashboardContent employees={employees} presentToday={presentToday} onViewAllAttendance={() => navigation.navigate("AddEmployee" as never)} />
+        <DashboardContent employees={employees} presentToday={presentToday} onViewAllAttendance={() => navigation.navigate("AttendanceLogs" as never)} />
       )}
     </AdminLayout>
   );

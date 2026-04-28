@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { getCurrentUserData } from "./services/authService";
 import { User } from "./types";
 import EmployeeLayout from "./components/EmployeeLayout";
-import { DimensionValue } from 'react-native';
+import { DimensionValue } from "react-native";
 // Design System Tokens (Section 3)
 const Colors = {
   background: "#1f2029",
@@ -22,7 +22,13 @@ const Colors = {
 const Spacing = { xs: 4, sm: 8, md: 12, base: 16, lg: 20, xl: 24, xxl: 32, xxxl: 48 };
 const Radius = { sm: 6, md: 12, lg: 16, xl: 24, full: 9999 };
 const Typography = {
-  xs: 11, sm: 13, base: 15, md: 17, lg: 20, xl: 24, xxl: 32,
+  xs: 11,
+  sm: 13,
+  base: 15,
+  md: 17,
+  lg: 20,
+  xl: 24,
+  xxl: 32,
   fontArabic: "Cairo" as const,
   fontLatin: "Manrope" as const,
   fontMono: "SpaceMono" as const,
@@ -57,24 +63,31 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
   }, []);
 
   const displayUser = userData || currentUser;
-  const hydratedUser = currentUser || userData || null;
-  const resolvedStartTime =
-    (displayUser as any)?.workStartTime ||
-    (displayUser as any)?.checkInTime ||
-    (currentUser as any)?.checkInTime ||
-    "09:00 AM";
-  const resolvedEndTime =
-    (displayUser as any)?.workEndTime ||
-    (displayUser as any)?.checkOutTime ||
-    (currentUser as any)?.checkOutTime ||
-    "05:00 PM";
-  const resolvedAvatar = (hydratedUser as any)?.avatarUrl || (displayUser as any)?.avatarUrl || "";
-  const resolvedPhone = (hydratedUser as any)?.phone || (displayUser as any)?.phone || "--";
-  const resolvedSalaryRaw = (hydratedUser as any)?.basicSalary || (hydratedUser as any)?.salary || (displayUser as any)?.basicSalary || (displayUser as any)?.salary || "0";
+
+  // Extract hydrated fields directly from the merged user object (auth service spread merge)
+  const {
+    name = "الموظف",
+    email = "--",
+    avatarUrl = "",
+    phone = "--",
+    basicSalary = 0,
+    salary = 0,
+    checkInTime = "09:00",
+    checkOutTime = "17:00",
+    workStartTime,
+    workEndTime,
+    department,
+  } = displayUser || {};
+
+  // Compute derived values from hydrated fields
+  const resolvedStartTime = workStartTime || checkInTime || "09:00";
+  const resolvedEndTime = workEndTime || checkOutTime || "17:00";
   const resolvedSalaryNumber =
-    typeof resolvedSalaryRaw === "number"
-      ? resolvedSalaryRaw
-      : parseFloat(String(resolvedSalaryRaw).replace(/[^\d.]/g, "")) || 0;
+    typeof basicSalary === "number" && basicSalary > 0
+      ? basicSalary
+      : typeof salary === "number" && salary > 0
+        ? salary
+        : parseFloat(String(basicSalary || salary || "0").replace(/[^\d.]/g, "")) || 0;
 
   const formatTime = (timeStr?: string) => {
     if (!timeStr) return "--:--";
@@ -101,35 +114,33 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
     const [endH] = endStr.split(":");
     const startHour = parseInt(startH, 10);
     const endHour = parseInt(endH, 10);
-    
+
     // LTR layout to exactly match UI labels
     const leftPercent = (startHour / 24) * 100;
-    
+
     // Handle overnight shifts
     let widthHours = endHour - startHour;
     if (widthHours < 0) {
       widthHours = 24 - startHour + endHour;
     }
     const widthPercent = (widthHours / 24) * 100;
-    
+
     return { left: `${leftPercent}%` as DimensionValue, width: `${widthPercent}%` as DimensionValue };
   };
 
   const formatDate = (val: any) => {
     if (!val) return "---";
     try {
-      if (val?.seconds) return new Date(val.seconds * 1000).toLocaleDateString("ar-EG");
-      if (typeof val?.toDate === "function") return val.toDate().toLocaleDateString("ar-EG");
-      if (val instanceof Date) return val.toLocaleDateString("ar-EG");
+      if (val?.seconds) return new Date(val.seconds * 1000).toLocaleDateString("en-US");
+      if (typeof val?.toDate === "function") return val.toDate().toLocaleDateString("en-US");
+      if (val instanceof Date) return val.toLocaleDateString("en-US");
       const parsed = new Date(val);
-      if (!Number.isNaN(parsed.getTime())) return parsed.toLocaleDateString("ar-EG");
+      if (!Number.isNaN(parsed.getTime())) return parsed.toLocaleDateString("en-US");
       return String(val);
     } catch {
       return String(val);
     }
   };
-
-
 
   const handleEditProfile = () => {
     // Placeholder for edit action if it exists
@@ -147,12 +158,8 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
           <>
             <View style={[styles.headerCard, !isDesktop && styles.headerCardMobile]}>
               <View style={[styles.avatarBox, !isDesktop && styles.avatarBoxMobile]}>
-                {typeof resolvedAvatar === "string" && resolvedAvatar.trim() ? (
-                  <Image
-                    source={{ uri: resolvedAvatar }}
-                    style={styles.avatarImage}
-                    resizeMode="cover"
-                  />
+                {typeof avatarUrl === "string" && avatarUrl.trim() ? (
+                  <Image source={{ uri: avatarUrl }} style={styles.avatarImage} resizeMode="cover" />
                 ) : (
                   <View style={styles.avatarFallback}>
                     {displayUser?.name?.trim() ? (
@@ -164,7 +171,12 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
                 )}
               </View>
               <View style={[styles.headerInfo, !isDesktop && styles.headerInfoMobile]}>
-                <Text style={[styles.userName, !isDesktop && styles.userNameMobile]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                <Text
+                  style={[styles.userName, !isDesktop && styles.userNameMobile]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                >
                   {displayUser?.name || "الموظف"}
                 </Text>
                 <View style={[styles.badgesRow, !isDesktop && styles.badgesRowMobile]}>
@@ -181,44 +193,44 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
             <View style={isDesktop ? styles.desktopGridRow : styles.mobileGridCol}>
               {/* Basic Info Card */}
               <View style={[styles.infoCard, isDesktop && { flex: 2.5 }]}>
-              <View style={styles.cardHeader}>
-                <Ionicons name="person-circle-outline" size={24} color={Colors.accent} />
-                <Text style={styles.cardTitle}>المعلومات الأساسية</Text>
-              </View>
-              
-              <View style={styles.infoGrid}>
-                <View style={[styles.infoItem, { width: isDesktop ? "45%" : "100%" }]}>
-                  <Ionicons name="mail-outline" size={20} color={Colors.textSecondary} />
-                  <View style={styles.infoTextCol}>
-                    <Text style={styles.infoLabel}>البريد الإلكتروني</Text>
-                    <Text style={styles.infoValue}>{displayUser?.email || "--"}</Text>
-                  </View>
-                </View>
-                
-                <View style={[styles.infoItem, { width: isDesktop ? "45%" : "100%" }]}>
-                  <Ionicons name="call-outline" size={20} color={Colors.textSecondary} />
-                  <View style={styles.infoTextCol}>
-                    <Text style={styles.infoLabel}>رقم الهاتف</Text>
-                    <Text style={[styles.infoValue, { fontFamily: Typography.fontMono }]}>{resolvedPhone}</Text>
-                  </View>
+                <View style={styles.cardHeader}>
+                  <Ionicons name="person-circle-outline" size={24} color={Colors.accent} />
+                  <Text style={styles.cardTitle}>المعلومات الأساسية</Text>
                 </View>
 
-                <View style={[styles.infoItem, { width: isDesktop ? "45%" : "100%" }]}>
-                  <Ionicons name="briefcase-outline" size={20} color={Colors.textSecondary} />
-                  <View style={styles.infoTextCol}>
-                    <Text style={styles.infoLabel}>القسم</Text>
-                    <Text style={styles.infoValue}>{displayUser?.department || "بدون قسم"}</Text>
+                <View style={styles.infoGrid}>
+                  <View style={[styles.infoItem, { width: isDesktop ? "45%" : "100%" }]}>
+                    <Ionicons name="mail-outline" size={20} color={Colors.textSecondary} />
+                    <View style={styles.infoTextCol}>
+                      <Text style={styles.infoLabel}>البريد الإلكتروني</Text>
+                      <Text style={styles.infoValue}>{displayUser?.email || "--"}</Text>
+                    </View>
                   </View>
-                </View>
 
-                <View style={[styles.infoItem, { width: isDesktop ? "45%" : "100%" }]}>
-                  <Ionicons name="calendar-outline" size={20} color={Colors.textSecondary} />
-                  <View style={styles.infoTextCol}>
-                    <Text style={styles.infoLabel}>تاريخ الانضمام</Text>
-                    <Text style={styles.infoValue}>{formatDate(displayUser?.joinDate || (displayUser as any)?.createdAt)}</Text>
+                  <View style={[styles.infoItem, { width: isDesktop ? "45%" : "100%" }]}>
+                    <Ionicons name="call-outline" size={20} color={Colors.textSecondary} />
+                    <View style={styles.infoTextCol}>
+                      <Text style={styles.infoLabel}>رقم الهاتف</Text>
+                      <Text style={[styles.infoValue, { fontFamily: Typography.fontMono }]}>{phone || "--"}</Text>
+                    </View>
+                  </View>
+
+                  <View style={[styles.infoItem, { width: isDesktop ? "45%" : "100%" }]}>
+                    <Ionicons name="briefcase-outline" size={20} color={Colors.textSecondary} />
+                    <View style={styles.infoTextCol}>
+                      <Text style={styles.infoLabel}>القسم</Text>
+                      <Text style={styles.infoValue}>{displayUser?.department || "بدون قسم"}</Text>
+                    </View>
+                  </View>
+
+                  <View style={[styles.infoItem, { width: isDesktop ? "45%" : "100%" }]}>
+                    <Ionicons name="calendar-outline" size={20} color={Colors.textSecondary} />
+                    <View style={styles.infoTextCol}>
+                      <Text style={styles.infoLabel}>تاريخ الانضمام</Text>
+                      <Text style={styles.infoValue}>{formatDate(displayUser?.joinDate || (displayUser as any)?.createdAt)}</Text>
+                    </View>
                   </View>
                 </View>
-              </View>
               </View>
 
               {/* Salary Card */}
@@ -244,14 +256,14 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
                   <View style={[styles.timelineActive, getTimelineStyle(resolvedStartTime, resolvedEndTime)]} />
                 </View>
                 <View style={styles.timelineLabels}>
-  <Text style={styles.timelineLabel}>00:00</Text>
-  {isDesktop && <Text style={styles.timelineLabel}>04:00</Text>}
-  <Text style={[styles.timelineLabel, styles.timelineLabelAccent]}>{formatTime(resolvedStartTime)}</Text>
-  {isDesktop && <Text style={styles.timelineLabel}>12:00</Text>}
-  <Text style={[styles.timelineLabel, styles.timelineLabelAccent]}>{formatTime(resolvedEndTime)}</Text>
-  {isDesktop && <Text style={styles.timelineLabel}>20:00</Text>}
-  <Text style={styles.timelineLabel}>23:59</Text>
-</View>
+                  <Text style={styles.timelineLabel}>00:00</Text>
+                  {isDesktop && <Text style={styles.timelineLabel}>04:00</Text>}
+                  <Text style={[styles.timelineLabel, styles.timelineLabelAccent]}>{formatTime(resolvedStartTime)}</Text>
+                  {isDesktop && <Text style={styles.timelineLabel}>12:00</Text>}
+                  <Text style={[styles.timelineLabel, styles.timelineLabelAccent]}>{formatTime(resolvedEndTime)}</Text>
+                  {isDesktop && <Text style={styles.timelineLabel}>20:00</Text>}
+                  <Text style={styles.timelineLabel}>23:59</Text>
+                </View>
               </View>
 
               {/* Start / End Time Cards */}
@@ -326,7 +338,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xxxl,
     alignItems: "center",
   },
-  
+
   headerCard: {
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,

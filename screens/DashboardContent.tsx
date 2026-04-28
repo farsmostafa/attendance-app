@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  ScrollView,
-  Pressable,
-  useWindowDimensions,
-} from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Pressable, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { fetchPresentCountsByDates, fetchTodaysAttendanceRecords } from "../services/attendanceService";
 import { getCairoTimeString, getCurrentCairoDateString } from "../utils/timeUtils";
@@ -99,7 +91,7 @@ const getCurrentWeekWorkdays = () => {
 // ── Arabic Date Helper ────────────────────────────────────────────────────────
 const getArabicDate = (): string => {
   try {
-    return new Date().toLocaleDateString("ar-EG", {
+    return new Date().toLocaleDateString("en-US", {
       weekday: "long",
       day: "numeric",
       month: "long",
@@ -222,20 +214,21 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ employees, presentT
   ];
 
   // ── Activity Feed Data (live from records, fallback to hardcoded sample) ──
-  const activityData = attendanceRecords.length > 0
-    ? attendanceRecords.slice(0, 4).map((r) => ({
-        name: r.userName || "—",
-        checkIn: formatTime(r.check_in),
-        checkOut: formatTime(r.check_out),
-        status: r.status,
-        statusLabel: r.status === "late" ? "متأخر" : "في الموعد",
-      }))
-    : [
-        { name: "أحمد محمود", checkIn: "08:00 ص", checkOut: "04:05 م", status: "on-time" as const, statusLabel: "في الموعد" },
-        { name: "سارة علي", checkIn: "08:15 ص", checkOut: "04:15 م", status: "late" as const, statusLabel: "متأخر" },
-        { name: "محمد حسن", checkIn: "08:20 ص", checkOut: "04:25 م", status: "late" as const, statusLabel: "خارج النطاق" },
-        { name: "فاطمة نور", checkIn: "08:05 ص", checkOut: "04:50 م", status: "on-time" as const, statusLabel: "في الموعد" },
-      ];
+  const activityData =
+    attendanceRecords.length > 0
+      ? attendanceRecords.slice(0, 4).map((r) => ({
+          name: r.userName || "—",
+          checkIn: formatTime(r.check_in),
+          checkOut: formatTime(r.check_out),
+          status: r.status,
+          statusLabel: r.status === "late" ? "متأخر" : "في الموعد",
+        }))
+      : [
+          { name: "أحمد محمود", checkIn: "08:00 ص", checkOut: "04:05 م", status: "on-time" as const, statusLabel: "في الموعد" },
+          { name: "سارة علي", checkIn: "08:15 ص", checkOut: "04:15 م", status: "late" as const, statusLabel: "متأخر" },
+          { name: "محمد حسن", checkIn: "08:20 ص", checkOut: "04:25 م", status: "late" as const, statusLabel: "خارج النطاق" },
+          { name: "فاطمة نور", checkIn: "08:05 ص", checkOut: "04:50 م", status: "on-time" as const, statusLabel: "في الموعد" },
+        ];
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -245,7 +238,6 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ employees, presentT
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-
       {/* ═══════════════════════ PAGE HEADER ═══════════════════════ */}
       <View style={[styles.pageHeader, isMobile && styles.pageHeaderMobile]}>
         <Text className="text-[32px] font-bold text-[#ffeba7] text-right mb-1">لوحة القيادة</Text>
@@ -256,14 +248,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ employees, presentT
           <View
             key={idx}
             className="bg-[#2a2b38] border border-[#ffeba7]/10 rounded-[8px] p-5"
-            style={[
-              styles.statCard,
-              isWide
-                ? { flexBasis: "23%" }
-                : isMedium
-                ? { flexBasis: "47%" }
-                : { flexBasis: "100%" },
-            ]}
+            style={[styles.statCard, isWide ? { flexBasis: "23%" } : isMedium ? { flexBasis: "47%" } : { flexBasis: "100%" }]}
           >
             <View style={styles.statCardHeader}>
               <Text style={styles.statLabel}>{card.label}</Text>
@@ -276,7 +261,6 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ employees, presentT
 
       {/* ═══════════════════════ BOTTOM GRID ═══════════════════════ */}
       <View style={[styles.bottomGrid, isWide && styles.bottomGridWide]}>
-
         {/* ── Activity Feed (2/3) ── */}
         <View style={[styles.activityCard, isWide && { flex: 2 }]}>
           {/* Card Header */}
@@ -314,13 +298,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ employees, presentT
               const badgeBorder = isLate ? C.errorBorder : C.accentBorder;
 
               return (
-                <View
-                  key={idx}
-                  style={[
-                    styles.tableRow,
-                    idx < activityData.length - 1 && styles.tableRowBorder,
-                  ]}
-                >
+                <View key={idx} style={[styles.tableRow, idx < activityData.length - 1 && styles.tableRowBorder]}>
                   <Text style={[styles.cellText, styles.cellPrimary, { flex: 1.5 }]} numberOfLines={1}>
                     {row.name}
                   </Text>
@@ -371,14 +349,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ employees, presentT
                         ]}
                       />
                     </View>
-                    <Text
-                      style={[
-                        styles.barLabel,
-                        isHighest && { color: C.accent },
-                      ]}
-                    >
-                      {item.day}
-                    </Text>
+                    <Text style={[styles.barLabel, isHighest && { color: C.accent }]}>{item.day}</Text>
                   </View>
                 );
               })}
@@ -650,10 +621,3 @@ const styles = StyleSheet.create({
 });
 
 export default DashboardContent;
-
-
-
-
-
-
-

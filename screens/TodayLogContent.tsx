@@ -59,7 +59,7 @@ const TodayLogContent: React.FC<Props> = () => {
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString + "T00:00:00");
-      return date.toLocaleDateString("ar-EG", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Africa/Cairo" });
+      return date.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Africa/Cairo" });
     } catch {
       return dateString;
     }
@@ -160,7 +160,11 @@ const TodayLogContent: React.FC<Props> = () => {
             {isToday && <Text style={styles.todayBadge}>اليوم</Text>}
           </View>
 
-          <TouchableOpacity style={[styles.dateNavButton, !canGoForward && styles.dateNavButtonDisabled]} onPress={handleNextDay} disabled={!canGoForward}>
+          <TouchableOpacity
+            style={[styles.dateNavButton, !canGoForward && styles.dateNavButtonDisabled]}
+            onPress={handleNextDay}
+            disabled={!canGoForward}
+          >
             <Ionicons name="chevron-forward" size={20} color={canGoForward ? "#007bff" : "#ccc"} />
           </TouchableOpacity>
         </View>
@@ -199,15 +203,23 @@ const TodayLogContent: React.FC<Props> = () => {
 
           {attendanceRecords.map((record, index) => (
             <View key={record.id} style={[styles.tableRow, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
-              <Text style={[styles.tableCell, styles.cellName]} numberOfLines={1}>{record.userName || "—"}</Text>
-              <Text style={[styles.tableCell, styles.cellTime]} numberOfLines={1}>{formatTime(record.check_in)}</Text>
-              <Text style={[styles.tableCell, styles.cellTime]} numberOfLines={1}>{formatTime(record.check_out)}</Text>
+              <Text style={[styles.tableCell, styles.cellName]} numberOfLines={1}>
+                {record.userName || "—"}
+              </Text>
+              <Text style={[styles.tableCell, styles.cellTime]} numberOfLines={1}>
+                {formatTime(record.check_in)}
+              </Text>
+              <Text style={[styles.tableCell, styles.cellTime]} numberOfLines={1}>
+                {formatTime(record.check_out)}
+              </Text>
               <View style={styles.cellStatus}>
                 <Text style={[styles.statusBadge, record.status === "late" ? styles.statusBadgeLate : styles.statusBadgeOnTime]}>
                   {record.status === "late" ? "متأخر" : "في الموعد"}
                 </Text>
               </View>
-              <Text style={[styles.tableCell, styles.cellHours]} numberOfLines={1}>{formatDurationHHMM(record.check_in, record.check_out, record.workDuration)}</Text>
+              <Text style={[styles.tableCell, styles.cellHours]} numberOfLines={1}>
+                {formatDurationHHMM(record.check_in, record.check_out, record.workDuration)}
+              </Text>
             </View>
           ))}
         </View>
@@ -222,15 +234,52 @@ const styles = StyleSheet.create({
   headerSection: { marginBottom: 24 },
   title: { fontSize: 24, fontWeight: "bold", color: "#333", marginBottom: 4 },
   subtitle: { fontSize: 14, color: "#666" },
-  loadingContainer: { backgroundColor: "#fff", paddingVertical: 40, paddingHorizontal: 16, borderRadius: 12, alignItems: "center", justifyContent: "center", elevation: 1 },
+  loadingContainer: {
+    backgroundColor: "#fff",
+    paddingVertical: 40,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 1,
+  },
   loadingText: { marginTop: 12, fontSize: 14, color: "#666" },
-  errorContainer: { backgroundColor: "#fff", paddingVertical: 40, paddingHorizontal: 16, borderRadius: 12, alignItems: "center", justifyContent: "center", elevation: 1 },
+  errorContainer: {
+    backgroundColor: "#fff",
+    paddingVertical: 40,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 1,
+  },
   errorText: { marginTop: 12, fontSize: 14, color: "#dc3545", fontWeight: "500" },
-  emptyContainer: { backgroundColor: "#fff", paddingVertical: 40, paddingHorizontal: 16, borderRadius: 12, alignItems: "center", justifyContent: "center", elevation: 1 },
+  emptyContainer: {
+    backgroundColor: "#fff",
+    paddingVertical: 40,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 1,
+  },
   emptyText: { marginTop: 12, fontSize: 14, color: "#999" },
   tableContainer: { backgroundColor: "#fff", borderRadius: 12, overflow: "hidden", elevation: 1 },
-  tableHeader: { flexDirection: "row-reverse", backgroundColor: "#007bff", paddingHorizontal: 12, paddingVertical: 14, borderBottomWidth: 2, borderBottomColor: "#0056b3" },
-  tableRow: { flexDirection: "row-reverse", paddingHorizontal: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#f0f0f0" },
+  tableHeader: {
+    flexDirection: "row-reverse",
+    backgroundColor: "#007bff",
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 2,
+    borderBottomColor: "#0056b3",
+  },
+  tableRow: {
+    flexDirection: "row-reverse",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
   rowEven: { backgroundColor: "#fff" },
   rowOdd: { backgroundColor: "#f9f9f9" },
   tableCell: { fontSize: 13, color: "#333", textAlign: "right" },
@@ -243,12 +292,49 @@ const styles = StyleSheet.create({
   statusBadgeLate: { backgroundColor: "#ffebee", color: "#c62828" },
   statusBadgeOnTime: { backgroundColor: "#e8f5e9", color: "#2e7d32" },
   datePickerContainer: { flexDirection: "row-reverse", alignItems: "center", marginTop: 12, marginBottom: 12, gap: 8 },
-  dateNavButton: { width: 36, height: 36, borderRadius: 8, backgroundColor: "#f0f0f0", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "#e0e0e0" },
+  dateNavButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
   dateNavButtonDisabled: { opacity: 0.5 },
   dateInputWrapper: { flex: 1, position: "relative" },
-  dateInput: { borderWidth: 1, borderColor: "#007bff", borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, fontSize: 14, color: "#333", backgroundColor: "#fff", textAlign: "center" },
-  todayBadge: { position: "absolute", top: -10, right: 12, backgroundColor: "#007bff", color: "#fff", fontSize: 10, fontWeight: "600", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  todayButton: { marginTop: 8, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#e3f2fd", borderRadius: 6, alignSelf: "flex-start" },
+  dateInput: {
+    borderWidth: 1,
+    borderColor: "#007bff",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: "#333",
+    backgroundColor: "#fff",
+    textAlign: "center",
+  },
+  todayBadge: {
+    position: "absolute",
+    top: -10,
+    right: 12,
+    backgroundColor: "#007bff",
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "600",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  todayButton: {
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: "#e3f2fd",
+    borderRadius: 6,
+    alignSelf: "flex-start",
+  },
   todayButtonText: { fontSize: 12, fontWeight: "600", color: "#007bff" },
 });
 

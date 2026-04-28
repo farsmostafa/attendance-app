@@ -48,43 +48,43 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
 
   const validateForm = (): boolean => {
     if (!formData.name.trim()) {
-      Alert.alert("خطأ", "يرجى إدخال اسم الموظف");
+      Alert.alert("Ø®Ø·Ø£", "ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø§Ø³Ù… Ø§Ù„Ù…ÙˆØ¸Ù");
       return false;
     }
     if (!formData.email.trim()) {
-      Alert.alert("خطأ", "يرجى إدخال البريد الإلكتروني");
+      Alert.alert("Ø®Ø·Ø£", "ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ");
       return false;
     }
     if (!formData.email.includes("@")) {
-      Alert.alert("خطأ", "البريد الإلكتروني غير صحيح");
+      Alert.alert("Ø®Ø·Ø£", "Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ ØºÙŠØ± ØµØ­ÙŠØ­");
       return false;
     }
     if (!formData.phone.trim()) {
-      Alert.alert("خطأ", "يرجى إدخال رقم الهاتف");
+      Alert.alert("Ø®Ø·Ø£", "ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ");
       return false;
     }
     if (!formData.department) {
-      Alert.alert("خطأ", "يرجى اختيار القسم");
+      Alert.alert("Ø®Ø·Ø£", "ÙŠØ±Ø¬Ù‰ Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„Ù‚Ø³Ù…");
       return false;
     }
     if (!formData.password) {
-      Alert.alert("خطأ", "يرجى إدخال كلمة المرور");
+      Alert.alert("Ø®Ø·Ø£", "ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±");
       return false;
     }
     if (formData.password.length < 6) {
-      Alert.alert("خطأ", "كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+      Alert.alert("Ø®Ø·Ø£", "ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† 6 Ø£Ø­Ø±Ù Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„");
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
-      Alert.alert("خطأ", "كلمات المرور غير متطابقة");
+      Alert.alert("Ø®Ø·Ø£", "ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù…Ø±ÙˆØ± ØºÙŠØ± Ù…ØªØ·Ø§Ø¨Ù‚Ø©");
       return false;
     }
     if (!formData.basic_salary) {
-      Alert.alert("خطأ", "يرجى إدخال الراتب الأساسي");
+      Alert.alert("Ø®Ø·Ø£", "ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø§Ù„Ø±Ø§ØªØ¨ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ");
       return false;
     }
     if (isNaN(parseFloat(formData.basic_salary)) || parseFloat(formData.basic_salary) < 0) {
-      Alert.alert("خطأ", "الراتب الأساسي يجب أن يكون رقماً موجباً");
+      Alert.alert("Ø®Ø·Ø£", "Ø§Ù„Ø±Ø§ØªØ¨ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø±Ù‚Ù…Ø§Ù‹ Ù…ÙˆØ¬Ø¨Ø§Ù‹");
       return false;
     }
 
@@ -99,7 +99,7 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
     try {
       const userData = await getCurrentUserData();
       if (!userData?.company_id) {
-        Alert.alert("خطأ", "لم نتمكن من العثور على شركتك");
+        Alert.alert("Ø®Ø·Ø£", "Ù„Ù… Ù†ØªÙ…ÙƒÙ† Ù…Ù† Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ Ø´Ø±ÙƒØªÙƒ");
         setLoading(false);
         return;
       }
@@ -124,9 +124,9 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
         userData.company_id,
       );
 
-      Alert.alert("نجاح", result.message, [
+      Alert.alert("Ù†Ø¬Ø§Ø­", result.message, [
         {
-          text: "حسناً",
+          text: "Ø­Ø³Ù†Ø§Ù‹",
           onPress: () => {
             // Reset form
             setFormData({
@@ -147,7 +147,7 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
         },
       ]);
     } catch (error: any) {
-      Alert.alert("خطأ", error.message || "فشل في إنشاء الموظف");
+      Alert.alert("Ø®Ø·Ø£", error.message || "ÙØ´Ù„ ÙÙŠ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ù…ÙˆØ¸Ù");
     } finally {
       setLoading(false);
     }
@@ -160,17 +160,17 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.centeredWrapper}>
             <View style={styles.headerSection}>
-              <Text style={styles.title}>إضافة موظف جديد</Text>
-              <Text style={styles.subtitle}>ملء جميع الحقول المطلوبة</Text>
+              <Text style={styles.title}>Ø¥Ø¶Ø§ÙØ© Ù…ÙˆØ¸Ù Ø¬Ø¯ÙŠØ¯</Text>
+              <Text style={styles.subtitle}>Ù…Ù„Ø¡ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ù‚ÙˆÙ„ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø©</Text>
             </View>
 
             <View style={styles.formContainer}>
               {/* Name Field */}
               <View style={styles.formGroup}>
-                <Text style={styles.label}>اسم الموظف *</Text>
+                <Text style={styles.label}>Ø§Ø³Ù… Ø§Ù„Ù…ÙˆØ¸Ù *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="أدخل اسم الموظف الكامل"
+                  placeholder="Ø£Ø¯Ø®Ù„ Ø§Ø³Ù… Ø§Ù„Ù…ÙˆØ¸Ù Ø§Ù„ÙƒØ§Ù…Ù„"
                   placeholderTextColor="#999"
                   value={formData.name}
                   onChangeText={(value) => handleInputChange("name", value)}
@@ -180,10 +180,10 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
 
               {/* Email Field */}
               <View style={styles.formGroup}>
-                <Text style={styles.label}>البريد الإلكتروني *</Text>
+                <Text style={styles.label}>Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="أدخل البريد الإلكتروني"
+                  placeholder="Ø£Ø¯Ø®Ù„ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ"
                   placeholderTextColor="#999"
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -195,10 +195,10 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
 
               {/* Phone Number Field */}
               <View style={styles.formGroup}>
-                <Text style={styles.label}>رقم الهاتف *</Text>
+                <Text style={styles.label}>Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="أدخل رقم الهاتف"
+                  placeholder="Ø£Ø¯Ø®Ù„ Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ"
                   placeholderTextColor="#999"
                   keyboardType="phone-pad"
                   value={formData.phone}
@@ -209,14 +209,14 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
 
               {/* Department Field */}
               <View style={styles.formGroup}>
-                <Text style={styles.label}>القسم *</Text>
+                <Text style={styles.label}>Ø§Ù„Ù‚Ø³Ù… *</Text>
                 <TouchableOpacity
                   style={styles.dropdownButton}
                   onPress={() => setShowDepartmentDropdown(!showDepartmentDropdown)}
                   disabled={loading}
                 >
                   <Text style={[styles.dropdownButtonText, !formData.department && styles.placeholderText]}>
-                    {formData.department || "اختر القسم"}
+                    {formData.department || "Ø§Ø®ØªØ± Ø§Ù„Ù‚Ø³Ù…"}
                   </Text>
                   <Ionicons name={showDepartmentDropdown ? "chevron-up" : "chevron-down"} size={20} color="#007bff" />
                 </TouchableOpacity>
@@ -240,7 +240,7 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
 
               {/* Shift Start Time Field */}
               <View style={styles.formGroup}>
-                <Text style={styles.label}>وقت بدء الدوام (HH:mm)</Text>
+                <Text style={styles.label}>ÙˆÙ‚Øª Ø¨Ø¯Ø¡ Ø§Ù„Ø¯ÙˆØ§Ù… (HH:mm)</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="09:00"
@@ -254,10 +254,10 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
 
               {/* Password Field */}
               <View style={styles.formGroup}>
-                <Text style={styles.label}>كلمة المرور *</Text>
+                <Text style={styles.label}>ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="أدخل كلمة المرور (6 أحرف على الأقل)"
+                  placeholder="Ø£Ø¯Ø®Ù„ ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± (6 Ø£Ø­Ø±Ù Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„)"
                   placeholderTextColor="#999"
                   secureTextEntry
                   value={formData.password}
@@ -268,10 +268,10 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
 
               {/* Confirm Password Field */}
               <View style={styles.formGroup}>
-                <Text style={styles.label}>تأكيد كلمة المرور *</Text>
+                <Text style={styles.label}>ØªØ£ÙƒÙŠØ¯ ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="أدخل كلمة المرور مرة أخرى"
+                  placeholder="Ø£Ø¯Ø®Ù„ ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ù…Ø±Ø© Ø£Ø®Ø±Ù‰"
                   placeholderTextColor="#999"
                   secureTextEntry
                   value={formData.confirmPassword}
@@ -282,14 +282,14 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
 
               {/* Role Field */}
               <View style={styles.formGroup}>
-                <Text style={styles.label}>الدور *</Text>
+                <Text style={styles.label}>Ø§Ù„Ø¯ÙˆØ± *</Text>
                 <View style={styles.roleButtonsContainer}>
                   <TouchableOpacity
                     style={[styles.roleButton, formData.role === "employee" && styles.roleButtonActive]}
                     onPress={() => handleInputChange("role", "employee")}
                     disabled={loading}
                   >
-                    <Text style={[styles.roleButtonText, formData.role === "employee" && styles.roleButtonTextActive]}>موظف</Text>
+                    <Text style={[styles.roleButtonText, formData.role === "employee" && styles.roleButtonTextActive]}>Ù…ÙˆØ¸Ù</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -297,17 +297,17 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
                     onPress={() => handleInputChange("role", "admin")}
                     disabled={loading}
                   >
-                    <Text style={[styles.roleButtonText, formData.role === "admin" && styles.roleButtonTextActive]}>مسؤول</Text>
+                    <Text style={[styles.roleButtonText, formData.role === "admin" && styles.roleButtonTextActive]}>Ù…Ø³Ø¤ÙˆÙ„</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               {/* Basic Salary Field */}
               <View style={styles.formGroup}>
-                <Text style={styles.label}>الراتب الأساسي (EGP) *</Text>
+                <Text style={styles.label}>Ø§Ù„Ø±Ø§ØªØ¨ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ (EGP) *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="أدخل الراتب الأساسي"
+                  placeholder="Ø£Ø¯Ø®Ù„ Ø§Ù„Ø±Ø§ØªØ¨ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ"
                   placeholderTextColor="#999"
                   keyboardType="decimal-pad"
                   value={formData.basic_salary}
@@ -322,7 +322,7 @@ const AddEmployee: React.FC<AddEmployeeProps> = ({ navigation }) => {
                 onPress={handleSubmit}
                 disabled={loading}
               >
-                {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitButtonText}>إنشاء الموظف</Text>}
+                {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitButtonText}>Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ù…ÙˆØ¸Ù</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -399,8 +399,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9f9f9",
     textAlign: "right",
     width: "100%",
-    outlineWidth: 0,
-  },
+      },
   dropdownButton: {
     borderWidth: 1,
     borderColor: "#e0e0e0",
@@ -497,3 +496,4 @@ const styles = StyleSheet.create({
 });
 
 export default AddEmployee;
+

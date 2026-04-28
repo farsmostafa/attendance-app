@@ -1,4 +1,5 @@
 // User interface for type safety
+// User interface for type safety
 export interface User {
   uid: string;
   name?: string;
@@ -9,13 +10,19 @@ export interface User {
   status?: "active" | "inactive";
   workStartTime?: string; // Format: HH:mm (e.g., "09:00")
   workEndTime?: string; // Format: HH:mm (e.g., "17:00")
-  basicSalary?: number;
+  basicSalary?: number | string; // Allow string just in case it comes from inputs
   role: "admin" | "employee";
   company_id?: string;
   id?: string;
+
+  // --- الحقول الجديدة المطلوبة لمنع أخطاء TypeScript ---
+  avatarUrl?: string | null;
+  salary?: number | string;
+  checkInTime?: string;
+  checkOutTime?: string;
+
   [key: string]: any; // Allow additional Firestore fields
 }
-
 // Firebase error interface
 export interface FirebaseErrorType extends Error {
   code?: string;
@@ -43,6 +50,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 export type RootStackParamList = {
   Login: undefined;
   AdminDashboard: undefined;
+  AttendanceLogs: undefined;
   AddEmployee: undefined;
   EmployeeList: undefined;
   TodayLog: undefined;
@@ -70,14 +78,14 @@ export interface EmployeeDetails extends User {
 export interface AttendanceRecord {
   id?: string;
   userId?: string;
-  check_in: string; // ISO timestamp
-  check_out?: string; // ISO timestamp
+  check_in: any;
+  check_out?: any;
   date: string; // Format: YYYY-MM-DD
   workDuration?: number; // In minutes
   isLate?: boolean;
   location?: {
-    lat: number;
-    lng: number;
+    latitude: number;
+    longitude: number;
   };
   [key: string]: any;
 }

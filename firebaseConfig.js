@@ -12,6 +12,8 @@ const firebaseConfig = {
   appId: "1:841292143944:web:ebebbc1428ddc7ceb0277d",
 };
 
+export const firebaseApiKey = firebaseConfig.apiKey;
+
 // تهيئة التطبيق الأساسي وقاعدة البيانات
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);

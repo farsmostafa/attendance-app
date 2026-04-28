@@ -1,9 +1,20 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { RootStackNavigationProp } from "../types";
-import { createNewEmployee } from "../services/adminService";
+import { addEmployee, fetchDepartments } from "../services/adminService";
+import { pickAndUploadImage } from "../services/uploadService";
 import { getCurrentUserData } from "../services/authService";
 
 interface Props {
@@ -11,447 +22,509 @@ interface Props {
   companyId: string;
 }
 
-const DEPARTMENTS = ["IT", "HR", "Sales", "Marketing", "Finance", "Operations", "Other"];
+type EmployeeRole = "employee" | "admin";
 
-const AddEmployeeContent: React.FC<Props> = ({ companyId }) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    phone: "",
-    department: "",
-    basicSalary: "",
-  });
+const S = {
+  headerTitle: "\u0625\u0636\u0627\u0641\u0629 \u0645\u0648\u0638\u0641 \u062c\u062f\u064a\u062f",
+  headerSubtitle:
+    "\u0642\u0645 \u0628\u062a\u0639\u0628\u0626\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629 \u0644\u0625\u0646\u0634\u0627\u0621 \u0645\u0644\u0641 \u062a\u0639\u0631\u064a\u0641 \u0627\u0644\u0645\u0648\u0638\u0641",
+  sectionAccount: "\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u062d\u0633\u0627\u0628",
+  sectionPersonal: "\u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0627\u062a \u0627\u0644\u0634\u062e\u0635\u064a\u0629",
+  sectionWork: "\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0639\u0645\u0644",
+  sectionSchedule: "\u062c\u062f\u0648\u0644 \u0627\u0644\u062f\u0648\u0627\u0645",
+  email: "\u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a",
+  password: "\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631",
+  name: "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0643\u0627\u0645\u0644",
+  phone: "\u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062a\u0641",
+  department: "\u0627\u0644\u0642\u0633\u0645",
+  role: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u0648\u0638\u064a\u0641\u064a",
+  salary: "\u0627\u0644\u0631\u0627\u062a\u0628 \u0627\u0644\u0623\u0633\u0627\u0633\u064a",
+  checkIn: "\u0648\u0642\u062a \u0627\u0644\u062d\u0636\u0648\u0631",
+  checkOut: "\u0648\u0642\u062a \u0627\u0644\u0627\u0646\u0635\u0631\u0627\u0641",
+  employee: "\u0645\u0648\u0638\u0641",
+  admin: "\u0645\u062f\u064a\u0631",
+  upload: "\u0631\u0641\u0639 \u0635\u0648\u0631\u0629",
+  cancel: "\u0625\u0644\u063a\u0627\u0621",
+  save: "\u062d\u0641\u0638 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a",
+  setupHint:
+    "\u0633\u064a\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u062f\u0639\u0648\u0629 \u0644\u0644\u0645\u0648\u0638\u0641 \u0644\u0625\u0643\u0645\u0627\u0644 \u0625\u0639\u062f\u0627\u062f \u062d\u0633\u0627\u0628\u0647 \u0641\u0648\u0631 \u062d\u0641\u0638 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a.",
+  systemHint: "\u0646\u0638\u0627\u0645 \u0627\u0644\u062f\u0648\u0627\u0645: 8 \u0633\u0627\u0639\u0627\u062a / \u064a\u0648\u0645",
+  loadDepartments: "\u062c\u0627\u0631\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0623\u0642\u0633\u0627\u0645...",
+  noDepartments: "\u0644\u0627 \u062a\u0648\u062c\u062f \u0623\u0642\u0633\u0627\u0645",
+  saveError: "\u0641\u0634\u0644 \u062d\u0641\u0638 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0645\u0648\u0638\u0641",
+};
 
+type FormError = {
+  message: string;
+  type: "error" | "warning";
+};
+
+const AddEmployeeContent: React.FC<Props> = ({ navigation, companyId }) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [department, setDepartment] = useState("");
+  const [role, setRole] = useState<EmployeeRole>("employee");
+  const [salary, setSalary] = useState("");
+  const [checkInTime, setCheckInTime] = useState("09:00");
+  const [checkOutTime, setCheckOutTime] = useState("17:00");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [showDepartments, setShowDepartments] = useState(false);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [successMessage, setSuccessMessage] = useState("");
-  const [submitError, setSubmitError] = useState("");
+  const [error, setError] = useState<FormError | null>(null);
 
-  // Clear success message after 3 seconds
   useEffect(() => {
-    if (successMessage) {
-      const timer = setTimeout(() => setSuccessMessage(""), 3000);
-      return () => clearTimeout(timer);
+    const loadDepartments = async () => {
+      try {
+        setLoadingDepartments(true);
+        const data = await fetchDepartments(companyId);
+        const names = data.map((item) => item.name).filter(Boolean);
+        setDepartments(names);
+        if (names.length > 0) {
+          setDepartment((prev) => prev || names[0]);
+        }
+      } catch (fetchError) {
+        console.error("Error loading departments:", fetchError);
+        setDepartments([]);
+      } finally {
+        setLoadingDepartments(false);
+      }
+    };
+
+    loadDepartments();
+  }, [companyId]);
+
+  const handleUploadAvatar = async () => {
+    setIsUploading(true);
+    try {
+      const url = await pickAndUploadImage();
+      if (url) {
+        setAvatarUrl(url);
+      }
+    } finally {
+      setIsUploading(false);
     }
-  }, [successMessage]);
-
-  const validateForm = (): boolean => {
-    const newErrors: { [key: string]: string } = {};
-
-    if (!formData.name.trim()) newErrors.name = "الاسم مطلوب";
-    if (!formData.email.trim()) newErrors.email = "البريد الإلكتروني مطلوب";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = "البريد الإلكتروني غير صحيح";
-    if (!formData.password) newErrors.password = "كلمة المرور مطلوبة";
-    if (formData.password.length < 6) newErrors.password = "كلمة المرور يجب أن تكون 6 أحرف على الأقل";
-    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "كلمات المرور غير متطابقة";
-    if (!formData.phone.trim()) newErrors.phone = "رقم الهاتف مطلوب";
-    if (!formData.department) newErrors.department = "القسم مطلوب";
-    if (!formData.basicSalary.trim()) newErrors.basicSalary = "الراتب الأساسي مطلوب";
-    if (isNaN(parseFloat(formData.basicSalary))) newErrors.basicSalary = "الراتب يجب أن يكون رقماً";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      Alert.alert("خطأ في البيانات", "يرجى التحقق من جميع الحقول");
+    if (isSaving || loading) return;
+    if (!email.trim() || !password.trim() || !name.trim() || !phone.trim() || !salary.trim()) {
+      setError({ message: "يرجى تعبئة جميع الحقول المطلوبة", type: "error" });
+      return;
+    }
+    if (!department.trim()) {
+      setError({ message: "يرجى اختيار القسم", type: "error" });
       return;
     }
 
-    setSubmitError("");
+    setError(null);
+    setIsSaving(true);
     setLoading(true);
     try {
-      const result = await createNewEmployee(
-        {
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          phone: formData.phone,
-          department: formData.department,
-          basicSalary: parseFloat(formData.basicSalary),
-          role: "employee",
-          joinDate: new Date().toISOString().split("T")[0],
-          status: "active",
-        },
-        companyId,
-      );
-
-      // Clear form and show success message
-      setFormData({
-        name: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-        phone: "",
-        department: "",
-        basicSalary: "",
-      });
-      setErrors({});
-      setSubmitError("");
-      setSuccessMessage("تم إضافة الموظف بنجاح! ✓");
-      setLoading(false);
-    } catch (error: any) {
-      const errorCode = error?.code;
-      if (errorCode === "auth/email-already-in-use") {
-        setSubmitError("هذا البريد الإلكتروني مسجل بالفعل لموظف آخر");
-      } else {
-        setSubmitError(error instanceof Error ? error.message : "فشل في إنشاء الموظف");
+      const userData = await getCurrentUserData();
+      const actualCompanyId = userData?.companyId || userData?.company_id;
+      if (!actualCompanyId) {
+        setError({ message: "لم نتمكن من العثور على شركتك", type: "error" });
+        return;
       }
-      setSuccessMessage("");
+
+      await addEmployee(actualCompanyId, {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        phone: phone.trim(),
+        department: department.trim(),
+        role,
+        basicSalary: salary.trim() ? Number(salary) : 0,
+        checkInTime,
+        checkOutTime,
+        avatarUrl,
+      });
+      navigation?.goBack();
+    } catch (submitError: any) {
+      const rawError = submitError?.code || submitError?.message || S.saveError;
+      const isWarning = String(rawError).includes("EMAIL_EXISTS") || String(rawError).includes("already exists");
+      let mappedMessage = String(rawError);
+      if (String(rawError).includes("EMAIL_EXISTS")) {
+        mappedMessage = "البريد الإلكتروني مسجل مسبقاً";
+      } else if (String(rawError).includes("INVALID_EMAIL")) {
+        mappedMessage = "البريد الإلكتروني غير صحيح";
+      } else if (String(rawError).includes("WEAK_PASSWORD")) {
+        mappedMessage = "كلمة المرور ضعيفة (6 أحرف على الأقل)";
+      }
+      setError({
+        message: mappedMessage,
+        type: isWarning ? "warning" : "error",
+      });
+    } finally {
+      setIsSaving(false);
       setLoading(false);
     }
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.card}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Ionicons name="person-add" size={32} color="#28a745" />
-          <Text style={styles.title}>إضافة موظف جديد</Text>
-          <Text style={styles.subtitle}>ملء البيانات المطلوبة لإنشاء حساب موظف</Text>
-        </View>
-
-        {/* Success Message */}
-        {successMessage && (
-          <View style={styles.successBox}>
-            <Ionicons name="checkmark-circle" size={20} color="#28a745" />
-            <Text style={styles.successText}>{successMessage}</Text>
-          </View>
-        )}
-
-        {/* Full Name */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>الاسم الكامل</Text>
-          <View style={[styles.inputContainer, errors.name ? styles.inputError : undefined]}>
-            <Ionicons name="person" size={18} color="#007bff" />
-            <TextInput
-              style={styles.input}
-              placeholder="أدخل اسم الموظف"
-              placeholderTextColor="#bbb"
-              value={formData.name}
-              onChangeText={(text) => setFormData({ ...formData, name: text })}
-              editable={!loading}
-            />
-          </View>
-          {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
-        </View>
-
-        {/* Email */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>البريد الإلكتروني</Text>
-          <View style={[styles.inputContainer, errors.email ? styles.inputError : undefined]}>
-            <Ionicons name="mail" size={18} color="#007bff" />
-            <TextInput
-              style={styles.input}
-              placeholder="example@company.com"
-              placeholderTextColor="#bbb"
-              keyboardType="email-address"
-              value={formData.email}
-              onChangeText={(text) => setFormData({ ...formData, email: text.toLowerCase() })}
-              editable={!loading}
-            />
-          </View>
-          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-        </View>
-
-        {/* Password */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>كلمة المرور</Text>
-          <View style={[styles.inputContainer, errors.password ? styles.inputError : undefined]}>
-            <Ionicons name="lock-closed" size={18} color="#007bff" />
-            <TextInput
-              style={styles.input}
-              placeholder="أدخل كلمة مرور آمنة"
-              placeholderTextColor="#bbb"
-              secureTextEntry
-              value={formData.password}
-              onChangeText={(text) => setFormData({ ...formData, password: text })}
-              editable={!loading}
-            />
-          </View>
-          {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-        </View>
-
-        {/* Confirm Password */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>تأكيد كلمة المرور</Text>
-          <View style={[styles.inputContainer, errors.confirmPassword ? styles.inputError : undefined]}>
-            <Ionicons name="lock-closed" size={18} color="#007bff" />
-            <TextInput
-              style={styles.input}
-              placeholder="أعد إدخال كلمة المرور"
-              placeholderTextColor="#bbb"
-              secureTextEntry
-              value={formData.confirmPassword}
-              onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
-              editable={!loading}
-            />
-          </View>
-          {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
-        </View>
-
-        {/* Phone */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>رقم الهاتف</Text>
-          <View style={[styles.inputContainer, errors.phone ? styles.inputError : undefined]}>
-            <Ionicons name="call" size={18} color="#007bff" />
-            <TextInput
-              style={styles.input}
-              placeholder="رقم هاتف المحمول"
-              placeholderTextColor="#bbb"
-              keyboardType="phone-pad"
-              value={formData.phone}
-              onChangeText={(text) => setFormData({ ...formData, phone: text })}
-              editable={!loading}
-            />
-          </View>
-          {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
-        </View>
-
-        {/* Department */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>القسم</Text>
-          <TouchableOpacity
-            style={[styles.inputContainer, errors.department ? styles.inputError : undefined]}
-            onPress={() => setShowDepartmentDropdown(!showDepartmentDropdown)}
-            disabled={loading}
-          >
-            <Ionicons name="briefcase" size={18} color="#007bff" />
-            <Text style={[styles.input, { color: formData.department ? "#333" : "#bbb" }]}>{formData.department || "اختر القسم"}</Text>
-            <Ionicons name={showDepartmentDropdown ? "chevron-up" : "chevron-down"} size={18} color="#007bff" />
-          </TouchableOpacity>
-
-          {showDepartmentDropdown && (
-            <View style={styles.dropdown}>
-              {DEPARTMENTS.map((dept) => (
-                <TouchableOpacity
-                  key={dept}
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    setFormData({ ...formData, department: dept });
-                    setShowDepartmentDropdown(false);
-                  }}
-                >
-                  <Text style={[styles.dropdownText, formData.department === dept && styles.dropdownTextActive]}>{dept}</Text>
-                </TouchableOpacity>
-              ))}
+    <View className="flex-1 bg-[#1f2029]">
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
+        <View className="flex-1 px-4 py-4 md:px-6 md:py-6">
+          <View className="bg-[#2a2b38] w-full max-w-5xl self-center rounded-xl border border-[#ffeba7]/10 flex-1">
+            <View className="px-5 py-4 border-b border-[#ffeba7]/10 flex-row-reverse items-center justify-between bg-[#2a2b38]">
+              <View className="flex-row-reverse items-center gap-4">
+                <View className="w-10 h-10 bg-[#1f2029] rounded-lg border border-[#ffeba7]/10 items-center justify-center">
+                  <Ionicons name="person-add" size={20} color="#ffeba7" />
+                </View>
+                <View className="items-end">
+                  <Text className="text-[#ffeba7] text-xl font-semibold text-right">{S.headerTitle}</Text>
+                  <Text className="text-[#969081] text-xs text-right mt-1">{S.headerSubtitle}</Text>
+                </View>
+              </View>
+              <Pressable
+                onPress={() => navigation?.goBack()}
+                className="w-10 h-10 rounded-lg border border-[#ffeba7]/10 bg-[#1f2029] items-center justify-center hover:bg-[#2c2a25] active:bg-[#2c2a25] cursor-pointer"
+              >
+                <Ionicons name="close" size={20} color="#969081" />
+              </Pressable>
             </View>
-          )}
-          {errors.department && <Text style={styles.errorText}>{errors.department}</Text>}
-        </View>
 
-        {/* Basic Salary */}
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>الراتب الأساسي (LE)</Text>
-          <View style={[styles.inputContainer, errors.basicSalary ? styles.inputError : undefined]}>
-            <Ionicons name="cash" size={18} color="#007bff" />
-            <TextInput
-              style={styles.input}
-              placeholder="أدخل المبلغ بالجنيه"
-              placeholderTextColor="#bbb"
-              keyboardType="decimal-pad"
-              value={formData.basicSalary}
-              onChangeText={(text) => setFormData({ ...formData, basicSalary: text })}
-              editable={!loading}
-            />
+            <ScrollView className="flex-1" contentContainerClassName="p-5 gap-5" showsVerticalScrollIndicator={false}>
+              {error ? (
+                <View
+                  className={`px-4 py-3 rounded-lg flex-row-reverse items-center gap-3 ${error.type === "warning" ? "bg-yellow-500/10 border border-yellow-400/40" : "bg-red-500/10 border border-red-400/40"}`}
+                >
+                  <Ionicons
+                    name={error.type === "warning" ? "warning-outline" : "alert-circle-outline"}
+                    size={18}
+                    color={error.type === "warning" ? "#facc15" : "#fca5a5"}
+                  />
+                  <Text className={`text-right text-sm ${error.type === "warning" ? "text-yellow-300" : "text-red-300"}`}>
+                    {error.message}
+                  </Text>
+                </View>
+              ) : null}
+
+              <View className="flex-col lg:flex-row-reverse gap-5">
+                <View className="w-full lg:w-[34%] bg-[#1f2029] border border-[#ffeba7]/10 rounded-xl p-5">
+                  <View className="flex-row-reverse items-center gap-3 mb-6">
+                    <Ionicons name="lock-closed" size={20} color="#ffeba7" />
+                    <Text className="text-[#ffeba7] text-xl font-semibold text-right">{S.sectionAccount}</Text>
+                  </View>
+
+                  <View className="gap-5">
+                    <View className="gap-2">
+                      <Text className="text-[#969081] text-sm text-right">{S.email}</Text>
+                      <View className="w-full bg-[#2a2b38] border border-[#ffeba7]/10 rounded-lg px-3 py-3 flex-row-reverse items-center gap-2 hover:bg-[#2c2a25] focus-within:border-[#ffeba7]/50 transition-colors">
+                        <Ionicons name="at" size={18} color="#969081" />
+                        <TextInput
+                          value={email}
+                          onChangeText={setEmail}
+                          autoCapitalize="none"
+                          keyboardType="email-address"
+                          placeholder="name@company.com"
+                          placeholderTextColor="#969081"
+                          className="flex-1 text-[#e7e2da] text-right  outline-none  bg-transparent"
+                          style={{ outlineStyle: "none" } as any}
+                        />
+                      </View>
+                    </View>
+
+                    <View className="gap-2">
+                      <Text className="text-[#969081] text-sm text-right">{S.password}</Text>
+
+                      <View className="w-full bg-[#2a2b38] border border-[#ffeba7]/10 rounded-lg px-3 py-3 flex-row-reverse items-center gap-2 hover:bg-[#2c2a25] focus-within:border-[#ffeba7]/50 transition-colors">
+                        <Ionicons name="key" size={18} color="#969081" />
+                        <TextInput
+                          value={password}
+                          onChangeText={setPassword}
+                          secureTextEntry
+                          placeholder="********"
+                          placeholderTextColor="#969081"
+                          className="flex-1 text-[#e7e2da] text-right outline-none bg-transparent"
+                        />
+                      </View>
+                    </View>
+                  </View>
+
+                  <View className="mt-8 pt-6 border-t border-[#ffeba7]/10">
+                    <Text className="text-[#969081] text-xs leading-5 text-right">{S.setupHint}</Text>
+                  </View>
+                </View>
+
+                <View className="w-full lg:flex-1 gap-5">
+                  <View className="bg-[#1f2029] border border-[#ffeba7]/10 rounded-xl p-5">
+                    <View className="flex-row-reverse items-center gap-3 mb-6">
+                      <Ionicons name="person" size={20} color="#ffeba7" />
+                      <Text className="text-[#ffeba7] text-xl font-semibold text-right">{S.sectionPersonal}</Text>
+                    </View>
+
+                    <View className="flex-col md:flex-row-reverse gap-6 items-center md:items-start">
+                      <View className="items-center gap-4">
+                        <View className="w-32 h-32 rounded-full bg-[#2a2b38] border border-[#ffeba7]/10 items-center justify-center overflow-hidden">
+                          {avatarUrl ? (
+                            <Image source={{ uri: avatarUrl }} className="w-full h-full" resizeMode="cover" />
+                          ) : (
+                            <Ionicons name="camera" size={36} color="#969081" />
+                          )}
+                        </View>
+                        <Pressable
+                          onPress={handleUploadAvatar}
+                          disabled={isUploading}
+                          className="bg-[#ffeba7] px-4 py-2 rounded-lg flex-row-reverse items-center gap-2 disabled:opacity-70 hover:bg-[#e4d295] active:bg-[#d4c285] transition-colors cursor-pointer"
+                        >
+                          {isUploading ? (
+                            <ActivityIndicator size="small" color="#1f2029" />
+                          ) : (
+                            <Ionicons name="cloud-upload-outline" size={14} color="#1f2029" />
+                          )}
+                          <Text className="text-[#1f2029] font-bold text-sm">{S.upload}</Text>
+                        </Pressable>
+                      </View>
+
+                      <View className="flex-1 w-full gap-4">
+                        <View className="gap-2">
+                          <Text className="text-[#969081] text-sm text-right">{S.name}</Text>
+                          <TextInput
+                            value={name}
+                            onChangeText={setName}
+                            placeholder="..."
+                            placeholderTextColor="#969081"
+                            className="w-full bg-[#2a2b38] border border-[#ffeba7]/10 rounded-lg px-4 py-3 text-[#e7e2da] text-right focus:border-[#ffeba7] hover:bg-[#2c2a25] transition-colors outline-none focus:outline-none focus:ring-0 "
+                            style={{ outlineStyle: "none" } as any}
+                          />
+                        </View>
+
+                        <View className="gap-2">
+                          <Text className="text-[#969081] text-sm text-right">{S.phone}</Text>
+                          <View className="w-full bg-[#2a2b38] border border-[#ffeba7]/10 rounded-lg px-4 py-3 flex-row-reverse items-center gap-2 hover:bg-[#2c2a25] focus-within:border-[#ffeba7]/50 transition-colors">
+                            <Ionicons name="call" size={18} color="#969081" />
+                            <TextInput
+                              value={phone}
+                              onChangeText={setPhone}
+                              keyboardType="phone-pad"
+                              placeholder="+966 5X XXX XXXX"
+                              placeholderTextColor="#969081"
+                              textAlign="right"
+                              className="flex-1 text-[#e7e2da] outline-none bg-transparent"
+                              style={{ outlineStyle: "none" } as any}
+                            />
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View className="flex-col md:flex-row-reverse gap-5">
+                    <View className="flex-1 bg-[#1f2029] border border-[#ffeba7]/10 rounded-xl p-5 gap-4">
+                      <View className="flex-row-reverse items-center gap-3 mb-2">
+                        <Ionicons name="briefcase" size={20} color="#ffeba7" />
+                        <Text className="text-[#ffeba7] text-xl font-semibold text-right">{S.sectionWork}</Text>
+                      </View>
+
+                      <View className="gap-2" style={{ zIndex: 100, position: "relative" } as any}>
+                        <Text className="text-[#969081] text-sm text-right">{S.department}</Text>
+                        <View className="relative z-50 flex-1">
+                          <Pressable
+                            onPress={() => setShowDepartments((prev) => !prev)}
+                            className="w-full bg-[#2a2b38] border border-[#ffeba7]/10 rounded-lg px-4 py-3 flex-row-reverse items-center justify-between hover:bg-[#2c2a25] active:bg-[#2c2a25] transition-colors cursor-pointer"
+                          >
+                            <Text className="text-[#e7e2da] text-right">
+                              {department || (loadingDepartments ? S.loadDepartments : S.noDepartments)}
+                            </Text>
+                            <Ionicons name={showDepartments ? "chevron-up" : "chevron-down"} size={16} color="#969081" />
+                          </Pressable>
+
+                          {showDepartments && departments.length > 0 && (
+                            <>
+                              {/* Transparent overlay to close dropdown when clicking outside */}
+                              <Pressable
+                                style={[
+                                  StyleSheet.absoluteFill,
+                                  {
+                                    position: "absolute",
+                                    top: -5000,
+                                    bottom: -5000,
+                                    left: -5000,
+                                    right: -5000,
+                                    zIndex: 40,
+                                    cursor: "pointer" as any,
+                                  },
+                                ]}
+                                onPress={() => setShowDepartments(false)}
+                              />
+                              {/* The Dropdown Menu */}
+                              <View
+                                className="absolute top-[100%] mt-1 left-0 right-0 bg-[#2a2b38] border border-[#ffeba7]/20 rounded-lg z-50 overflow-hidden shadow-xl"
+                                style={{ elevation: 15 }}
+                              >
+                                {departments.map((item) => (
+                                  <Pressable
+                                    key={item}
+                                    onPress={() => {
+                                      setDepartment(item);
+                                      setShowDepartments(false);
+                                    }}
+                                    className="px-4 py-3 hover:bg-[#37352f] active:bg-[#37352f] border-b border-[#ffeba7]/10 last:border-b-0 transition-colors cursor-pointer"
+                                  >
+                                    <Text className={`text-right ${department === item ? "text-[#ffeba7]" : "text-[#e7e2da]"}`}>
+                                      {item}
+                                    </Text>
+                                  </Pressable>
+                                ))}
+                              </View>
+                            </>
+                          )}
+                        </View>
+                      </View>
+
+                      <View className="gap-2">
+                        <Text className="text-[#969081] text-sm text-right">{S.role}</Text>
+                        <View className="flex-row-reverse gap-2">
+                          <Pressable
+                            onPress={() => setRole("employee")}
+                            className={`flex-1 rounded-lg border border-[#ffeba7]/10 p-3 transition-colors cursor-pointer ${role === "employee" ? "bg-[#ffeba7]" : "bg-[#2a2b38] hover:bg-[#2c2a25]"}`}
+                          >
+                            <Text className={`text-center font-semibold ${role === "employee" ? "text-[#1f2029]" : "text-[#969081]"}`}>
+                              {S.employee}
+                            </Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => setRole("admin")}
+                            className={`flex-1 rounded-lg border border-[#ffeba7]/10 p-3 transition-colors cursor-pointer ${role === "admin" ? "bg-[#ffeba7]" : "bg-[#2a2b38] hover:bg-[#2c2a25]"}`}
+                          >
+                            <Text className={`text-center font-semibold ${role === "admin" ? "text-[#1f2029]" : "text-[#969081]"}`}>
+                              {S.admin}
+                            </Text>
+                          </Pressable>
+                        </View>
+                      </View>
+
+                      <View className="gap-2">
+                        <Text className="text-[#969081] text-sm text-right">{S.salary}</Text>
+                        <View className="w-full bg-[#2a2b38] border border-[#ffeba7]/10 rounded-lg px-4 py-3 flex-row items-center hover:bg-[#2c2a25] focus-within:border-[#ffeba7]/50 transition-colors">
+                          <Text className="text-[#969081] text-xs">SAR</Text>
+                          <TextInput
+                            value={salary}
+                            onChangeText={setSalary}
+                            keyboardType="decimal-pad"
+                            placeholder="0.00"
+                            placeholderTextColor="#969081"
+                            className="flex-1 text-[#e7e2da] text-right outline-none  bg-transparent"
+                            style={{ outlineStyle: "none" } as any}
+                          />
+                        </View>
+                      </View>
+                    </View>
+
+                    <View className="flex-1 bg-[#1f2029] border border-[#ffeba7]/10 rounded-xl p-5 gap-5">
+                      <View className="flex-row-reverse items-center gap-3 mb-2">
+                        <Ionicons name="time" size={20} color="#ffeba7" />
+                        <Text className="text-[#ffeba7] text-xl font-semibold text-right">{S.sectionSchedule}</Text>
+                      </View>
+
+                      {/* --- وقت الحضور --- */}
+                      <View className="gap-2">
+                        <Text className="text-[#969081] text-sm text-right">{S.checkIn}</Text>
+                        <View className="w-full bg-[#2a2b38] border border-[#ffeba7]/10 rounded-lg px-4 py-3 flex-row-reverse items-center gap-2 hover:bg-[#2c2a25] focus-within:border-[#ffeba7]/50 transition-colors">
+                          {/* إخفاء الأيقونة في الويب لمنع التكرار مع أيقونة المتصفح */}
+                          {Platform.OS !== "web" && <Ionicons name="time-outline" size={16} color="#969081" />}
+
+                          {Platform.OS === "web" ? (
+                            <input
+                              type="time"
+                              value={checkInTime}
+                              onChange={(e: any) => setCheckInTime(e.target.value)}
+                              style={{
+                                flex: 1,
+                                backgroundColor: "transparent",
+                                color: "#e7e2da",
+                                outline: "none",
+                                border: "none",
+                                textAlign: "right",
+                                colorScheme: "dark",
+                                cursor: "pointer",
+                              }}
+                            />
+                          ) : (
+                            <TextInput
+                              value={checkInTime}
+                              onChangeText={setCheckInTime}
+                              placeholder="09:00"
+                              placeholderTextColor="#969081"
+                              className="flex-1 text-[#e7e2da] text-right outline-none bg-transparent"
+                            />
+                          )}
+                        </View>
+                      </View>
+
+                      {/* --- وقت الانصراف --- */}
+                      <View className="gap-2">
+                        <Text className="text-[#969081] text-sm text-right">{S.checkOut}</Text>
+                        <View className="w-full bg-[#2a2b38] border border-[#ffeba7]/10 rounded-lg px-4 py-3 flex-row-reverse items-center gap-2 hover:bg-[#2c2a25] focus-within:border-[#ffeba7]/50 transition-colors">
+                          {/* إخفاء الأيقونة في الويب لمنع التكرار مع أيقونة المتصفح */}
+                          {Platform.OS !== "web" && <Ionicons name="time-outline" size={16} color="#969081" />}
+
+                          {Platform.OS === "web" ? (
+                            <input
+                              type="time"
+                              value={checkOutTime}
+                              onChange={(e: any) => setCheckOutTime(e.target.value)}
+                              style={{
+                                flex: 1,
+                                backgroundColor: "transparent",
+                                color: "#e7e2da",
+                                outline: "none",
+                                border: "none",
+                                textAlign: "right",
+                                colorScheme: "dark",
+                                cursor: "pointer",
+                              }}
+                            />
+                          ) : (
+                            <TextInput
+                              value={checkOutTime}
+                              onChangeText={setCheckOutTime}
+                              placeholder="17:00"
+                              placeholderTextColor="#969081"
+                              className="flex-1 text-[#e7e2da] text-right outline-none bg-transparent"
+                            />
+                          )}
+                        </View>
+                      </View>
+
+                      <View className="pt-2 flex-row-reverse items-center gap-2">
+                        <Ionicons name="information-circle-outline" size={14} color="#969081" />
+                        <Text className="text-[#969081] text-xs text-right">{S.systemHint}</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
+
+            <View className="px-5 py-4 border-t border-[#ffeba7]/10 bg-[#2a2b38] flex-row-reverse items-center justify-end gap-3">
+              <Pressable
+                onPress={() => navigation?.goBack()}
+                className="px-7 py-3 rounded-lg border border-[#ffeba7]/10 bg-[#1f2029] hover:opacity-80 active:opacity-60 transition-opacity cursor-pointer"
+              >
+                <Text className="text-[#e7e2da] text-sm font-semibold">{S.cancel}</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSubmit}
+                disabled={isSaving || loading}
+                className="px-8 py-3 rounded-lg bg-[#ffeba7] flex-row-reverse items-center gap-2 disabled:opacity-70 hover:opacity-80 active:opacity-60 transition-opacity cursor-pointer"
+              >
+                {isSaving ? <ActivityIndicator size="small" color="#1f2029" /> : <MaterialIcons name="save" size={18} color="#1f2029" />}
+                <Text className="text-[#1f2029] text-sm font-bold">{S.save}</Text>
+              </Pressable>
+            </View>
           </View>
-          {errors.basicSalary && <Text style={styles.errorText}>{errors.basicSalary}</Text>}
         </View>
-
-        {submitError ? (
-          <View style={styles.submitErrorBox}>
-            <Text style={styles.submitErrorText}>{submitError}</Text>
-          </View>
-        ) : null}
-
-        {/* Submit Button */}
-        <TouchableOpacity
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}
-          activeOpacity={0.7}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="checkmark-circle" size={20} color="#fff" />
-              <Text style={styles.submitText}>إنشاء الموظف</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f3f4f6",
-    paddingVertical: 20,
-  },
-  card: {
-    backgroundColor: "#fff",
-    maxWidth: 600,
-    width: "100%",
-    alignSelf: "center",
-    borderRadius: 16,
-    paddingHorizontal: 24,
-    paddingVertical: 32,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-  },
-  formGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 8,
-  },
-  inputContainer: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 8,
-    borderStyle: "solid",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: "#f9f9f9",
-    outlineWidth: 0,
-  },
-  inputError: {
-    borderColor: "#dc3545",
-    backgroundColor: "#fff5f5",
-  },
-  input: {
-    flex: 1,
-    fontSize: 14,
-    color: "#333",
-    marginHorizontal: 8,
-    padding: 0,
-    borderWidth: 0,
-    backgroundColor: "transparent",
-    outlineStyle: "none",
-    outlineWidth: 0,
-  },
-  errorText: {
-    color: "#dc3545",
-    fontSize: 12,
-    marginTop: 6,
-    fontWeight: "500",
-  },
-  submitErrorBox: {
-    backgroundColor: "#fdecea",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#f5c2c7",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-  },
-  submitErrorText: {
-    color: "#b02a37",
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "right",
-    fontWeight: "600",
-  },
-  dropdown: {
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 8,
-    backgroundColor: "#fff",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  dropdownItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  dropdownText: {
-    fontSize: 14,
-    color: "#555",
-    textAlign: "right",
-  },
-  dropdownTextActive: {
-    color: "#007bff",
-    fontWeight: "600",
-  },
-  successBox: {
-    flexDirection: "row-reverse",
-    backgroundColor: "#d4edda",
-    borderLeftWidth: 4,
-    borderLeftColor: "#28a745",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 6,
-    marginBottom: 20,
-    alignItems: "center",
-    gap: 10,
-  },
-  successText: {
-    color: "#155724",
-    fontSize: 14,
-    fontWeight: "600",
-    flex: 1,
-  },
-  submitButton: {
-    flexDirection: "row-reverse",
-    backgroundColor: "#28a745",
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 24,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-});
 
 export default AddEmployeeContent;

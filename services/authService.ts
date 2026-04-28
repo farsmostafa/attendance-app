@@ -19,20 +19,14 @@ const hydrateUserByUid = async (uid: string): Promise<User> => {
     : { uid, role: "employee" };
 
   try {
-    const resolvedStartTime = (employeeData as any).workStartTime || (employeeData as any).checkInTime || (baseUser as any).workStartTime || (baseUser as any).checkInTime || "09:00";
-    const resolvedEndTime = (employeeData as any).workEndTime || (employeeData as any).checkOutTime || (baseUser as any).workEndTime || (baseUser as any).checkOutTime || "17:00";
-    const resolvedName = (employeeData as any).name || baseUser.name || "";
-
+    // Use object spread to merge entire employees document into users document
+    // This ensures all fields (avatarUrl, phone, basicSalary, etc.) are globally available
     return {
-      ...(userDoc.exists() ? (userDoc.data() as Record<string, any>) : {}),
+      ...baseUser,
       ...employeeData,
       uid,
-      role: ((employeeData as any).role || baseUser.role || "employee") as User["role"],
-      name: resolvedName,
-      workStartTime: resolvedStartTime,
-      workEndTime: resolvedEndTime,
-      checkInTime: resolvedStartTime,
-      checkOutTime: resolvedEndTime,
+      role: (employeeData as any).role || baseUser.role || "employee",
+      name: (employeeData as any).name || baseUser.name || "",
     } as User;
   } catch (error) {
     console.error("Failed to hydrate employee profile data:", error);

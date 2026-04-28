@@ -93,15 +93,15 @@ export const getMonthlyFinancialSummary = async (userId: string, basicSalary: nu
 
       attendanceSnapshot.forEach((doc) => {
         const data = doc.data();
-        const attendanceDate = new Date(data.check_in_time || data.date);
+        const attendanceDate = new Date(data.check_in || data.date);
         const dateStr = attendanceDate.toISOString().split("T")[0];
 
         if (attendanceDate >= startOfMonth && attendanceDate < endOfMonth && !processedDates.has(dateStr)) {
           processedDates.add(dateStr);
 
           // Check if it's an absence (no check_in) or no check-out
-          const hasCheckIn = data.check_in_time;
-          const hasCheckOut = data.check_out_time;
+          const hasCheckIn = data.check_in;
+          const hasCheckOut = data.check_out;
 
           if (!hasCheckIn || !hasCheckOut) {
             // Only count as absence if not approved leave
