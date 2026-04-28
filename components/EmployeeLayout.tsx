@@ -8,7 +8,7 @@ import { auth } from "../firebaseConfig";
 import { getCurrentUserData } from "../services/authService";
 import Sidebar, { SidebarItem } from "./Sidebar";
 
-// ── Design System Tokens (Section 3) ──
+// Design System Tokens (Section 3)
 const Colors = {
   background: "#1f2029",
   surface: "#2a2b38",
@@ -38,6 +38,7 @@ const EMPLOYEE_ITEMS: SidebarItem[] = [
 const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation, children, showLoading = false, userName, userDepartment }) => {
   const [currentUserName, setCurrentUserName] = useState<string>(userName || "Employee");
   const [currentUserDept, setCurrentUserDept] = useState<string | null>(userDepartment || null);
+  const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const { width } = useWindowDimensions();
   const isMobile = width < 1024;
@@ -64,6 +65,7 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation
           if (currentUser?.department && !userDepartment) {
             setCurrentUserDept(currentUser.department);
           }
+          setCurrentUserAvatar(typeof currentUser?.avatarUrl === "string" ? currentUser.avatarUrl : null);
         } catch (error) {
           console.error("Failed to load current user for header:", error);
         }
@@ -104,7 +106,7 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation
       ]}
       edges={isWeb ? ['top', 'left', 'right'] : ['top', 'left', 'right', 'bottom']}
     >
-      {/* ── Mobile Menu Toggle ── */}
+      {/* Mobile Menu Toggle */}
       {isMobile && (
         <Pressable
           // Use topInset (= 0 on iOS web, real notch value on native) to position toggle correctly
@@ -115,7 +117,7 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation
         </Pressable>
       )}
 
-      {/* ── Sidebar: permanently open on desktop, toggleable on mobile ── */}
+      {/* Sidebar: permanently open on desktop, toggleable on mobile */}
       {(!isMobile || sidebarVisible) && (
         <Sidebar
           items={EMPLOYEE_ITEMS}
@@ -124,13 +126,14 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation
           onLogout={handleLogout}
           userName={currentUserName}
           userDepartment={currentUserDept || undefined}
-          logoutLabel="تسجيل الخروج"
+          userAvatarUrl={currentUserAvatar}
+          logoutLabel="\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c"
           mobile={isMobile}
           onMobileClose={() => setSidebarVisible(false)}
         />
       )}
 
-      {/* ── Main Content: offset by sidebar width on desktop ── */}
+      {/* Main Content: offset by sidebar width on desktop */}
       <View style={[styles.content, !isMobile && { marginRight: SIDEBAR_WIDTH }]}>
         {showLoading ? (
           <View style={styles.loadingWrap}>
@@ -171,7 +174,7 @@ const styles = StyleSheet.create({
     // Fix 2A: `top` is set dynamically via inline style using insets.top + 8
     // This base value is a safe fallback for non-iOS platforms
     top: Spacing.lg,
-    right: Spacing.lg, // Physical right — always top-right regardless of RTL
+    right: Spacing.lg, // Physical right: always top-right regardless of RTL
     zIndex: 9999,
     backgroundColor: Colors.surface,
     borderRadius: Radius.md,
@@ -181,3 +184,5 @@ const styles = StyleSheet.create({
 });
 
 export default EmployeeLayout;
+
+

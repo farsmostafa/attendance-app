@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from "react";
 import { Animated, Platform, Pressable, StyleSheet, Text, View, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// ── Design System Tokens (Section 3) ──
+// Design System Tokens (Section 3)
 const Colors = {
   background: "#1f2029",
   surface: "#2a2b38",
@@ -35,6 +35,7 @@ interface SidebarProps {
   onNavigate: (routeName: string) => void;
   userName?: string;
   userDepartment?: string;
+  userAvatarUrl?: string | null;
   onLogout?: () => void;
   logoutLabel?: string;
   mobile?: boolean;
@@ -51,8 +52,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   onNavigate,
   userName,
   userDepartment,
+  userAvatarUrl,
   onLogout,
-  logoutLabel = "تسجيل الخروج",
+  logoutLabel = "\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c",
   mobile = false,
 }) => {
   const animationsRef = useRef<Record<string, Animated.Value>>({});
@@ -94,7 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       ]}
     >
       <View style={styles.topSection}>
-        {/* ── Top Branding ── */}
+        {/* Top Branding */}
         <View style={styles.brandingSection}>
           <Text style={styles.appName} numberOfLines={1}>
             DAWEAMT
@@ -104,7 +106,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           </Text>
         </View>
 
-        {/* ── Navigation Items ── */}
+        {/* Navigation Items */}
         <View style={styles.itemsWrap}>
           {items.map((item) => {
             const isActive = activeRoute === item.routeName;
@@ -162,22 +164,26 @@ const Sidebar: React.FC<SidebarProps> = ({
       </View>
 
       <View style={styles.bottomSection}>
-        {/* ── Profile Card ── */}
+        {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.profileAvatarContainer}>
-            <Ionicons name="person" size={24} color={Colors.accent} />
+            {typeof userAvatarUrl === "string" && userAvatarUrl.trim() ? (
+              <Image source={{ uri: userAvatarUrl }} style={styles.profileAvatarImage} resizeMode="cover" />
+            ) : (
+              <Ionicons name="person" size={24} color={Colors.accent} />
+            )}
           </View>
           <View style={styles.profileInfo}>
             <Text style={styles.profileName} numberOfLines={1}>
-              {userName || "المستخدم"}
+              {userName || "\u0645\u0648\u0638\u0641"}
             </Text>
             <Text style={styles.profileRole} numberOfLines={1}>
-              {userDepartment || "القسم غير محدد"}
+              {userDepartment || "\u0645\u062f\u064a\u0631 \u0627\u0644\u0646\u0638\u0627\u0645"}
             </Text>
           </View>
         </View>
 
-        {/* ── Logout ── */}
+        {/* Logout */}
         {onLogout && (
           <Pressable
             style={[
@@ -305,6 +311,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: Colors.accent,
+    overflow: "hidden",
+  },
+  profileAvatarImage: {
+    width: "100%",
+    height: "100%",
   },
   profileInfo: {
     flex: 1,
@@ -343,3 +354,4 @@ const styles = StyleSheet.create({
 });
 
 export default Sidebar;
+

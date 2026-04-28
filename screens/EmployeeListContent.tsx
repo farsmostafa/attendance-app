@@ -18,7 +18,7 @@ interface EmployeeCardItem {
   email: string;
   department: string;
   status: EmployeeStatus;
-  avatar: string;
+  avatarUrl: string | null;
 }
 
 const ALL_DEPARTMENTS = "\u062c\u0645\u064a\u0639 \u0627\u0644\u0623\u0642\u0633\u0627\u0645";
@@ -30,7 +30,7 @@ const getRoleLabel = (role: "admin" | "employee") => {
 const FLAT_ITEM_INTERACTIVE_CLASS =
   "bg-[#2a2b38] border border-[#ffeba7]/10 rounded-[12px] hover:bg-[#2c2a25] active:bg-[#2c2a25] hover:border-[#ffeba7]/30 active:border-[#ffeba7]/30 transition-colors duration-200";
 
-const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
+const EmployeeListContent: React.FC<Props> = ({ navigation, companyId }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState(ALL_DEPARTMENTS);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
@@ -55,7 +55,7 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
           email: emp.email || "",
           department: emp.department || "\u063a\u064a\u0631 \u0645\u062d\u062f\u062f",
           status: emp.status === "inactive" ? "inactive" : "active",
-          avatar: "https://images.unsplash.com/photo-1594824388122-649cf0d5fbe4?w=300&q=80",
+          avatarUrl: typeof emp.avatarUrl === "string" && emp.avatarUrl.trim() ? emp.avatarUrl : null,
         }));
         setEmployees(mapped);
 
@@ -102,6 +102,11 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
     });
   }, [employees, searchTerm, departmentFilter]);
 
+  const getInitial = (name: string) => {
+    const trimmed = (name || "").trim();
+    return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
+  };
+
   return (
     <View className="flex-1 bg-[#1f2029] relative">
       <ScrollView
@@ -115,7 +120,10 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
           <Text className="text-[32px] font-bold text-[#ffeba7] text-right">{"\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0645\u0648\u0638\u0641\u064a\u0646"}</Text>
           <Text className="text-base text-[#969081] mt-1 text-right">{"\u0639\u0631\u0636 \u0648\u0625\u062f\u0627\u0631\u0629 \u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u0645\u0648\u0638\u0641\u064a\u0646"}</Text>
         </View>
-        <Pressable className="bg-[#ffeba7] px-6 py-3 rounded-[12px] flex-row-reverse items-center gap-2 self-start hover:bg-[#e4d295] active:bg-[#d4c285] transition-colors">
+        <Pressable
+          onPress={() => navigation?.navigate("AddEmployee")}
+          className="bg-[#ffeba7] px-6 py-3 rounded-[12px] flex-row-reverse items-center gap-2 self-start hover:bg-[#e4d295] active:bg-[#d4c285] transition-colors"
+        >
           <MaterialIcons name="add" size={20} color="#1f2029" />
           <Text className="text-[#102770] font-semibold text-sm text-right">{"\u0625\u0636\u0627\u0641\u0629 \u0645\u0648\u0638\u0641"}</Text>
         </Pressable>
@@ -132,7 +140,7 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
               onChangeText={setSearchTerm}
               placeholder={"\u0627\u0628\u062d\u062b \u0628\u0627\u0644\u0627\u0633\u0645 \u0623\u0648 \u0627\u0644\u0628\u0631\u064a\u062f..."}
               placeholderTextColor="#969081"
-              className="w-full bg-[#1f2029] border border-[#3e3f4b] rounded-[12px] py-3 pr-10 pl-4 text-[#e7e2da] text-right"
+              className="w-full bg-[#1f2029] border border-[#3e3f4b] rounded-[12px] py-3 pr-10 pl-4 text-[#e7e2da] text-right hover:bg-[#2c2a25] hover:border-[#ffeba7]/30 transition-colors"
             />
             <View className="absolute right-3 top-3">
               <Ionicons name="search" size={20} color="#969081" />
@@ -181,7 +189,7 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
           </View>
         </View>
 
-        <View className="flex-row-reverse items-center gap-3 w-full md:w-auto justify-end">
+        <View className="hidden md:flex flex-row-reverse items-center gap-3 w-full md:w-auto justify-end">
           <Text className="text-[#e7e2da] text-sm font-semibold">{"\u0639\u0631\u0636:"}</Text>
           <View className="flex-row-reverse bg-[#1f2029] rounded-[12px] border border-[#3e3f4b] p-1 gap-1">
             <Pressable
@@ -233,11 +241,15 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
               >
                 <View className="w-full md:flex-[2] min-w-0 flex-row-reverse items-center gap-3">
                   <View
-                    className={`w-10 h-10 rounded-[12px] overflow-hidden border border-[#ffeba7]/20 bg-[#37352f] ${
+                    className={`w-10 h-10 rounded-[12px] overflow-hidden border border-[#ffeba7]/20 bg-[#37352f] items-center justify-center ${
                       !isActive ? "grayscale" : ""
                     }`}
                   >
-                    <Image source={{ uri: employee.avatar }} className="w-full h-full" resizeMode="cover" />
+                    {employee.avatarUrl ? (
+                      <Image source={{ uri: employee.avatarUrl }} className="w-full h-full" resizeMode="cover" />
+                    ) : (
+                      <Text className="text-[#e7e2da] text-sm font-bold">{getInitial(employee.name)}</Text>
+                    )}
                   </View>
                   <View className="flex-col items-end flex-1 min-w-0">
                     <Text className="text-[#e7e2da] font-bold text-sm text-right" numberOfLines={1}>{employee.name}</Text>
@@ -299,7 +311,11 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
                       !isActive ? "grayscale" : ""
                     }`}
                   >
-                    <Image source={{ uri: employee.avatar }} className="w-full h-full" resizeMode="cover" />
+                    {employee.avatarUrl ? (
+                      <Image source={{ uri: employee.avatarUrl }} className="w-full h-full" resizeMode="cover" />
+                    ) : (
+                      <Text className="text-[#e7e2da] text-xl font-bold">{getInitial(employee.name)}</Text>
+                    )}
                   </View>
                   <View className="flex-col items-end flex-1">
                     <Text className="text-[18px] font-bold text-[#e7e2da] text-right" numberOfLines={1}>{employee.name}</Text>
@@ -339,3 +355,4 @@ const EmployeeListContent: React.FC<Props> = ({ companyId }) => {
 };
 
 export default EmployeeListContent;
+

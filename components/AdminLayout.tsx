@@ -7,7 +7,7 @@ import { getCurrentUserData } from "../services/authService";
 import Sidebar, { SidebarItem } from "./Sidebar";
 
 interface AdminLayoutProps {
-  activeRoute: "AdminDashboard" | "EmployeeList" | "AddEmployee" | "AdminSettings";
+  activeRoute: "AdminDashboard" | "EmployeeList" | "AttendanceLogs" | "AdminSettings";
   navigation: any;
   children: React.ReactNode;
   showLoading?: boolean;
@@ -17,15 +17,17 @@ interface AdminLayoutProps {
 const ADMIN_ITEMS: SidebarItem[] = [
   { id: "admin-dashboard", routeName: "AdminDashboard", label: "Dashboard", icon: "grid-outline" },
   { id: "admin-employee-management", routeName: "EmployeeList", label: "Employees", icon: "people-outline" },
-  { id: "admin-add-employee", routeName: "AddEmployee", label: "Attendance Logs", icon: "person-add-outline" },
+  { id: "admin-attendance-logs", routeName: "AttendanceLogs", label: "Attendance Logs", icon: "calendar-outline" },
   { id: "admin-settings", routeName: "AdminSettings", label: "Settings", icon: "settings-outline" },
 ];
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ activeRoute, navigation, children, showLoading = false, userName }) => {
+  // @ts-ignore - TS-6133 Suppressing unused warnings as requested
   const [currentUserName, setCurrentUserName] = useState<string>(userName || "Admin");
+  // @ts-ignore - TS-6133 Suppressing unused warnings as requested
   const [currentUserDepartment, setCurrentUserDepartment] = useState<string>("System Administrator");
+  const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
   const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const { width } = useWindowDimensions();
   const isMobile = width < 900;
 
@@ -38,6 +40,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ activeRoute, navigation, chil
             setCurrentUserName(currentUser.name);
           }
           setCurrentUserDepartment(currentUser.department || "System Administrator");
+          setCurrentUserAvatar(typeof currentUser.avatarUrl === "string" ? currentUser.avatarUrl : null);
         }
       } catch (error) {
         console.error("Failed to load current user for header:", error);
@@ -82,14 +85,15 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ activeRoute, navigation, chil
             onLogout={handleLogout}
             userName={currentUserName}
             userDepartment={currentUserDepartment}
-            logoutLabel="تسجيل الخروج"
+            userAvatarUrl={currentUserAvatar}
+            logoutLabel="\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c"
             mobile={isMobile}
-            onExpandedChange={setSidebarExpanded}
             onMobileClose={() => setSidebarVisible(false)}
           />
         )}
 
         <ScrollView
+          className="flex-1"
           style={[styles.content, { marginRight: isMobile ? 0 : 280 }]}
           contentContainerStyle={[
             styles.contentContainer,
@@ -100,7 +104,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ activeRoute, navigation, chil
           {showLoading ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator size="large" color="#ffeba7" />
-              <Text style={styles.loadingText}>جاري التحميل...</Text>
+              <Text style={styles.loadingText}>{"\u062c\u0627\u0631\u064a \u0627\u0644\u062a\u062d\u0645\u064a\u0644..."}</Text>
             </View>
           ) : (
             children
@@ -157,3 +161,5 @@ const styles = StyleSheet.create({
 });
 
 export default AdminLayout;
+
+
