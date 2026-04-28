@@ -6,7 +6,7 @@ import { getDoc, doc } from "firebase/firestore";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { db } from "./firebaseConfig";
 import { getCurrentUserData } from "./services/authService";
-import { checkTodayAttendance, recordCheckIn, recordCheckOut, AttendanceCheckResult } from "./services/attendanceService";
+import { getTodayRecord, recordCheckIn, recordCheckOut, CheckInRecord } from "./services/attendanceService";
 import { calculateDistance, isWithinGeofence } from "./utils/geo";
 import { RootStackParamList } from "./types";
 
@@ -82,7 +82,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(true);
 
-  const [attendanceStatus, setAttendanceStatus] = useState<AttendanceCheckResult | null>(null);
+  const [todayLog, setTodayLog] = useState<CheckInRecord | null>(null);
   const [attendanceLoading, setAttendanceLoading] = useState(true);
   const [employeeName, setEmployeeName] = useState<string>("--");
 
@@ -97,27 +97,23 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
   // Out-of-range CSS-accurate pulse: animates an inset background layer
   const pulseAnim = useRef(new Animated.Value(0)).current;
 
-  const fetchAttendanceStatus = async () => {
+  const fetchTodayLog = async () => {
     setAttendanceLoading(true);
     try {
       const userData = await getCurrentUserData();
       if (!userData?.uid) {
         console.warn("User data not available");
-        setAttendanceStatus(null);
+        setTodayLog(null);
         return;
       }
       setEmployeeName(userData.name || userData.email || "--");
-
-      const today = new Date().toISOString().split("T")[0];
-      const status = await checkTodayAttendance(userData.uid, today);
-      setAttendanceStatus(status);
-
-      if (status.checkInRecord?.id) {
-        attendanceDocIdRef.current = status.checkInRecord.id;
-      }
+      const companyId = (userData.companyId || userData.company_id || "") as string;
+      const record = companyId ? await getTodayRecord(userData.uid, companyId) : null;
+      setTodayLog(record);
+      attendanceDocIdRef.current = record?.id || null;
     } catch (error) {
       console.error("Error fetching attendance status:", error);
-      setAttendanceStatus(null);
+      setTodayLog(null);
     } finally {
       setAttendanceLoading(false);
     }
@@ -207,7 +203,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
 
     const initialize = async () => {
       await fetchCompanySettings();
-      await fetchAttendanceStatus();
+      await fetchTodayLog();
       await initializeLocation();
     };
     initialize();
@@ -215,7 +211,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
 
   useEffect(() => {
     if (isFocused) {
-      fetchAttendanceStatus();
+      fetchTodayLog();
     }
   }, [isFocused]);
 
@@ -398,27 +394,24 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
         const docId = await recordCheckIn(checkInPayload);
         attendanceDocIdRef.current = docId;
 
-        setAttendanceStatus({
-          hasCheckedIn: true,
-          hasCheckedOut: false,
-          checkInRecord: {
-            id: docId,
-            userId: userData.uid,
-            date: todayDate,
-            check_in: {} as any,
-            isLate,
-            status,
-            location: {
-              latitude: currentLocation.coords.latitude,
-              longitude: currentLocation.coords.longitude,
-            },
+        setTodayLog({
+          id: docId,
+          userId: userData.uid,
+          userName: userData.name || userData.email || "Unknown",
+          date: todayDate,
+          check_in: new Date() as any,
+          isLate,
+          status,
+          location: {
+            latitude: currentLocation.coords.latitude,
+            longitude: currentLocation.coords.longitude,
           },
         });
 
         const message = isLate ? "✓ تم تسجيل حضورك بنجاح!\n⚠️ تنبيه: لقد تجاوزت فترة السماح" : "✓ تم تسجيل حضورك بنجاح!";
         showAlert(message);
         console.log("Check-in successful:", docId);
-        await fetchAttendanceStatus();
+        await fetchTodayLog();
       } catch (checkInError) {
         console.error("Check-in DB Error:", checkInError);
         showAlert(`خطأ في تسجيل الحضور: ${checkInError instanceof Error ? checkInError.message : "خطأ غير معروف"}`);
@@ -490,7 +483,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
         }
       }
 
-      const docId = attendanceDocIdRef.current || attendanceStatus?.checkInRecord?.id;
+      const docId = attendanceDocIdRef.current || todayLog?.id;
       if (!docId) {
         showAlert("خطأ: لم نتمكن من العثور على سجل الحضور.");
         console.error("Check-out failed: No attendance document ID found");
@@ -500,15 +493,18 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
       try {
         await recordCheckOut(docId);
 
-        setAttendanceStatus({
-          hasCheckedIn: true,
-          hasCheckedOut: true,
-          checkInRecord: attendanceStatus?.checkInRecord,
-        });
+        setTodayLog((prev) =>
+          prev
+            ? {
+                ...prev,
+                check_out: new Date() as any,
+              }
+            : prev,
+        );
 
         showAlert("✓ تم تسجيل انصرافك بنجاح!");
         console.log("Check-out successful:", docId);
-        await fetchAttendanceStatus();
+        await fetchTodayLog();
       } catch (checkOutError) {
         console.error("Check-out Error:", checkOutError);
         showAlert(`خطأ في تسجيل الانصراف: ${checkOutError instanceof Error ? checkOutError.message : "خطأ غير معروف"}`);
@@ -530,8 +526,8 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
   // Fix 1C: Loading gate now only depends on Firebase data fetches.
   // Location (distance) is shown inline — never blocks the full UI.
   const isLoading = settingsLoading || attendanceLoading;
-  const hasCheckedIn = attendanceStatus?.hasCheckedIn ?? false;
-  const hasCheckedOut = attendanceStatus?.hasCheckedOut ?? false;
+  const hasCheckedIn = !!todayLog?.check_in;
+  const hasCheckedOut = !!todayLog?.check_out;
   const shiftCompleted = hasCheckedIn && hasCheckedOut;
   const isProcessing = isCheckingIn || isCheckingOut;
   const buttonDisabled = isProcessing || shiftCompleted || !withinGeofence;
@@ -607,11 +603,11 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
     checkin:    { label: "تسجيل الحضور",    subtitle: "بدء الدوام",                    icon: "finger-print" as const },
     outOfRange: { label: "خارج نطاق العمل",  subtitle: "LOCATION ACCESS RESTRICTED", icon: "alert-circle-outline" as const },
     checkout:   { label: "تسجيل الانصراف",   subtitle: "إنهاء الدوام",                  icon: "finger-print" as const },
-    completed:  { label: "دوامك انتهى لليوم", subtitle: "شكراً لالتزامك في الدوام",     icon: "checkmark-done" as const },
+    completed:  { label: "تم انتهاء دوام اليوم", subtitle: "شكراً لالتزامك في الدوام",     icon: "checkmark-done" as const },
   };
   const { label: actionLabel, subtitle: actionSubtitle, icon: actionIcon } = stateConfig[dashboardState];
 
-  const todayRecord = attendanceStatus?.checkInRecord;
+  const todayRecord = todayLog;
   const formatTimeValue = (value: any): string => {
     try {
       if (!value) return "--";
@@ -874,7 +870,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
                   <Ionicons name="log-in-outline" size={18} color={Colors.accent} />
                   <Text style={styles.summaryItemLabel}>وقت الحضور</Text>
                 </View>
-                <Text style={styles.summaryItemValue}>{formatTimeValue(todayRecord?.check_in)}</Text>
+                <Text style={styles.summaryItemValue}>{formatTimeValue((todayRecord as any)?.checkInTime || todayRecord?.check_in)}</Text>
               </View>
 
               {/* Check-out */}
@@ -883,7 +879,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
                   <Ionicons name="log-out-outline" size={18} color={Colors.accent} />
                   <Text style={styles.summaryItemLabel}>وقت الانصراف</Text>
                 </View>
-                <Text style={styles.summaryItemValue}>{formatTimeValue(todayRecord?.check_out)}</Text>
+                <Text style={styles.summaryItemValue}>{formatTimeValue((todayRecord as any)?.checkOutTime || todayRecord?.check_out)}</Text>
               </View>
 
               {/* Duration */}
@@ -892,7 +888,7 @@ export default function EmployeeDashboard({ navigation, isFocused = true }: Empl
                   <Ionicons name="timer-outline" size={18} color={Colors.accent} />
                   <Text style={styles.summaryItemLabel}>إجمالي الساعات</Text>
                 </View>
-                <Text style={styles.summaryItemValue}>{formatDurationHHMM(todayRecord?.check_in, todayRecord?.check_out, todayRecord?.workDuration)}</Text>
+                <Text style={styles.summaryItemValue}>{formatDurationHHMM((todayRecord as any)?.checkInTime || todayRecord?.check_in, (todayRecord as any)?.checkOutTime || todayRecord?.check_out, todayRecord?.workDuration)}</Text>
               </View>
 
               {/* Status */}

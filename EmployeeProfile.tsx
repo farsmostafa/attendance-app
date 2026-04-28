@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View, useWindowDimensions, Pressable } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View, useWindowDimensions, Pressable, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getCurrentUserData } from "./services/authService";
 import { User } from "./types";
 import EmployeeLayout from "./components/EmployeeLayout";
 import { DimensionValue } from 'react-native';
-// ── Design System Tokens (Section 3) ──
+// Design System Tokens (Section 3)
 const Colors = {
   background: "#1f2029",
   surface: "#2a2b38",
@@ -40,6 +40,11 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (userData) {
+      setLoading(false);
+      return;
+    }
+
     const loadProfile = async () => {
       try {
         const loggedInUser = await getCurrentUserData();
@@ -52,15 +57,42 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
   }, []);
 
   const displayUser = userData || currentUser;
+  const hydratedUser = currentUser || userData || null;
+  const resolvedStartTime =
+    (displayUser as any)?.workStartTime ||
+    (displayUser as any)?.checkInTime ||
+    (currentUser as any)?.checkInTime ||
+    "09:00 AM";
+  const resolvedEndTime =
+    (displayUser as any)?.workEndTime ||
+    (displayUser as any)?.checkOutTime ||
+    (currentUser as any)?.checkOutTime ||
+    "05:00 PM";
+  const resolvedAvatar = (hydratedUser as any)?.avatarUrl || (displayUser as any)?.avatarUrl || "";
+  const resolvedPhone = (hydratedUser as any)?.phone || (displayUser as any)?.phone || "--";
+  const resolvedSalaryRaw = (hydratedUser as any)?.basicSalary || (hydratedUser as any)?.salary || (displayUser as any)?.basicSalary || (displayUser as any)?.salary || "0";
+  const resolvedSalaryNumber =
+    typeof resolvedSalaryRaw === "number"
+      ? resolvedSalaryRaw
+      : parseFloat(String(resolvedSalaryRaw).replace(/[^\d.]/g, "")) || 0;
 
   const formatTime = (timeStr?: string) => {
     if (!timeStr) return "--:--";
-    const [h, m] = timeStr.split(":");
-    let hour = parseInt(h, 10);
+    const raw = timeStr.trim();
+    const twelveHour = raw.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (twelveHour) {
+      const hh = String(parseInt(twelveHour[1], 10)).padStart(2, "0");
+      return `${hh}:${twelveHour[2]} ${twelveHour[3].toUpperCase()}`;
+    }
+    const [h, m] = raw.split(":");
+    const parsedHour = parseInt(h, 10);
+    const parsedMinute = parseInt((m || "0").replace(/[^\d]/g, ""), 10);
+    if (Number.isNaN(parsedHour) || Number.isNaN(parsedMinute)) return "--:--";
+    let hour = parsedHour;
     const ampm = hour >= 12 ? "PM" : "AM";
     hour = hour % 12;
     if (hour === 0) hour = 12;
-    return `${hour < 10 ? "0" + hour : hour}:${m} ${ampm}`;
+    return `${String(hour).padStart(2, "0")}:${String(parsedMinute).padStart(2, "0")} ${ampm}`;
   };
 
   const getTimelineStyle = (startStr?: string, endStr?: string) => {
@@ -83,14 +115,17 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
     return { left: `${leftPercent}%` as DimensionValue, width: `${widthPercent}%` as DimensionValue };
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "--";
+  const formatDate = (val: any) => {
+    if (!val) return "---";
     try {
-      const date = new Date(dateStr);
-      if (isNaN(date.getTime())) return dateStr;
-      return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+      if (val?.seconds) return new Date(val.seconds * 1000).toLocaleDateString("ar-EG");
+      if (typeof val?.toDate === "function") return val.toDate().toLocaleDateString("ar-EG");
+      if (val instanceof Date) return val.toLocaleDateString("ar-EG");
+      const parsed = new Date(val);
+      if (!Number.isNaN(parsed.getTime())) return parsed.toLocaleDateString("ar-EG");
+      return String(val);
     } catch {
-      return dateStr;
+      return String(val);
     }
   };
 
@@ -110,16 +145,31 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
           </View>
         ) : (
           <>
-            {/* ── 1. Profile Header Card ── */}
             <View style={[styles.headerCard, !isDesktop && styles.headerCardMobile]}>
               <View style={[styles.avatarBox, !isDesktop && styles.avatarBoxMobile]}>
-                <Ionicons name="person" size={isDesktop ? 56 : 64} color="#52a3ce" />
+                {typeof resolvedAvatar === "string" && resolvedAvatar.trim() ? (
+                  <Image
+                    source={{ uri: resolvedAvatar }}
+                    style={styles.avatarImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.avatarFallback}>
+                    {displayUser?.name?.trim() ? (
+                      <Text style={styles.avatarFallbackText}>{displayUser.name.trim().charAt(0).toUpperCase()}</Text>
+                    ) : (
+                      <Ionicons name="person" size={isDesktop ? 56 : 64} color="#52a3ce" />
+                    )}
+                  </View>
+                )}
               </View>
               <View style={[styles.headerInfo, !isDesktop && styles.headerInfoMobile]}>
-                <Text style={[styles.userName, !isDesktop && styles.userNameMobile]}>{displayUser?.name || "الموظف"}</Text>
+                <Text style={[styles.userName, !isDesktop && styles.userNameMobile]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                  {displayUser?.name || "الموظف"}
+                </Text>
                 <View style={[styles.badgesRow, !isDesktop && styles.badgesRowMobile]}>
                   <View style={styles.statusBadge}>
-                    <Text style={styles.statusBadgeText}>{displayUser?.status === 'inactive' ? 'غير نشط' : 'نشط'}</Text>
+                    <Text style={styles.statusBadgeText}>{displayUser?.status === "inactive" ? "غير نشط" : "نشط"}</Text>
                   </View>
                   <View style={styles.deptBadge}>
                     <Text style={styles.deptBadgeText}>{displayUser?.department || "بدون قسم"}</Text>
@@ -128,7 +178,6 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
               </View>
             </View>
 
-            {/* ── 2. Responsive Grid: Basic Info & Salary ── */}
             <View style={isDesktop ? styles.desktopGridRow : styles.mobileGridCol}>
               {/* Basic Info Card */}
               <View style={[styles.infoCard, isDesktop && { flex: 2.5 }]}>
@@ -150,7 +199,7 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
                   <Ionicons name="call-outline" size={20} color={Colors.textSecondary} />
                   <View style={styles.infoTextCol}>
                     <Text style={styles.infoLabel}>رقم الهاتف</Text>
-                    <Text style={[styles.infoValue, { fontFamily: Typography.fontMono }]}>{displayUser?.phone || "--"}</Text>
+                    <Text style={[styles.infoValue, { fontFamily: Typography.fontMono }]}>{resolvedPhone}</Text>
                   </View>
                 </View>
 
@@ -158,7 +207,7 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
                   <Ionicons name="briefcase-outline" size={20} color={Colors.textSecondary} />
                   <View style={styles.infoTextCol}>
                     <Text style={styles.infoLabel}>القسم</Text>
-                    <Text style={styles.infoValue}>{displayUser?.department || "--"}</Text>
+                    <Text style={styles.infoValue}>{displayUser?.department || "بدون قسم"}</Text>
                   </View>
                 </View>
 
@@ -175,12 +224,11 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
               {/* Salary Card */}
               <View style={[styles.salaryCard, isDesktop && { flex: 1 }]}>
                 <Text style={styles.salaryLabel}>الراتب الشهري</Text>
-                <Text style={[styles.salaryAmount, !isDesktop && { fontSize: 48 }]}>{displayUser?.basicSalary ? displayUser.basicSalary.toLocaleString() : "--"}</Text>
+                <Text style={[styles.salaryAmount, !isDesktop && { fontSize: 48 }]}>{resolvedSalaryNumber.toLocaleString()}</Text>
                 <Text style={styles.salarySub}>ج.م / شهر</Text>
               </View>
             </View>
 
-            {/* ── 3. Working Hours Card ── */}
             <View style={styles.hoursCard}>
               <View style={styles.cardHeader}>
                 <Ionicons name="time-outline" size={24} color={Colors.accent} />
@@ -193,14 +241,14 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
               {/* Timeline Bar UI */}
               <View style={styles.timelineContainer}>
                 <View style={styles.timelineTrack}>
-                  <View style={[styles.timelineActive, getTimelineStyle(displayUser?.workStartTime || "09:00", displayUser?.workEndTime || "17:00")]} />
+                  <View style={[styles.timelineActive, getTimelineStyle(resolvedStartTime, resolvedEndTime)]} />
                 </View>
                 <View style={styles.timelineLabels}>
   <Text style={styles.timelineLabel}>00:00</Text>
   {isDesktop && <Text style={styles.timelineLabel}>04:00</Text>}
-  <Text style={[styles.timelineLabel, styles.timelineLabelAccent]}>{formatTime(displayUser?.workStartTime || "08:00")}</Text>
+  <Text style={[styles.timelineLabel, styles.timelineLabelAccent]}>{formatTime(resolvedStartTime)}</Text>
   {isDesktop && <Text style={styles.timelineLabel}>12:00</Text>}
-  <Text style={[styles.timelineLabel, styles.timelineLabelAccent]}>{formatTime(displayUser?.workEndTime || "17:00")}</Text>
+  <Text style={[styles.timelineLabel, styles.timelineLabelAccent]}>{formatTime(resolvedEndTime)}</Text>
   {isDesktop && <Text style={styles.timelineLabel}>20:00</Text>}
   <Text style={styles.timelineLabel}>23:59</Text>
 </View>
@@ -214,7 +262,7 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
                   </View>
                   <View style={styles.timeCardInfo}>
                     <Text style={[styles.timeCardLabel, !isDesktop && styles.timeCardLabelMobile]}>وقت البدء</Text>
-                    <Text style={[styles.timeCardValue, !isDesktop && styles.timeCardValueMobile]}>{formatTime(displayUser?.workStartTime)}</Text>
+                    <Text style={[styles.timeCardValue, !isDesktop && styles.timeCardValueMobile]}>{formatTime(resolvedStartTime)}</Text>
                   </View>
                 </View>
                 <View style={[styles.timeCard, !isDesktop && styles.timeCardMobile]}>
@@ -223,13 +271,12 @@ const EmployeeProfile = ({ navigation, userData }: EmployeeProfileProps) => {
                   </View>
                   <View style={styles.timeCardInfo}>
                     <Text style={[styles.timeCardLabel, !isDesktop && styles.timeCardLabelMobile]}>وقت الانتهاء</Text>
-                    <Text style={[styles.timeCardValue, !isDesktop && styles.timeCardValueMobile]}>{formatTime(displayUser?.workEndTime)}</Text>
+                    <Text style={[styles.timeCardValue, !isDesktop && styles.timeCardValueMobile]}>{formatTime(resolvedEndTime)}</Text>
                   </View>
                 </View>
               </View>
             </View>
 
-            {/* ── 5. Footer Actions ── */}
             <View style={styles.footerRow}>
               {currentUser?.role === "admin" && (
                 <Pressable style={styles.editButton} onPress={handleEditProfile}>
@@ -280,7 +327,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   
-  // ── Header Card ──
   headerCard: {
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
@@ -306,6 +352,25 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  avatarFallback: {
+    width: "100%",
+    height: "100%",
+    borderRadius: Radius.lg,
+    backgroundColor: "#37352f",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarFallbackText: {
+    fontFamily: Typography.fontLatin,
+    fontSize: 34,
+    fontWeight: "800",
+    color: Colors.accent,
   },
   avatarBoxMobile: {
     marginBottom: Spacing.sm,
@@ -372,7 +437,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // ── Responsive Layout Containers ──
   desktopGridRow: {
     flexDirection: "row-reverse", // Basic Info on right (1st), Salary on left (2nd)
     alignItems: "stretch",
@@ -383,7 +447,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xl,
   },
 
-  // ── Basic Info Card ──
   infoCard: {
     width: "100%",
     backgroundColor: Colors.surface,
@@ -437,7 +500,6 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
 
-  // ── Salary Card ──
   salaryCard: {
     width: "100%",
     backgroundColor: Colors.surface,
@@ -470,7 +532,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
 
-  // ── Working Hours Card ──
   hoursCard: {
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
@@ -591,7 +652,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.md,
   },
 
-  // ── Footer ──
   footerRow: {
     flexDirection: "row-reverse", // RTL
     justifyContent: "space-between",

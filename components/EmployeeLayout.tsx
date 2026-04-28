@@ -8,7 +8,6 @@ import { auth } from "../firebaseConfig";
 import { getCurrentUserData } from "../services/authService";
 import Sidebar, { SidebarItem } from "./Sidebar";
 
-// Design System Tokens (Section 3)
 const Colors = {
   background: "#1f2029",
   surface: "#2a2b38",
@@ -106,7 +105,6 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation
       ]}
       edges={isWeb ? ['top', 'left', 'right'] : ['top', 'left', 'right', 'bottom']}
     >
-      {/* Mobile Menu Toggle */}
       {isMobile && (
         <Pressable
           // Use topInset (= 0 on iOS web, real notch value on native) to position toggle correctly
@@ -117,7 +115,6 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation
         </Pressable>
       )}
 
-      {/* Sidebar: permanently open on desktop, toggleable on mobile */}
       {(!isMobile || sidebarVisible) && (
         <Sidebar
           items={EMPLOYEE_ITEMS}
@@ -127,13 +124,12 @@ const EmployeeLayout: React.FC<EmployeeLayoutProps> = ({ activeRoute, navigation
           userName={currentUserName}
           userDepartment={currentUserDept || undefined}
           userAvatarUrl={currentUserAvatar}
-          logoutLabel="\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c"
+          logoutLabel="تسجيل الخروج"
           mobile={isMobile}
           onMobileClose={() => setSidebarVisible(false)}
         />
       )}
 
-      {/* Main Content: offset by sidebar width on desktop */}
       <View style={[styles.content, !isMobile && { marginRight: SIDEBAR_WIDTH }]}>
         {showLoading ? (
           <View style={styles.loadingWrap}>
@@ -174,7 +170,6 @@ const styles = StyleSheet.create({
     // Fix 2A: `top` is set dynamically via inline style using insets.top + 8
     // This base value is a safe fallback for non-iOS platforms
     top: Spacing.lg,
-    right: Spacing.lg, // Physical right: always top-right regardless of RTL
     zIndex: 9999,
     backgroundColor: Colors.surface,
     borderRadius: Radius.md,

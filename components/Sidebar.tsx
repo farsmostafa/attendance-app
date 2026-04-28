@@ -2,7 +2,6 @@ import React, { useMemo, useRef, useState } from "react";
 import { Animated, Platform, Pressable, StyleSheet, Text, View, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// Design System Tokens (Section 3)
 const Colors = {
   background: "#1f2029",
   surface: "#2a2b38",
@@ -54,7 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   userDepartment,
   userAvatarUrl,
   onLogout,
-  logoutLabel = "\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c",
+  logoutLabel = "تسجيل الخروج",
   mobile = false,
 }) => {
   const animationsRef = useRef<Record<string, Animated.Value>>({});
@@ -96,7 +95,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       ]}
     >
       <View style={styles.topSection}>
-        {/* Top Branding */}
         <View style={styles.brandingSection}>
           <Text style={styles.appName} numberOfLines={1}>
             DAWEAMT
@@ -106,7 +104,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           </Text>
         </View>
 
-        {/* Navigation Items */}
         <View style={styles.itemsWrap}>
           {items.map((item) => {
             const isActive = activeRoute === item.routeName;
@@ -164,7 +161,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       </View>
 
       <View style={styles.bottomSection}>
-        {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.profileAvatarContainer}>
             {typeof userAvatarUrl === "string" && userAvatarUrl.trim() ? (
@@ -175,15 +171,14 @@ const Sidebar: React.FC<SidebarProps> = ({
           </View>
           <View style={styles.profileInfo}>
             <Text style={styles.profileName} numberOfLines={1}>
-              {userName || "\u0645\u0648\u0638\u0641"}
+              {userName || "موظف"}
             </Text>
             <Text style={styles.profileRole} numberOfLines={1}>
-              {userDepartment || "\u0645\u062f\u064a\u0631 \u0627\u0644\u0646\u0638\u0627\u0645"}
+              {userDepartment || "مدير النظام"}
             </Text>
           </View>
         </View>
 
-        {/* Logout */}
         {onLogout && (
           <Pressable
             style={[

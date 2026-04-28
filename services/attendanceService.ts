@@ -6,6 +6,7 @@
 import { collection, query, where, orderBy, limit, getDocs, addDoc, serverTimestamp, updateDoc, doc, Timestamp } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { Coordinates } from "../utils/geo";
+import { getCurrentCairoDateString } from "../utils/timeUtils";
 
 export interface AttendanceCheckResult {
   hasCheckedIn: boolean;
@@ -35,6 +36,60 @@ export interface CheckInPayload {
   status: "on-time" | "late";
   location: Coordinates;
 }
+
+export const getTodayRecord = async (uid: string, companyId: string): Promise<CheckInRecord | null> => {
+  const todayDate = getCurrentCairoDateString();
+
+  const toRecord = (recordDoc: any): CheckInRecord => {
+    const data = recordDoc.data();
+    return {
+      id: recordDoc.id,
+      userId: data.userId || data.employeeId || uid,
+      userName: data.userName,
+      date: data.date,
+      check_in: data.check_in || data.checkInTime,
+      check_out: data.check_out || data.checkOutTime,
+      checkInTime: data.checkInTime || data.check_in || null,
+      checkOutTime: data.checkOutTime || data.check_out || null,
+      isLate: !!data.isLate,
+      status: data.status || (data.isLate ? "late" : "on-time"),
+      location: data.location,
+      workDuration: data.workDuration,
+    } as CheckInRecord;
+  };
+
+  // Primary query requested by product spec: employeeId + companyId + date
+  const byEmployeeId = query(
+    collection(db, "attendance"),
+    where("employeeId", "==", uid),
+    where("companyId", "==", companyId),
+    where("date", "==", todayDate),
+    orderBy("check_in", "desc"),
+    limit(1),
+  );
+
+  const byEmployeeIdSnap = await getDocs(byEmployeeId);
+  if (!byEmployeeIdSnap.empty) {
+    return toRecord(byEmployeeIdSnap.docs[0]);
+  }
+
+  // Backward compatibility for existing records using userId
+  const byUserId = query(
+    collection(db, "attendance"),
+    where("userId", "==", uid),
+    where("companyId", "==", companyId),
+    where("date", "==", todayDate),
+    orderBy("check_in", "desc"),
+    limit(1),
+  );
+
+  const byUserIdSnap = await getDocs(byUserId);
+  if (!byUserIdSnap.empty) {
+    return toRecord(byUserIdSnap.docs[0]);
+  }
+
+  return null;
+};
 
 /**
  * Query today's attendance record for a user
@@ -100,6 +155,7 @@ export const recordCheckIn = async (payload: CheckInPayload): Promise<string> =>
   try {
     const attendanceData = {
       userId: payload.userId,
+      employeeId: payload.userId,
       userName: payload.userName,
       companyId: payload.companyId,
       date: payload.date,
